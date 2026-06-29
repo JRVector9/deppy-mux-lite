@@ -2223,10 +2223,10 @@
     }
   },
   "pwa": {
-    "metaTitle": "dodomux Web",
-    "metaDescription": "ブラウザから dodomux のワークスペースとターミナルへ接続します。",
-    "title": "dodomux Web",
-    "subtitle": "デスクトップアプリで作成した有効な dodomux Web Access リンクを開き、ブラウザからワークスペースとターミナルへ接続します。",
+    "metaTitle": "dodomux-beta",
+    "metaDescription": "ブラウザから dodomux-beta のワークスペースとターミナルへ接続します。",
+    "title": "dodomux-beta",
+    "subtitle": "デスクトップアプリで作成した有効な dodomux-beta Web Access リンクを開き、ブラウザからワークスペースとターミナルへ接続します。",
     "mockBadge": "プレビュー transport",
     "deviceList": "デバイス",
     "workspaceList": "ワークスペース",
@@ -2256,11 +2256,11 @@
     "expires": "有効期限"
   },
   "webAccess": {
-    "metaTitle": "dodomux Web Access",
-    "metaDescription": "公開 Web アドレスから dodomux デスクトップセッションに接続します。",
+    "metaTitle": "dodomux-beta Web Access",
+    "metaDescription": "公開 Web アドレスから dodomux-beta デスクトップセッションに接続します。",
     "badge": "Web Access",
-    "title": "dodomux Web Access",
-    "subtitle": "この公開アドレスは dodomux デスクトップセッション用に予約されています。デスクトップアプリが relay に接続するとターミナルストリーミングを利用できます。",
+    "title": "dodomux-beta Web Access",
+    "subtitle": "この公開アドレスは dodomux-beta デスクトップセッション用に予約されています。デスクトップアプリが relay に接続するとターミナルストリーミングを利用できます。",
     "session": "セッション",
     "status": "状態",
     "waiting": "デスクトップ relay を待機中"

@@ -54,13 +54,13 @@ cmux_attach_socket_path() {
 
 # The locally-built tagged macOS Debug .app bundle path (cloud/local reloads both
 # download/install here). Both the DerivedData dir AND the .app basename use the
-# sanitized slug, matching reload.sh (`APP_NAME="dodomux DEV ${TAG_SLUG}"`); the raw
+# sanitized slug, matching reload.sh (`APP_NAME="dodomux-beta"`); the raw
 # tag would miss for any tag whose slug differs (e.g. "Fix Foo" -> "fix-foo").
 cmux_attach_mac_app_path() {
   local slug
   slug="$(cmux_attach__slug "$1")"
-  printf '%s/Library/Developer/Xcode/DerivedData/cmux-%s/Build/Products/Debug/dodomux DEV %s.app' \
-    "$HOME" "$slug" "$slug"
+  printf '%s/Library/Developer/Xcode/DerivedData/cmux-%s/Build/Products/Debug/dodomux-beta.app' \
+    "$HOME" "$slug"
 }
 
 # Enable the opt-in iOS pairing host on the tagged Mac bundle. Must be written
@@ -117,7 +117,7 @@ cmux_attach_ensure_mac() {
     fi
     echo "==> relaunching tagged Mac app to bind the pairing listener ($tag) [CMUX_ATTACH_ALLOW_RELAUNCH=1]" >&2
     # Scoped to this tag's executable only (never the stable app or other tags).
-    pkill -f "dodomux DEV ${slug}.app/Contents/MacOS/dodomux DEV" 2>/dev/null || true
+    pkill -f "dodomux-beta.app/Contents/MacOS/dodomux-beta" 2>/dev/null || true
     for _i in $(seq 1 25); do [[ -S "$sock" ]] || break; sleep 0.2; done
   fi
 

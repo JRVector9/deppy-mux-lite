@@ -1898,10 +1898,10 @@
     "done": "Gotovo"
   },
   "pwa": {
-    "metaTitle": "dodomux Web",
-    "metaDescription": "Povežite se s dodomux workspaceima i terminalima iz browsera.",
-    "title": "dodomux Web",
-    "subtitle": "Open active dodomux Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
+    "metaTitle": "dodomux-beta",
+    "metaDescription": "Povežite se s dodomux-beta workspaceima i terminalima iz browsera.",
+    "title": "dodomux-beta",
+    "subtitle": "Open active dodomux-beta Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
     "mockBadge": "Preview transport",
     "deviceList": "Uređaji",
     "workspaceList": "Workspacei",
@@ -1931,11 +1931,11 @@
     "expires": "Expires"
   },
   "webAccess": {
-    "metaTitle": "dodomux Web Access",
-    "metaDescription": "Povežite se s dodomux desktop sesijom preko javne web adrese.",
+    "metaTitle": "dodomux-beta Web Access",
+    "metaDescription": "Povežite se s dodomux-beta desktop sesijom preko javne web adrese.",
     "badge": "Web Access",
-    "title": "dodomux Web Access",
-    "subtitle": "Ova javna adresa je rezervisana za dodomux desktop sesiju. Terminalski streaming će biti dostupan kada se desktop aplikacija poveže na relay.",
+    "title": "dodomux-beta Web Access",
+    "subtitle": "Ova javna adresa je rezervisana za dodomux-beta desktop sesiju. Terminalski streaming će biti dostupan kada se desktop aplikacija poveže na relay.",
     "session": "Sesija",
     "status": "Status",
     "waiting": "Čekanje desktop relaya"

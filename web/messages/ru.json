@@ -1898,10 +1898,10 @@
     "done": "Готово"
   },
   "pwa": {
-    "metaTitle": "dodomux Web",
-    "metaDescription": "Подключайтесь к рабочим областям и терминалам dodomux из браузера.",
-    "title": "dodomux Web",
-    "subtitle": "Open active dodomux Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
+    "metaTitle": "dodomux-beta",
+    "metaDescription": "Подключайтесь к рабочим областям и терминалам dodomux-beta из браузера.",
+    "title": "dodomux-beta",
+    "subtitle": "Open active dodomux-beta Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
     "mockBadge": "Предпросмотр transport",
     "deviceList": "Устройства",
     "workspaceList": "Рабочие области",
@@ -1931,11 +1931,11 @@
     "expires": "Expires"
   },
   "webAccess": {
-    "metaTitle": "dodomux Web Access",
-    "metaDescription": "Подключайтесь к настольной сессии dodomux с публичного веб-адреса.",
+    "metaTitle": "dodomux-beta Web Access",
+    "metaDescription": "Подключайтесь к настольной сессии dodomux-beta с публичного веб-адреса.",
     "badge": "Web Access",
-    "title": "dodomux Web Access",
-    "subtitle": "Этот публичный адрес зарезервирован для настольной сессии dodomux. Поток терминала станет доступен, когда настольное приложение подключится к relay.",
+    "title": "dodomux-beta Web Access",
+    "subtitle": "Этот публичный адрес зарезервирован для настольной сессии dodomux-beta. Поток терминала станет доступен, когда настольное приложение подключится к relay.",
     "session": "Сессия",
     "status": "Статус",
     "waiting": "Ожидание desktop relay"

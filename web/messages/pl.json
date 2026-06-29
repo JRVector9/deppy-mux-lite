@@ -1898,10 +1898,10 @@
     "done": "Gotowe"
   },
   "pwa": {
-    "metaTitle": "dodomux Web",
-    "metaDescription": "Połącz się z workspaceami i terminalami dodomux z przeglądarki.",
-    "title": "dodomux Web",
-    "subtitle": "Open active dodomux Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
+    "metaTitle": "dodomux-beta",
+    "metaDescription": "Połącz się z workspaceami i terminalami dodomux-beta z przeglądarki.",
+    "title": "dodomux-beta",
+    "subtitle": "Open active dodomux-beta Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
     "mockBadge": "Transport podglądu",
     "deviceList": "Urządzenia",
     "workspaceList": "Workspace'y",
@@ -1931,11 +1931,11 @@
     "expires": "Expires"
   },
   "webAccess": {
-    "metaTitle": "dodomux Web Access",
-    "metaDescription": "Połącz się z sesją desktopową dodomux z publicznego adresu web.",
+    "metaTitle": "dodomux-beta Web Access",
+    "metaDescription": "Połącz się z sesją desktopową dodomux-beta z publicznego adresu web.",
     "badge": "Web Access",
-    "title": "dodomux Web Access",
-    "subtitle": "Ten publiczny adres jest zarezerwowany dla sesji desktopowej dodomux. Streaming terminala będzie dostępny, gdy aplikacja desktopowa połączy się z relayem.",
+    "title": "dodomux-beta Web Access",
+    "subtitle": "Ten publiczny adres jest zarezerwowany dla sesji desktopowej dodomux-beta. Streaming terminala będzie dostępny, gdy aplikacja desktopowa połączy się z relayem.",
     "session": "Sesja",
     "status": "Status",
     "waiting": "Oczekiwanie na relay desktopowy"

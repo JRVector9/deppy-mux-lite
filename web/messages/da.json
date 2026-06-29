@@ -1898,10 +1898,10 @@
     "done": "Færdig"
   },
   "pwa": {
-    "metaTitle": "dodomux Web",
-    "metaDescription": "Opret forbindelse til dodomux-workspaces og terminaler fra browseren.",
-    "title": "dodomux Web",
-    "subtitle": "Open active dodomux Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
+    "metaTitle": "dodomux-beta",
+    "metaDescription": "Opret forbindelse til dodomux-beta-workspaces og terminaler fra browseren.",
+    "title": "dodomux-beta",
+    "subtitle": "Open active dodomux-beta Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
     "mockBadge": "Preview-transport",
     "deviceList": "Enheder",
     "workspaceList": "Workspaces",
@@ -1931,11 +1931,11 @@
     "expires": "Expires"
   },
   "webAccess": {
-    "metaTitle": "dodomux Web Access",
-    "metaDescription": "Opret forbindelse til en dodomux-desktopsession fra en offentlig webadresse.",
+    "metaTitle": "dodomux-beta Web Access",
+    "metaDescription": "Opret forbindelse til en dodomux-beta-desktopsession fra en offentlig webadresse.",
     "badge": "Web Access",
-    "title": "dodomux Web Access",
-    "subtitle": "Denne offentlige adresse er reserveret til en dodomux-desktopsession. Terminalstreaming bliver tilgængelig, når desktop-appen er forbundet til relayet.",
+    "title": "dodomux-beta Web Access",
+    "subtitle": "Denne offentlige adresse er reserveret til en dodomux-beta-desktopsession. Terminalstreaming bliver tilgængelig, når desktop-appen er forbundet til relayet.",
     "session": "Session",
     "status": "Status",
     "waiting": "Venter på desktop-relay"

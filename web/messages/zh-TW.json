@@ -1898,10 +1898,10 @@
     "done": "完成"
   },
   "pwa": {
-    "metaTitle": "dodomux Web",
-    "metaDescription": "從瀏覽器連接到 dodomux 工作區和終端機。",
-    "title": "dodomux Web",
-    "subtitle": "Open active dodomux Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
+    "metaTitle": "dodomux-beta",
+    "metaDescription": "從瀏覽器連接到 dodomux-beta 工作區和終端機。",
+    "title": "dodomux-beta",
+    "subtitle": "Open active dodomux-beta Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
     "mockBadge": "預覽 transport",
     "deviceList": "裝置",
     "workspaceList": "工作區",
@@ -1931,11 +1931,11 @@
     "expires": "Expires"
   },
   "webAccess": {
-    "metaTitle": "dodomux Web Access",
-    "metaDescription": "透過公開 Web 位址連接到 dodomux 桌面工作階段。",
+    "metaTitle": "dodomux-beta Web Access",
+    "metaDescription": "透過公開 Web 位址連接到 dodomux-beta 桌面工作階段。",
     "badge": "Web Access",
-    "title": "dodomux Web Access",
-    "subtitle": "此公開位址已保留給 dodomux 桌面工作階段。桌面 App 連到 relay 後即可使用終端機串流。",
+    "title": "dodomux-beta Web Access",
+    "subtitle": "此公開位址已保留給 dodomux-beta 桌面工作階段。桌面 App 連到 relay 後即可使用終端機串流。",
     "session": "工作階段",
     "status": "狀態",
     "waiting": "等待桌面 relay"

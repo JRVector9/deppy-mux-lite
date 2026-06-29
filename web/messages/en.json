@@ -2277,10 +2277,10 @@
     }
   },
   "pwa": {
-    "metaTitle": "dodomux Web",
-    "metaDescription": "Connect to dodomux workspaces and terminals from the browser.",
-    "title": "dodomux Web",
-    "subtitle": "Open active dodomux Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
+    "metaTitle": "dodomux-beta",
+    "metaDescription": "Connect to dodomux-beta workspaces and terminals from the browser.",
+    "title": "dodomux-beta",
+    "subtitle": "Open active dodomux-beta Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
     "mockBadge": "Preview transport",
     "deviceList": "Devices",
     "workspaceList": "Workspaces",
@@ -2310,11 +2310,11 @@
     "expires": "Expires"
   },
   "webAccess": {
-    "metaTitle": "dodomux Web Access",
-    "metaDescription": "Connect to a dodomux desktop session from a public web address.",
+    "metaTitle": "dodomux-beta Web Access",
+    "metaDescription": "Connect to a dodomux-beta desktop session from a public web address.",
     "badge": "Web Access",
-    "title": "dodomux Web Access",
-    "subtitle": "This public address is reserved for a dodomux desktop session. Terminal streaming will become available when the desktop app is connected to the relay.",
+    "title": "dodomux-beta Web Access",
+    "subtitle": "This public address is reserved for a dodomux-beta desktop session. Terminal streaming will become available when the desktop app is connected to the relay.",
     "session": "Session",
     "status": "Status",
     "waiting": "Waiting for desktop relay"

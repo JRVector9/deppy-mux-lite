@@ -1898,10 +1898,10 @@
     "done": "完成"
   },
   "pwa": {
-    "metaTitle": "dodomux Web",
-    "metaDescription": "从浏览器连接到 dodomux 工作区和终端。",
-    "title": "dodomux Web",
-    "subtitle": "Open active dodomux Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
+    "metaTitle": "dodomux-beta",
+    "metaDescription": "从浏览器连接到 dodomux-beta 工作区和终端。",
+    "title": "dodomux-beta",
+    "subtitle": "Open active dodomux-beta Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
     "mockBadge": "预览 transport",
     "deviceList": "设备",
     "workspaceList": "工作区",
@@ -1931,11 +1931,11 @@
     "expires": "Expires"
   },
   "webAccess": {
-    "metaTitle": "dodomux Web Access",
-    "metaDescription": "通过公开 Web 地址连接到 dodomux 桌面会话。",
+    "metaTitle": "dodomux-beta Web Access",
+    "metaDescription": "通过公开 Web 地址连接到 dodomux-beta 桌面会话。",
     "badge": "Web Access",
-    "title": "dodomux Web Access",
-    "subtitle": "此公开地址已为一个 dodomux 桌面会话保留。桌面应用连接到 relay 后即可使用终端流。",
+    "title": "dodomux-beta Web Access",
+    "subtitle": "此公开地址已为一个 dodomux-beta 桌面会话保留。桌面应用连接到 relay 后即可使用终端流。",
     "session": "会话",
     "status": "状态",
     "waiting": "等待桌面 relay"

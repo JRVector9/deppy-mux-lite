@@ -1898,10 +1898,10 @@
     "done": "Terminé"
   },
   "pwa": {
-    "metaTitle": "dodomux Web",
-    "metaDescription": "Connectez-vous aux espaces de travail et terminaux dodomux depuis le navigateur.",
-    "title": "dodomux Web",
-    "subtitle": "Open active dodomux Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
+    "metaTitle": "dodomux-beta",
+    "metaDescription": "Connectez-vous aux espaces de travail et terminaux dodomux-beta depuis le navigateur.",
+    "title": "dodomux-beta",
+    "subtitle": "Open active dodomux-beta Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
     "mockBadge": "Transport d’aperçu",
     "deviceList": "Appareils",
     "workspaceList": "Espaces",
@@ -1931,11 +1931,11 @@
     "expires": "Expires"
   },
   "webAccess": {
-    "metaTitle": "dodomux Web Access",
-    "metaDescription": "Connectez-vous à une session de bureau dodomux depuis une adresse web publique.",
+    "metaTitle": "dodomux-beta Web Access",
+    "metaDescription": "Connectez-vous à une session de bureau dodomux-beta depuis une adresse web publique.",
     "badge": "Web Access",
-    "title": "dodomux Web Access",
-    "subtitle": "Cette adresse publique est réservée à une session de bureau dodomux. Le streaming du terminal sera disponible lorsque l’app de bureau sera connectée au relay.",
+    "title": "dodomux-beta Web Access",
+    "subtitle": "Cette adresse publique est réservée à une session de bureau dodomux-beta. Le streaming du terminal sera disponible lorsque l’app de bureau sera connectée au relay.",
     "session": "Session",
     "status": "État",
     "waiting": "En attente du relay de bureau"

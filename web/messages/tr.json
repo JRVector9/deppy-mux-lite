@@ -1898,10 +1898,10 @@
     "done": "Tamam"
   },
   "pwa": {
-    "metaTitle": "dodomux Web",
-    "metaDescription": "Tarayıcıdan dodomux workspace'lerine ve terminallerine bağlanın.",
-    "title": "dodomux Web",
-    "subtitle": "Open active dodomux Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
+    "metaTitle": "dodomux-beta",
+    "metaDescription": "Tarayıcıdan dodomux-beta workspace'lerine ve terminallerine bağlanın.",
+    "title": "dodomux-beta",
+    "subtitle": "Open active dodomux-beta Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
     "mockBadge": "Önizleme transport",
     "deviceList": "Cihazlar",
     "workspaceList": "Workspace'ler",
@@ -1931,11 +1931,11 @@
     "expires": "Expires"
   },
   "webAccess": {
-    "metaTitle": "dodomux Web Access",
-    "metaDescription": "Genel bir web adresinden dodomux masaüstü oturumuna bağlanın.",
+    "metaTitle": "dodomux-beta Web Access",
+    "metaDescription": "Genel bir web adresinden dodomux-beta masaüstü oturumuna bağlanın.",
     "badge": "Web Access",
-    "title": "dodomux Web Access",
-    "subtitle": "Bu genel adres bir dodomux masaüstü oturumu için ayrıldı. Masaüstü uygulaması relaye bağlandığında terminal akışı kullanılabilir olacak.",
+    "title": "dodomux-beta Web Access",
+    "subtitle": "Bu genel adres bir dodomux-beta masaüstü oturumu için ayrıldı. Masaüstü uygulaması relaye bağlandığında terminal akışı kullanılabilir olacak.",
     "session": "Oturum",
     "status": "Durum",
     "waiting": "Masaüstü relayi bekleniyor"

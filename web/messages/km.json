@@ -1898,10 +1898,10 @@
     "done": "រួចរាល់"
   },
   "pwa": {
-    "metaTitle": "dodomux Web",
-    "metaDescription": "ភ្ជាប់ទៅ workspace និង terminal របស់ dodomux ពី browser។",
-    "title": "dodomux Web",
-    "subtitle": "Open active dodomux Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
+    "metaTitle": "dodomux-beta",
+    "metaDescription": "ភ្ជាប់ទៅ workspace និង terminal របស់ dodomux-beta ពី browser។",
+    "title": "dodomux-beta",
+    "subtitle": "Open active dodomux-beta Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
     "mockBadge": "Preview transport",
     "deviceList": "ឧបករណ៍",
     "workspaceList": "Workspace",
@@ -1931,11 +1931,11 @@
     "expires": "Expires"
   },
   "webAccess": {
-    "metaTitle": "dodomux Web Access",
-    "metaDescription": "ភ្ជាប់ទៅ dodomux desktop session ពីអាសយដ្ឋាន web សាធារណៈ។",
+    "metaTitle": "dodomux-beta Web Access",
+    "metaDescription": "ភ្ជាប់ទៅ dodomux-beta desktop session ពីអាសយដ្ឋាន web សាធារណៈ។",
     "badge": "Web Access",
-    "title": "dodomux Web Access",
-    "subtitle": "អាសយដ្ឋានសាធារណៈនេះត្រូវបានរក្សាទុកសម្រាប់ dodomux desktop session។ Terminal streaming នឹងអាចប្រើបាននៅពេល desktop app ភ្ជាប់ទៅ relay។",
+    "title": "dodomux-beta Web Access",
+    "subtitle": "អាសយដ្ឋានសាធារណៈនេះត្រូវបានរក្សាទុកសម្រាប់ dodomux-beta desktop session។ Terminal streaming នឹងអាចប្រើបាននៅពេល desktop app ភ្ជាប់ទៅ relay។",
     "session": "Session",
     "status": "ស្ថានភាព",
     "waiting": "កំពុងរង់ចាំ desktop relay"

@@ -1981,10 +1981,10 @@
     "done": "Готово"
   },
   "pwa": {
-    "metaTitle": "dodomux Web",
-    "metaDescription": "Підключайтеся до робочих просторів і терміналів dodomux з браузера.",
-    "title": "dodomux Web",
-    "subtitle": "Open active dodomux Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
+    "metaTitle": "dodomux-beta",
+    "metaDescription": "Підключайтеся до робочих просторів і терміналів dodomux-beta з браузера.",
+    "title": "dodomux-beta",
+    "subtitle": "Open active dodomux-beta Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
     "mockBadge": "Попередній transport",
     "deviceList": "Пристрої",
     "workspaceList": "Робочі простори",
@@ -2014,11 +2014,11 @@
     "expires": "Expires"
   },
   "webAccess": {
-    "metaTitle": "dodomux Web Access",
-    "metaDescription": "Підключайтеся до desktop-сесії dodomux з публічної веб-адреси.",
+    "metaTitle": "dodomux-beta Web Access",
+    "metaDescription": "Підключайтеся до desktop-сесії dodomux-beta з публічної веб-адреси.",
     "badge": "Web Access",
-    "title": "dodomux Web Access",
-    "subtitle": "Ця публічна адреса зарезервована для desktop-сесії dodomux. Потік термінала стане доступним, коли desktop-застосунок підключиться до relay.",
+    "title": "dodomux-beta Web Access",
+    "subtitle": "Ця публічна адреса зарезервована для desktop-сесії dodomux-beta. Потік термінала стане доступним, коли desktop-застосунок підключиться до relay.",
     "session": "Сесія",
     "status": "Статус",
     "waiting": "Очікування desktop relay"

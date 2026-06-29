@@ -1898,10 +1898,10 @@
     "done": "완료"
   },
   "pwa": {
-    "metaTitle": "dodomux Web",
-    "metaDescription": "브라우저에서 dodomux 워크스페이스와 터미널에 연결합니다.",
-    "title": "dodomux Web",
-    "subtitle": "데스크톱 앱에서 만든 활성 dodomux Web Access 링크를 열고, 브라우저에서 워크스페이스와 터미널에 연결합니다.",
+    "metaTitle": "dodomux-beta",
+    "metaDescription": "브라우저에서 dodomux-beta 워크스페이스와 터미널에 연결합니다.",
+    "title": "dodomux-beta",
+    "subtitle": "데스크톱 앱에서 만든 활성 dodomux-beta Web Access 링크를 열고, 브라우저에서 워크스페이스와 터미널에 연결합니다.",
     "mockBadge": "프리뷰 transport",
     "deviceList": "디바이스",
     "workspaceList": "워크스페이스",
@@ -1931,11 +1931,11 @@
     "expires": "만료"
   },
   "webAccess": {
-    "metaTitle": "dodomux Web Access",
-    "metaDescription": "공개 웹 주소에서 dodomux 데스크톱 세션에 연결합니다.",
+    "metaTitle": "dodomux-beta Web Access",
+    "metaDescription": "공개 웹 주소에서 dodomux-beta 데스크톱 세션에 연결합니다.",
     "badge": "Web Access",
-    "title": "dodomux Web Access",
-    "subtitle": "이 공개 주소는 dodomux 데스크톱 세션용으로 예약되어 있습니다. 데스크톱 앱이 relay에 연결되면 터미널 스트리밍을 사용할 수 있습니다.",
+    "title": "dodomux-beta Web Access",
+    "subtitle": "이 공개 주소는 dodomux-beta 데스크톱 세션용으로 예약되어 있습니다. 데스크톱 앱이 relay에 연결되면 터미널 스트리밍을 사용할 수 있습니다.",
     "session": "세션",
     "status": "상태",
     "waiting": "데스크톱 relay 대기 중"

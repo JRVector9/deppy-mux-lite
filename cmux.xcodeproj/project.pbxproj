@@ -5179,7 +5179,7 @@
 					Carbon,
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.dodomux.app.debug;
-				PRODUCT_NAME = "dodomux DEV";
+				PRODUCT_NAME = "dodomux-beta";
 				OTHER_SWIFT_FLAGS = (
 					"-Xllvm",
 					"-global-isel=0",
@@ -5226,7 +5226,7 @@
 					Carbon,
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.dodomux.app;
-				PRODUCT_NAME = dodomux;
+				PRODUCT_NAME = "dodomux-beta";
 				SPARKLE_PUBLIC_KEY = "avjcgKibf1FTvhIjLBxhd+0HSpsXU4D0IGlVk8cgqRc=";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "cmux-Bridging-Header.h";
@@ -5353,7 +5353,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/dodomux DEV.app/Contents/MacOS/dodomux DEV";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/dodomux-beta.app/Contents/MacOS/dodomux-beta";
 				TEST_TARGET_NAME = cmux;
 			};
 			name = Debug;

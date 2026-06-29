@@ -1898,10 +1898,10 @@
     "done": "เสร็จสิ้น"
   },
   "pwa": {
-    "metaTitle": "dodomux Web",
-    "metaDescription": "เชื่อมต่อ workspace และ terminal ของ dodomux จากเบราว์เซอร์",
-    "title": "dodomux Web",
-    "subtitle": "Open active dodomux Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
+    "metaTitle": "dodomux-beta",
+    "metaDescription": "เชื่อมต่อ workspace และ terminal ของ dodomux-beta จากเบราว์เซอร์",
+    "title": "dodomux-beta",
+    "subtitle": "Open active dodomux-beta Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
     "mockBadge": "Preview transport",
     "deviceList": "อุปกรณ์",
     "workspaceList": "Workspace",
@@ -1931,11 +1931,11 @@
     "expires": "Expires"
   },
   "webAccess": {
-    "metaTitle": "dodomux Web Access",
-    "metaDescription": "เชื่อมต่อกับเซสชัน desktop ของ dodomux จากที่อยู่เว็บสาธารณะ",
+    "metaTitle": "dodomux-beta Web Access",
+    "metaDescription": "เชื่อมต่อกับเซสชัน desktop ของ dodomux-beta จากที่อยู่เว็บสาธารณะ",
     "badge": "Web Access",
-    "title": "dodomux Web Access",
-    "subtitle": "ที่อยู่สาธารณะนี้ถูกจองไว้สำหรับเซสชัน desktop ของ dodomux การสตรีม terminal จะใช้ได้เมื่อแอป desktop เชื่อมต่อกับ relay",
+    "title": "dodomux-beta Web Access",
+    "subtitle": "ที่อยู่สาธารณะนี้ถูกจองไว้สำหรับเซสชัน desktop ของ dodomux-beta การสตรีม terminal จะใช้ได้เมื่อแอป desktop เชื่อมต่อกับ relay",
     "session": "เซสชัน",
     "status": "สถานะ",
     "waiting": "กำลังรอ desktop relay"

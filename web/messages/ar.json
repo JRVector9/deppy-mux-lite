@@ -1898,10 +1898,10 @@
     "done": "تم"
   },
   "pwa": {
-    "metaTitle": "dodomux Web",
-    "metaDescription": "اتصل بمساحات عمل dodomux والطرفيات من المتصفح.",
-    "title": "dodomux Web",
-    "subtitle": "Open active dodomux Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
+    "metaTitle": "dodomux-beta",
+    "metaDescription": "اتصل بمساحات عمل dodomux-beta والطرفيات من المتصفح.",
+    "title": "dodomux-beta",
+    "subtitle": "Open active dodomux-beta Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
     "mockBadge": "نقل المعاينة",
     "deviceList": "الأجهزة",
     "workspaceList": "مساحات العمل",
@@ -1931,11 +1931,11 @@
     "expires": "Expires"
   },
   "webAccess": {
-    "metaTitle": "dodomux Web Access",
-    "metaDescription": "اتصل بجلسة dodomux على سطح المكتب من عنوان ويب عام.",
+    "metaTitle": "dodomux-beta Web Access",
+    "metaDescription": "اتصل بجلسة dodomux-beta على سطح المكتب من عنوان ويب عام.",
     "badge": "Web Access",
-    "title": "dodomux Web Access",
-    "subtitle": "هذا العنوان العام محجوز لجلسة dodomux على سطح المكتب. سيصبح بث الطرفية متاحا عندما يتصل تطبيق سطح المكتب بالrelay.",
+    "title": "dodomux-beta Web Access",
+    "subtitle": "هذا العنوان العام محجوز لجلسة dodomux-beta على سطح المكتب. سيصبح بث الطرفية متاحا عندما يتصل تطبيق سطح المكتب بالrelay.",
     "session": "الجلسة",
     "status": "الحالة",
     "waiting": "بانتظار relay سطح المكتب"
