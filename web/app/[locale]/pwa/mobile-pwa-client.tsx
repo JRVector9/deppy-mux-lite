@@ -78,9 +78,9 @@ export function MobilePwaClient({ authEnabled, copy, signInHref }: MobilePwaClie
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <section className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
-        <header className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="max-w-3xl">
+      <section className="mx-auto flex min-h-svh w-full max-w-4xl flex-col gap-4 px-3 py-3 sm:gap-5 sm:px-6 sm:py-5 lg:px-8">
+        <header className="flex flex-col gap-3 border-b border-border pb-3 sm:flex-row sm:items-end sm:justify-between sm:pb-4">
+          <div className="min-w-0 max-w-3xl">
             <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">
               {copy.title}
             </h1>
@@ -88,7 +88,7 @@ export function MobilePwaClient({ authEnabled, copy, signInHref }: MobilePwaClie
               {copy.subtitle}
             </p>
           </div>
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex shrink-0 items-center gap-2 text-sm">
             <span
               className={`h-2.5 w-2.5 rounded-full ${
                 status === "ready" && sessions.some((session) => session.connected)
@@ -136,25 +136,25 @@ export function MobilePwaClient({ authEnabled, copy, signInHref }: MobilePwaClie
           <div className="grid gap-3">
             {sessions.map((session) => (
               <a
-                className="rounded border border-border bg-code-bg p-4 transition-colors hover:border-foreground"
+                className="rounded border border-border bg-code-bg p-3 transition-colors hover:border-foreground sm:p-4"
                 href={session.publicPath}
                 key={session.slug}
               >
-                <span className="flex flex-wrap items-center justify-between gap-3">
-                  <span>
-                    <span className="block font-medium">
+                <span className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">
                       {session.displayName ?? session.deviceId ?? session.slug}
                     </span>
-                    <span className="mt-1 block font-mono text-xs text-muted">
+                    <span className="mt-1 block truncate font-mono text-xs text-muted">
                       {session.slug}
                     </span>
                   </span>
-                  <span className="rounded border border-border px-2 py-1 text-xs">
+                  <span className="w-fit rounded border border-border px-2 py-1 text-xs">
                     {session.connected ? copy.connected : copy.loadingDevices}
                   </span>
                 </span>
-                <span className="mt-3 flex items-center justify-between gap-3 text-xs text-muted">
-                  <span>
+                <span className="mt-3 flex flex-col gap-2 text-xs text-muted sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                  <span className="truncate">
                     {copy.expires}: {formatDate(session.expiresAt)}
                   </span>
                   <span className="font-medium text-foreground">{copy.open}</span>

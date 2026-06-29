@@ -36,18 +36,22 @@ export default async function WebAccessPage({ params }: WebAccessPageProps) {
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <section className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-5 py-10">
-        <div className="border-b border-border pb-5">
+      <section className="mx-auto flex min-h-svh w-full max-w-6xl flex-col px-3 py-3 sm:px-5 sm:py-6 lg:py-8">
+        <div className="border-b border-border pb-3 sm:pb-5">
           <p className="mb-3 font-mono text-xs uppercase tracking-normal text-muted">
             {t("badge")}
           </p>
-          <h1 className="text-3xl font-semibold tracking-normal">{t("title")}</h1>
-          <p className="mt-3 text-sm leading-6 text-muted">{t("subtitle")}</p>
+          <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">
+            {t("title")}
+          </h1>
+          <p className="mt-2 hidden max-w-3xl text-sm leading-6 text-muted sm:block">
+            {t("subtitle")}
+          </p>
         </div>
-        <div className="grid gap-3 py-5 text-sm">
-          <div className="rounded border border-border bg-code-bg p-3">
+        <div className="grid gap-3 py-3 text-sm sm:py-5">
+          <div className="rounded border border-border bg-code-bg p-3 sm:max-w-xl">
             <div className="text-xs text-muted">{t("session")}</div>
-            <div className="mt-1 font-mono">{slug}</div>
+            <div className="mt-1 truncate font-mono">{slug}</div>
           </div>
         </div>
         <WebAccessSessionClient

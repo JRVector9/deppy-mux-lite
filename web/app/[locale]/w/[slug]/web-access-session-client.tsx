@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { MobileRpcClient } from "@/services/mobile-rpc/client";
 import type {
@@ -49,6 +49,8 @@ const webClientId = "web-access";
 const terminalLineHeightEm = 1.35;
 const webTerminalDefaultForeground = "#d8d8d8";
 const webTerminalDefaultBackground = "#050505";
+const estimatedTerminalFontPx = 12;
+const estimatedTerminalCellWidthPx = 7.2;
 
 type TerminalSnapshot =
   | { kind: "render-grid"; frame: MobileRenderGridFrame }
@@ -83,6 +85,8 @@ export function WebAccessSessionClient({
   const [terminalSnapshot, setTerminalSnapshot] = useState<TerminalSnapshot | null>(
     null,
   );
+  const terminalViewportRef = useRef<HTMLDivElement | null>(null);
+  const [viewport, setViewport] = useState({ columns: 80, rows: 24 });
 
   useEffect(() => {
     let cancelled = false;
@@ -162,6 +166,38 @@ export function WebAccessSessionClient({
     : null;
 
   useEffect(() => {
+    const element = terminalViewportRef.current;
+    if (!element || typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const updateViewport = () => {
+      const rect = element.getBoundingClientRect();
+      const columns = Math.max(
+        32,
+        Math.min(160, Math.floor(rect.width / estimatedTerminalCellWidthPx)),
+      );
+      const rows = Math.max(
+        12,
+        Math.min(
+          60,
+          Math.floor(rect.height / (estimatedTerminalFontPx * terminalLineHeightEm)),
+        ),
+      );
+      setViewport((current) =>
+        current.columns === columns && current.rows === rows
+          ? current
+          : { columns, rows },
+      );
+    };
+
+    const observer = new ResizeObserver(updateViewport);
+    observer.observe(element);
+    updateViewport();
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     if (!connected || !target) {
       setTerminalSnapshot(null);
       return;
@@ -190,7 +226,7 @@ export function WebAccessSessionClient({
     }
 
     void client
-      .updateViewport(capturedTarget, { columns: 80, rows: 24 })
+      .updateViewport(capturedTarget, viewport)
       .catch(() => {});
     void refreshTerminalScreen();
     const interval = globalThis.setInterval(
@@ -201,7 +237,7 @@ export function WebAccessSessionClient({
       cancelled = true;
       globalThis.clearInterval(interval);
     };
-  }, [client, connected, target?.surfaceId, target?.workspaceId]);
+  }, [client, connected, target?.surfaceId, target?.workspaceId, viewport]);
 
   async function refreshTerminalScreen(capturedTarget: MobileTerminalTarget) {
     try {
@@ -220,7 +256,7 @@ export function WebAccessSessionClient({
     const capturedTarget = target;
     await client.pasteText(capturedTarget, text, {
       submitKey: "return",
-      viewport: { columns: 80, rows: 24 },
+      viewport,
     });
     setComposer((current) => (current.trimEnd() === text ? "" : current));
     setTranscript((current) => [
@@ -244,8 +280,8 @@ export function WebAccessSessionClient({
   }
 
   return (
-    <div className="grid gap-4 py-5 text-sm lg:grid-cols-[240px_minmax(0,1fr)]">
-      <aside className="space-y-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 py-3 text-sm lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-4 lg:py-5">
+      <aside className="min-w-0 space-y-3 lg:space-y-4">
         <div className="rounded border border-border bg-code-bg p-3">
           <div className="text-xs text-muted">{copy.status}</div>
           <div className="mt-1">{connected ? copy.connected : copy.waiting}</div>
@@ -265,10 +301,10 @@ export function WebAccessSessionClient({
           <h2 className="mb-2 text-xs font-medium uppercase tracking-normal text-muted">
             {copy.workspaceList}
           </h2>
-          <div className="space-y-2">
+          <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 lg:mx-0 lg:block lg:space-y-2 lg:overflow-visible lg:px-0 lg:pb-0">
             {workspaces.map((workspace) => (
               <button
-                className={`w-full rounded border px-3 py-2 text-left ${
+                className={`min-w-56 flex-none rounded border px-3 py-2 text-left lg:w-full ${
                   workspace.id === selectedWorkspace?.id
                     ? "border-foreground bg-foreground text-background"
                     : "border-border bg-background hover:bg-code-bg"
@@ -281,9 +317,9 @@ export function WebAccessSessionClient({
                 type="button"
               >
                 <span className="flex items-center justify-between gap-2">
-                  <span className="font-medium">{workspace.title}</span>
+                  <span className="min-w-0 truncate font-medium">{workspace.title}</span>
                   {workspace.id === selectedWorkspace?.id ? (
-                    <span className="text-xs">{copy.selected}</span>
+                    <span className="shrink-0 text-xs">{copy.selected}</span>
                   ) : null}
                 </span>
                 {workspace.currentDirectory ? (
@@ -297,16 +333,16 @@ export function WebAccessSessionClient({
         </section>
       </aside>
 
-      <section className="min-w-0 rounded border border-border bg-code-bg">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
-          <div>
+      <section className="flex min-h-[58svh] min-w-0 flex-1 flex-col rounded border border-border bg-code-bg lg:min-h-0">
+        <div className="flex flex-col gap-2 border-b border-border px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <div className="text-xs text-muted">{copy.terminal}</div>
-            <div className="font-mono text-sm">{selectedTerminal?.title ?? "..."}</div>
+            <div className="truncate font-mono text-sm">{selectedTerminal?.title ?? "..."}</div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
             {selectedWorkspace?.terminals.map((terminal) => (
               <button
-                className={`rounded border px-2 py-1 text-xs ${
+                className={`shrink-0 rounded border px-2 py-1 text-xs ${
                   terminal.id === selectedTerminal?.id
                     ? "border-foreground bg-foreground text-background"
                     : "border-border bg-background hover:bg-code-bg"
@@ -320,7 +356,10 @@ export function WebAccessSessionClient({
             ))}
           </div>
         </div>
-        <div className="min-h-64 overflow-auto p-3">
+        <div
+          className="min-h-0 flex-1 overflow-auto p-2 sm:p-3"
+          ref={terminalViewportRef}
+        >
           {terminalSnapshot?.kind === "render-grid" ? (
             <TerminalRenderGridView frame={terminalSnapshot.frame} />
           ) : terminalSnapshot?.kind === "text" && terminalSnapshot.text ? (
@@ -337,9 +376,9 @@ export function WebAccessSessionClient({
             </div>
           )}
         </div>
-        <div className="flex gap-2 border-t border-border p-3">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2 border-t border-border p-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:p-3">
           <input
-            className="min-w-0 flex-1 rounded border border-border bg-background px-3 py-2 text-sm outline-none"
+            className="min-w-0 rounded border border-border bg-background px-3 py-3 text-base outline-none sm:py-2 sm:text-sm"
             disabled={!target}
             onChange={(event) => setComposer(event.target.value)}
             onKeyDown={(event) => {
@@ -352,7 +391,7 @@ export function WebAccessSessionClient({
             value={composer}
           />
           <button
-            className="rounded bg-foreground px-3 py-2 text-sm font-medium text-background disabled:opacity-40"
+            className="rounded bg-foreground px-3 py-3 text-sm font-medium text-background disabled:opacity-40 sm:py-2"
             disabled={!target || composer.trimEnd().length === 0}
             onClick={() => void sendComposer()}
             type="button"
@@ -360,7 +399,7 @@ export function WebAccessSessionClient({
             {copy.send}
           </button>
           <button
-            className="rounded border border-border px-3 py-2 text-sm disabled:opacity-40"
+            className="rounded border border-border px-3 py-3 text-sm disabled:opacity-40 sm:py-2"
             disabled={!target}
             onClick={() => void sendEnter()}
             type="button"
@@ -368,7 +407,7 @@ export function WebAccessSessionClient({
             {copy.enter}
           </button>
           <button
-            className="rounded border border-border px-3 py-2 text-sm"
+            className="col-span-3 rounded border border-border px-3 py-3 text-sm sm:col-span-1 sm:py-2"
             onClick={() => setTranscript([])}
             type="button"
           >
