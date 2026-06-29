@@ -286,7 +286,7 @@ struct CMUXInstalledExtensionSidebarHostView: View {
             isLoading = false
             errorText = String(
                 localized: "sidebar.extensions.error",
-                defaultValue: "DODOMUX could not load sidebar extensions."
+                defaultValue: "deppy-mux could not load sidebar extensions."
             )
         }
     }
@@ -307,7 +307,7 @@ struct CMUXInstalledExtensionSidebarHostView: View {
         }
         return String(
             localized: "sidebar.extensions.empty.detail",
-            defaultValue: "Install and enable a DODOMUX sidebar extension to show it here."
+            defaultValue: "Install and enable a deppy-mux sidebar extension to show it here."
         )
     }
 
@@ -315,7 +315,7 @@ struct CMUXInstalledExtensionSidebarHostView: View {
         if unapprovedExtensionCount > 0 {
             return String(
                 localized: "sidebar.extensions.unapproved.detail",
-                defaultValue: "An installed sidebar extension needs approval before DODOMUX can use it."
+                defaultValue: "An installed sidebar extension needs approval before deppy-mux can use it."
             )
         }
         return String(
@@ -579,15 +579,15 @@ struct CMUXInstalledExtensionSidebarHostView: View {
     private func blockedDetailText(reason: String) -> String {
         switch reason {
         case "connectionInterrupted":
-            return String(localized: "sidebar.extensions.blocked.detail.connectionInterrupted", defaultValue: "DODOMUX lost the extension connection. No workspace data or actions are being shared.")
+            return String(localized: "sidebar.extensions.blocked.detail.connectionInterrupted", defaultValue: "deppy-mux lost the extension connection. No workspace data or actions are being shared.")
         case "manifestTimedOut":
-            return String(localized: "sidebar.extensions.blocked.detail.manifestTimedOut", defaultValue: "DODOMUX did not receive this extension's configuration in time. No workspace data or actions are being shared.")
+            return String(localized: "sidebar.extensions.blocked.detail.manifestTimedOut", defaultValue: "deppy-mux did not receive this extension's configuration in time. No workspace data or actions are being shared.")
         case "missingManifest":
-            return String(localized: "sidebar.extensions.blocked.detail.missingManifest", defaultValue: "DODOMUX did not receive a sidebar extension configuration, so no workspace data or actions were shared.")
+            return String(localized: "sidebar.extensions.blocked.detail.missingManifest", defaultValue: "deppy-mux did not receive a sidebar extension configuration, so no workspace data or actions were shared.")
         case "invalidManifest":
-            return String(localized: "sidebar.extensions.blocked.detail.invalidManifest", defaultValue: "DODOMUX rejected this extension's configuration. No workspace data or actions were shared.")
+            return String(localized: "sidebar.extensions.blocked.detail.invalidManifest", defaultValue: "deppy-mux rejected this extension's configuration. No workspace data or actions were shared.")
         default:
-            return String(localized: "sidebar.extensions.blocked.detail.failedManifest", defaultValue: "DODOMUX could not load this extension's configuration. No workspace data or actions were shared.")
+            return String(localized: "sidebar.extensions.blocked.detail.failedManifest", defaultValue: "deppy-mux could not load this extension's configuration. No workspace data or actions were shared.")
         }
     }
 
@@ -775,7 +775,7 @@ struct CMUXInstalledExtensionSidebarHostView: View {
                 }
             }
 
-            Text(String(localized: "sidebar.extensions.access.review.detail", defaultValue: "DODOMUX will only share the following data and actions if you allow this request."))
+            Text(String(localized: "sidebar.extensions.access.review.detail", defaultValue: "deppy-mux will only share the following data and actions if you allow this request."))
                 .cmuxFont(size: 12)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
