@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import CmuxCore
 import CmuxRemoteSession
 import Foundation
@@ -88,3 +89,4 @@ final class WorkspaceRemoteSessionHostAdapter: RemoteSessionHosting, @unchecked 
         }
     }
 }
+#endif

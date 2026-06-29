@@ -1,5 +1,7 @@
 import CmuxFoundation
+#if !DEPPY_LITE
 import CmuxRemoteSession
+#endif
 import Foundation
 import Darwin
 

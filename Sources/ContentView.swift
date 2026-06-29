@@ -9,16 +9,26 @@ import CmuxSettings
 import CmuxWorkspaces
 import Bonsplit
 import Combine
+#if !DEPPY_LITE
 import CmuxSidebarInterpreterClient
+#endif
 import CmuxTerminal
+#if !DEPPY_LITE
 @_spi(CmuxHostTransport) import CmuxExtensionKit
+#endif
 import CmuxSidebarProviderKit
+#if !DEPPY_LITE
 import CmuxExtensionSidebarExamples
+#endif
 import CmuxSettingsUI
+#if !DEPPY_LITE
 import CmuxSidebar
+#endif
+#if !DEPPY_LITE
 import CmuxSidebarRemoteRender
 import CmuxSwiftRender
 import CmuxSwiftRenderUI
+#endif
 #if !DEPPY_LITE
 import CmuxUpdater
 import CmuxUpdaterUI
@@ -10990,12 +11000,14 @@ struct VerticalTabsSidebar: View {
             .onReceive(extensionSidebarDebouncedObservationPublisher) { _ in
                 refreshExtensionSidebarSnapshot()
             }
+            #if !DEPPY_LITE
             .onReceive(
                 NotificationCenter.default.publisher(for: BrowserStackSidebar.stateDidLoadNotification)
                     .receive(on: RunLoop.main)
             ) { _ in
                 refreshExtensionSidebarSnapshot()
             }
+            #endif
         }
     }
 

@@ -1,4 +1,6 @@
+#if !DEPPY_LITE
 @_spi(CmuxHostTransport) import CmuxSidebar
+#endif
 import AppKit
 import CmuxFoundation
 import SwiftUI

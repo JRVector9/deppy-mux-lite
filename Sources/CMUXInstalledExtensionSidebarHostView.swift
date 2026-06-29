@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import CmuxFoundation
 @_spi(CmuxHostTransport) import CmuxSidebar
 @_spi(CmuxHostTransport) import CmuxExtensionKit
@@ -105,6 +106,7 @@ private struct CMUXSidebarExtensionGrantStore {
         }
     }
 }
+#endif
 
 private struct CMUXSidebarExtensionLimitedChoiceStore {
     private static let defaultsKey = "cmuxExtensionSidebar.limitedChoices.v1"

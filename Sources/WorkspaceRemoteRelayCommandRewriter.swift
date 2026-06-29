@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import CmuxRemoteWorkspace
 import Foundation
 
@@ -17,3 +18,4 @@ struct WorkspaceRemoteRelayCommandRewriter: RemoteRelayCommandRewriting {
         )
     }
 }
+#endif

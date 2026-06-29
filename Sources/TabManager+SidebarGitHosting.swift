@@ -1,7 +1,9 @@
 import Foundation
 import CmuxGit
+#if !DEPPY_LITE
 import CmuxSidebarGit
 import CmuxSidebar
+#endif
 
 // MARK: - SidebarGitHosting conformance
 //

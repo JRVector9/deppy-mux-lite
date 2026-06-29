@@ -1,5 +1,7 @@
 import AppKit
+#if !DEPPY_LITE
 import CmuxRemoteSession
+#endif
 import Bonsplit
 import CmuxControlSocket
 import Foundation

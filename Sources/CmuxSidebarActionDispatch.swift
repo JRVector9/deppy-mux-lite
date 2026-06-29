@@ -1,6 +1,8 @@
 import AppKit
+#if !DEPPY_LITE
 import CmuxSwiftRender
 import CmuxSwiftRenderUI
+#endif
 import Foundation
 
 /// Serial lane for in-process `cmux(...)` sidebar actions. Worker-lane methods

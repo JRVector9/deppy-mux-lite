@@ -1,5 +1,9 @@
+#if !DEPPY_LITE
 import CmuxSidebar
+#endif
+#if !DEPPY_LITE
 import CmuxSwiftRender
+#endif
 import Foundation
 
 @MainActor

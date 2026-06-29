@@ -2,7 +2,9 @@ import Foundation
 import CmuxCore
 import Darwin
 import CmuxNotifications
+#if !DEPPY_LITE
 import CmuxSidebar
+#endif
 
 extension Workspace {
     struct DetachedAgentRuntimeState {

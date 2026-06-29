@@ -1,7 +1,11 @@
 import AppKit
 import CmuxCommandPalette
+#if !DEPPY_LITE
 import CmuxSidebar
+#endif
+#if !DEPPY_LITE
 import CmuxSwiftRender
+#endif
 
 extension ContentView {
     static func commandPaletteShortcutAction(forCommandID commandId: String) -> KeyboardShortcutSettings.Action? {

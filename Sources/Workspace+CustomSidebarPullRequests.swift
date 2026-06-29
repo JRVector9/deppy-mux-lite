@@ -1,4 +1,6 @@
+#if !DEPPY_LITE
 import CmuxSwiftRender
+#endif
 import Foundation
 
 extension Workspace {

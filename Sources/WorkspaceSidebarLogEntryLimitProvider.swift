@@ -1,4 +1,6 @@
+#if !DEPPY_LITE
 import CmuxSidebar
+#endif
 import Foundation
 
 /// App-side conformer for the sidebar-metadata model's log-entry limit seam.

@@ -1,7 +1,9 @@
 import AppKit
 import CmuxAppKitSupportUI
 import CmuxFoundation
+#if !DEPPY_LITE
 import CmuxSidebar
+#endif
 import SwiftUI
 import CmuxSettings
 

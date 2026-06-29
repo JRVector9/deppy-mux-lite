@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import CmuxCore
 import CmuxRemoteSession
 import Foundation
@@ -19,3 +20,4 @@ struct WorkspaceRemoteSessionBuildInfo: RemoteSessionBuildInfoProviding {
         Bundle.main.executableURL?.deletingLastPathComponent()
     }
 }
+#endif

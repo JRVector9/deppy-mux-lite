@@ -1,11 +1,15 @@
 import CmuxAppKitSupportUI
 import CmuxSettings
 import CmuxSettingsUI
+#if !DEPPY_LITE
 import CmuxSidebar
+#endif
+#if !DEPPY_LITE
 import CmuxSidebarInterpreterClient
 import CmuxSidebarRemoteRender
 import CmuxSwiftRender
 import CmuxSwiftRenderUI
+#endif
 import SwiftUI
 
 struct CustomSidebarPanelView: View {

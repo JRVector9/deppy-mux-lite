@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import CmuxRemoteSession
 import Foundation
 
@@ -21,3 +22,4 @@ extension RemoteSessionStrings {
         )
     }
 }
+#endif

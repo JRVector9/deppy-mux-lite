@@ -1,7 +1,9 @@
 import Combine
 import CmuxCore
 import Foundation
+#if !DEPPY_LITE
 import CmuxSidebar
+#endif
 
 private struct SidebarPanelObservationState: Equatable {
     let panelIds: [UUID]

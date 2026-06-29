@@ -33,7 +33,9 @@ import Combine
 import ObjectiveC.runtime
 import Darwin
 import CmuxFoundation
+#if !DEPPY_LITE
 import CmuxSidebar
+#endif
 
 private enum CmuxThemeNotifications {
     static let reloadConfig = Notification.Name("com.cmuxterm.themes.reload-config")

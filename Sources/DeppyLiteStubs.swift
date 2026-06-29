@@ -5,11 +5,1612 @@ import CMUXAgentLaunch
 import CmuxAppKitSupportUI
 import CmuxControlSocket
 import CmuxCore
+import CmuxFoundation
+import CmuxGit
 import CmuxSettings
+import CmuxSidebarProviderKit
 import Combine
 import Foundation
+import Observation
 import SwiftUI
 import WebKit
+
+enum SwiftValue: Equatable, Sendable {
+    case null
+    case bool(Bool)
+    case int(Int)
+    case double(Double)
+    case string(String)
+    case array([SwiftValue])
+    case object([String: SwiftValue])
+}
+
+enum SidebarMetadataFormat: String, Sendable, Equatable {
+    case plain
+    case markdown
+}
+
+enum SidebarLogLevel: String, Sendable, Equatable {
+    case info
+    case progress
+    case success
+    case warning
+    case error
+}
+
+enum SidebarPullRequestStatus: String, Sendable, Equatable {
+    case open
+    case merged
+    case closed
+}
+
+extension String {
+    var normalizedSidebarBranchName: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+struct SidebarGitBranchState: Equatable, Sendable {
+    let branch: String
+    let isDirty: Bool
+
+    init(branch: String, isDirty: Bool) {
+        self.branch = branch
+        self.isDirty = isDirty
+    }
+}
+
+struct SidebarPullRequestState: Equatable, Sendable {
+    let number: Int
+    let label: String
+    let url: URL
+    let status: SidebarPullRequestStatus
+    let branch: String?
+    let isStale: Bool
+
+    init(
+        number: Int,
+        label: String,
+        url: URL,
+        status: SidebarPullRequestStatus,
+        branch: String? = nil,
+        isStale: Bool = false
+    ) {
+        self.number = number
+        self.label = label
+        self.url = url
+        self.status = status
+        self.branch = branch?.normalizedSidebarBranchName
+        self.isStale = isStale
+    }
+}
+
+struct SidebarStatusEntry: Equatable, Sendable {
+    let key: String
+    let value: String
+    let icon: String?
+    let color: String?
+    let url: URL?
+    let priority: Int
+    let format: SidebarMetadataFormat
+    let timestamp: Date
+
+    init(
+        key: String,
+        value: String,
+        icon: String? = nil,
+        color: String? = nil,
+        url: URL? = nil,
+        priority: Int = 0,
+        format: SidebarMetadataFormat = .plain,
+        timestamp: Date = Date()
+    ) {
+        self.key = key
+        self.value = value
+        self.icon = icon
+        self.color = color
+        self.url = url
+        self.priority = priority
+        self.format = format
+        self.timestamp = timestamp
+    }
+}
+
+struct SidebarMetadataBlock: Equatable, Sendable {
+    let key: String
+    let markdown: String
+    let priority: Int
+    let timestamp: Date
+
+    init(key: String, markdown: String, priority: Int, timestamp: Date) {
+        self.key = key
+        self.markdown = markdown
+        self.priority = priority
+        self.timestamp = timestamp
+    }
+}
+
+struct SidebarProgressState: Equatable, Sendable {
+    let value: Double
+    let label: String?
+
+    init(value: Double, label: String?) {
+        self.value = value
+        self.label = label
+    }
+}
+
+struct SidebarLogEntry: Equatable, Sendable {
+    let message: String
+    let level: SidebarLogLevel
+    let source: String?
+    let timestamp: Date
+
+    init(message: String, level: SidebarLogLevel, source: String?, timestamp: Date) {
+        self.message = message
+        self.level = level
+        self.source = source
+        self.timestamp = timestamp
+    }
+}
+
+protocol SidebarLogEntryLimitProviding: Sendable {
+    var configuredMaxSidebarLogEntries: Int? { get }
+}
+
+protocol RemoteTransferCancelling: Sendable {
+    var isCancelled: Bool { get }
+    var cancellationError: any Error { get }
+    func throwIfCancelled() throws
+    func installCancellationHandler(_ handler: @escaping () -> Void)
+    func clearCancellationHandler()
+}
+
+enum SidebarMutationTabTarget: Sendable, Equatable {
+    case selected
+    case workspace(UUID)
+    case index(Int)
+}
+
+struct SidebarMutationTabTargetResolution: Sendable, Equatable {
+    let target: SidebarMutationTabTarget?
+    let error: String?
+}
+
+struct SidebarOptionalPanelId: Sendable, Equatable {
+    let panelId: UUID?
+    let error: String?
+}
+
+struct SidebarMetadataArgumentParser: Sendable {
+    func tokenize(_ args: String) -> [String] {
+        let trimmed = args.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+
+        var tokens: [String] = []
+        var current = ""
+        var inQuote = false
+        var quoteChar: Character = "\""
+        var cursor = trimmed.startIndex
+        while cursor < trimmed.endIndex {
+            let char = trimmed[cursor]
+            if inQuote {
+                if char == quoteChar {
+                    inQuote = false
+                    cursor = trimmed.index(after: cursor)
+                    continue
+                }
+                if char == "\\" {
+                    let nextIndex = trimmed.index(after: cursor)
+                    if nextIndex < trimmed.endIndex {
+                        let next = trimmed[nextIndex]
+                        switch next {
+                        case "n":
+                            current.append("\n")
+                            cursor = trimmed.index(after: nextIndex)
+                            continue
+                        case "r":
+                            current.append("\r")
+                            cursor = trimmed.index(after: nextIndex)
+                            continue
+                        case "t":
+                            current.append("\t")
+                            cursor = trimmed.index(after: nextIndex)
+                            continue
+                        case "\"", "'", "\\":
+                            current.append(next)
+                            cursor = trimmed.index(after: nextIndex)
+                            continue
+                        default:
+                            break
+                        }
+                    }
+                }
+                current.append(char)
+                cursor = trimmed.index(after: cursor)
+                continue
+            }
+            if char == "'" || char == "\"" {
+                inQuote = true
+                quoteChar = char
+                cursor = trimmed.index(after: cursor)
+                continue
+            }
+            if char.isWhitespace {
+                if !current.isEmpty {
+                    tokens.append(current)
+                    current = ""
+                }
+                cursor = trimmed.index(after: cursor)
+                continue
+            }
+            current.append(char)
+            cursor = trimmed.index(after: cursor)
+        }
+        if !current.isEmpty {
+            tokens.append(current)
+        }
+        return tokens
+    }
+
+    func parseOptions(_ args: String) -> (positional: [String], options: [String: String]) {
+        parseOptions(args, stopsAtSeparator: true)
+    }
+
+    func parseOptionsNoStop(_ args: String) -> (positional: [String], options: [String: String]) {
+        parseOptions(args, stopsAtSeparator: false)
+    }
+
+    private func parseOptions(_ args: String, stopsAtSeparator: Bool) -> (positional: [String], options: [String: String]) {
+        let tokens = tokenize(args)
+        var positional: [String] = []
+        var options: [String: String] = [:]
+        var stopParsingOptions = false
+        var index = 0
+        while index < tokens.count {
+            let token = tokens[index]
+            if stopParsingOptions {
+                positional.append(token)
+            } else if token == "--" {
+                if stopsAtSeparator {
+                    stopParsingOptions = true
+                }
+            } else if token.hasPrefix("--") {
+                if let eqIndex = token.firstIndex(of: "=") {
+                    let key = String(token[token.index(token.startIndex, offsetBy: 2)..<eqIndex])
+                    options[key] = String(token[token.index(after: eqIndex)...])
+                } else {
+                    let key = String(token.dropFirst(2))
+                    if index + 1 < tokens.count && !tokens[index + 1].hasPrefix("--") {
+                        options[key] = tokens[index + 1]
+                        index += 1
+                    } else {
+                        options[key] = ""
+                    }
+                }
+            } else {
+                positional.append(token)
+            }
+            index += 1
+        }
+        return (positional, options)
+    }
+
+    func parseMetadataFormat(_ raw: String) -> SidebarMetadataFormat? {
+        switch raw.lowercased() {
+        case "plain":
+            return .plain
+        case "markdown", "md":
+            return .markdown
+        default:
+            return nil
+        }
+    }
+
+    func normalizedOptionValue(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    func parseMutationTabTarget(options: [String: String]) -> SidebarMutationTabTargetResolution {
+        if let rawTabArg = options["tab"] {
+            let tabArg = rawTabArg.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !tabArg.isEmpty else {
+                return SidebarMutationTabTargetResolution(target: nil, error: "ERROR: Tab not found")
+            }
+            if let tabId = UUID(uuidString: tabArg) {
+                return SidebarMutationTabTargetResolution(target: .workspace(tabId), error: nil)
+            }
+            if let index = Int(tabArg), index >= 0 {
+                return SidebarMutationTabTargetResolution(target: .index(index), error: nil)
+            }
+            return SidebarMutationTabTargetResolution(target: nil, error: "ERROR: Tab not found")
+        }
+        return SidebarMutationTabTargetResolution(target: .selected, error: nil)
+    }
+
+    func parseOptionalPanelId(options: [String: String], usage: String) -> SidebarOptionalPanelId {
+        guard let rawPanelArg = options["panel"] ?? options["surface"] else {
+            return SidebarOptionalPanelId(panelId: nil, error: nil)
+        }
+        let panelArg = rawPanelArg.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !panelArg.isEmpty else {
+            return SidebarOptionalPanelId(panelId: nil, error: "ERROR: Missing panel id - usage: \(usage)")
+        }
+        guard let panelId = UUID(uuidString: panelArg) else {
+            return SidebarOptionalPanelId(panelId: nil, error: "ERROR: Invalid panel id '\(rawPanelArg)'")
+        }
+        return SidebarOptionalPanelId(panelId: panelId, error: nil)
+    }
+
+    func splitMetadataBlockArgs(_ args: String) -> (optionsPart: String, markdownPart: String?) {
+        guard let separatorRange = args.range(of: " -- ") else {
+            return (args, nil)
+        }
+        return (String(args[..<separatorRange.lowerBound]), String(args[separatorRange.upperBound...]))
+    }
+}
+
+@MainActor
+final class WorkspaceSidebarMetadataModel {
+    var statusEntries: [String: SidebarStatusEntry] = [:] {
+        didSet { statusEntriesSubject.send(statusEntries) }
+    }
+    var metadataBlocks: [String: SidebarMetadataBlock] = [:] {
+        didSet { metadataBlocksSubject.send(metadataBlocks) }
+    }
+    var logEntries: [SidebarLogEntry] = [] {
+        didSet { logEntriesSubject.send(logEntries) }
+    }
+    var progress: SidebarProgressState? {
+        didSet { progressSubject.send(progress) }
+    }
+    var gitBranch: SidebarGitBranchState? {
+        didSet { gitBranchSubject.send(gitBranch) }
+    }
+    var panelGitBranches: [UUID: SidebarGitBranchState] = [:] {
+        didSet { panelGitBranchesSubject.send(panelGitBranches) }
+    }
+    var pullRequest: SidebarPullRequestState? {
+        didSet { pullRequestSubject.send(pullRequest) }
+    }
+    var panelPullRequests: [UUID: SidebarPullRequestState] = [:] {
+        didSet { panelPullRequestsSubject.send(panelPullRequests) }
+    }
+
+    private let limitProvider: any SidebarLogEntryLimitProviding
+    private lazy var statusEntriesSubject = CurrentValueSubject<[String: SidebarStatusEntry], Never>(statusEntries)
+    private lazy var metadataBlocksSubject = CurrentValueSubject<[String: SidebarMetadataBlock], Never>(metadataBlocks)
+    private lazy var logEntriesSubject = CurrentValueSubject<[SidebarLogEntry], Never>(logEntries)
+    private lazy var progressSubject = CurrentValueSubject<SidebarProgressState?, Never>(progress)
+    private lazy var gitBranchSubject = CurrentValueSubject<SidebarGitBranchState?, Never>(gitBranch)
+    private lazy var panelGitBranchesSubject = CurrentValueSubject<[UUID: SidebarGitBranchState], Never>(panelGitBranches)
+    private lazy var pullRequestSubject = CurrentValueSubject<SidebarPullRequestState?, Never>(pullRequest)
+    private lazy var panelPullRequestsSubject = CurrentValueSubject<[UUID: SidebarPullRequestState], Never>(panelPullRequests)
+
+    init(limitProvider: any SidebarLogEntryLimitProviding) {
+        self.limitProvider = limitProvider
+    }
+
+    var statusEntriesPublisher: AnyPublisher<[String: SidebarStatusEntry], Never> {
+        statusEntriesSubject.eraseToAnyPublisher()
+    }
+    var metadataBlocksPublisher: AnyPublisher<[String: SidebarMetadataBlock], Never> {
+        metadataBlocksSubject.eraseToAnyPublisher()
+    }
+    var logEntriesPublisher: AnyPublisher<[SidebarLogEntry], Never> {
+        logEntriesSubject.eraseToAnyPublisher()
+    }
+    var progressPublisher: AnyPublisher<SidebarProgressState?, Never> {
+        progressSubject.eraseToAnyPublisher()
+    }
+    var gitBranchPublisher: AnyPublisher<SidebarGitBranchState?, Never> {
+        gitBranchSubject.eraseToAnyPublisher()
+    }
+    var panelGitBranchesPublisher: AnyPublisher<[UUID: SidebarGitBranchState], Never> {
+        panelGitBranchesSubject.eraseToAnyPublisher()
+    }
+    var pullRequestPublisher: AnyPublisher<SidebarPullRequestState?, Never> {
+        pullRequestSubject.eraseToAnyPublisher()
+    }
+    var panelPullRequestsPublisher: AnyPublisher<[UUID: SidebarPullRequestState], Never> {
+        panelPullRequestsSubject.eraseToAnyPublisher()
+    }
+
+    func invalidateWorkspaceObservation() {
+        statusEntriesSubject.send(statusEntries)
+    }
+
+    func addStatusEntry(_ entry: SidebarStatusEntry) {
+        statusEntries[entry.key] = entry
+    }
+
+    func appendLogEntry(message: String, level: SidebarLogLevel, source: String?) {
+        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        logEntries.append(SidebarLogEntry(message: trimmed, level: level, source: source, timestamp: Date()))
+        let limit = max(1, min(500, limitProvider.configuredMaxSidebarLogEntries ?? 50))
+        if logEntries.count > limit {
+            logEntries.removeFirst(logEntries.count - limit)
+        }
+    }
+
+    func updateProgress(_ progress: SidebarProgressState?) {
+        self.progress = progress
+    }
+
+    func updateGitBranch(_ gitBranch: SidebarGitBranchState?) {
+        self.gitBranch = gitBranch
+    }
+
+    func updatePullRequest(_ pullRequest: SidebarPullRequestState?) {
+        self.pullRequest = pullRequest
+    }
+
+    func metadataBlocksInDisplayOrder() -> [SidebarMetadataBlock] {
+        metadataBlocks.values.sorted { lhs, rhs in
+            if lhs.priority != rhs.priority { return lhs.priority > rhs.priority }
+            if lhs.timestamp != rhs.timestamp { return lhs.timestamp > rhs.timestamp }
+            return lhs.key < rhs.key
+        }
+    }
+}
+
+struct SidebarBranchOrdering: Sendable {
+    struct BranchEntry: Equatable, Sendable {
+        let name: String
+        let isDirty: Bool
+    }
+
+    struct BranchDirectoryEntry: Equatable, Sendable {
+        let branch: String?
+        let isDirty: Bool
+        let directory: String?
+    }
+
+    func inferredRemoteHomeDirectory(from directories: [String], fallbackDirectory: String?) -> String? {
+        _ = directories
+        _ = fallbackDirectory
+        return nil
+    }
+
+    func canonicalDirectoryKey(_ directory: String?, homeDirectoryForTildeExpansion: String?) -> String? {
+        guard let directory = directory?.trimmingCharacters(in: .whitespacesAndNewlines), !directory.isEmpty else {
+            return nil
+        }
+        let expanded: String
+        if directory == "~", let homeDirectoryForTildeExpansion {
+            expanded = homeDirectoryForTildeExpansion
+        } else if directory.hasPrefix("~/"), let homeDirectoryForTildeExpansion {
+            expanded = NSString(string: homeDirectoryForTildeExpansion).appendingPathComponent(String(directory.dropFirst(2)))
+        } else {
+            expanded = directory
+        }
+        return NSString(string: expanded).standardizingPath
+    }
+
+    func orderedUniqueBranches(
+        orderedPanelIds: [UUID],
+        panelBranches: [UUID: SidebarGitBranchState],
+        fallbackBranch: SidebarGitBranchState?
+    ) -> [BranchEntry] {
+        var orderedNames: [String] = []
+        var dirtyByName: [String: Bool] = [:]
+        for panelId in orderedPanelIds {
+            guard let name = panelBranches[panelId]?.branch.normalizedSidebarBranchName else { continue }
+            if dirtyByName[name] == nil {
+                orderedNames.append(name)
+                dirtyByName[name] = panelBranches[panelId]?.isDirty ?? false
+            } else if panelBranches[panelId]?.isDirty == true {
+                dirtyByName[name] = true
+            }
+        }
+        if orderedNames.isEmpty, let fallbackBranch, let name = fallbackBranch.branch.normalizedSidebarBranchName {
+            return [BranchEntry(name: name, isDirty: fallbackBranch.isDirty)]
+        }
+        return orderedNames.map { BranchEntry(name: $0, isDirty: dirtyByName[$0] ?? false) }
+    }
+
+    func orderedUniquePullRequests(
+        orderedPanelIds: [UUID],
+        panelPullRequests: [UUID: SidebarPullRequestState],
+        fallbackPullRequest: SidebarPullRequestState?
+    ) -> [SidebarPullRequestState] {
+        var seen: Set<String> = []
+        var ordered: [SidebarPullRequestState] = []
+        for panelId in orderedPanelIds {
+            guard let state = panelPullRequests[panelId] else { continue }
+            let key = "\(state.label.lowercased())#\(state.number)|\(state.url.absoluteString)"
+            guard seen.insert(key).inserted else { continue }
+            ordered.append(state)
+        }
+        return ordered.isEmpty ? fallbackPullRequest.map { [$0] } ?? [] : ordered
+    }
+
+    func orderedUniqueBranchDirectoryEntries(
+        orderedPanelIds: [UUID],
+        panelBranches: [UUID: SidebarGitBranchState],
+        panelDirectories: [UUID: String],
+        defaultDirectory: String?,
+        homeDirectoryForTildeExpansion: String?,
+        fallbackBranch: SidebarGitBranchState?
+    ) -> [BranchDirectoryEntry] {
+        var seen: Set<String> = []
+        var result: [BranchDirectoryEntry] = []
+        for panelId in orderedPanelIds {
+            let directory = panelDirectories[panelId]
+            let branch = panelBranches[panelId]?.branch.normalizedSidebarBranchName
+            guard branch != nil || directory != nil else { continue }
+            let key = canonicalDirectoryKey(directory, homeDirectoryForTildeExpansion: homeDirectoryForTildeExpansion)
+                ?? branch
+                ?? ""
+            guard !key.isEmpty, seen.insert(key).inserted else { continue }
+            result.append(BranchDirectoryEntry(branch: branch, isDirty: panelBranches[panelId]?.isDirty ?? false, directory: directory))
+        }
+        if result.isEmpty, fallbackBranch != nil || defaultDirectory != nil {
+            result.append(BranchDirectoryEntry(
+                branch: fallbackBranch?.branch.normalizedSidebarBranchName,
+                isDirty: fallbackBranch?.isDirty ?? false,
+                directory: defaultDirectory
+            ))
+        }
+        return result
+    }
+}
+
+extension String {
+    var normalizedGitProbeDirectory: String {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: trimmed), url.isFileURL else { return trimmed }
+        return url.path
+    }
+
+    var nonEmptyNormalizedGitProbeDirectory: String? {
+        let normalized = normalizedGitProbeDirectory
+        return normalized.isEmpty ? nil : normalized
+    }
+}
+
+struct SidebarMultiSelectionShouldCollapseEvent: Sendable {
+    static let notificationName = Notification.Name("cmux.sidebarMultiSelectionShouldCollapse")
+    private static let focusedWorkspaceIdKey = "focusedWorkspaceId"
+
+    let focusedWorkspaceId: UUID
+
+    init(focusedWorkspaceId: UUID) {
+        self.focusedWorkspaceId = focusedWorkspaceId
+    }
+
+    init?(_ notification: Notification) {
+        guard notification.name == Self.notificationName,
+              let focusedId = notification.userInfo?[Self.focusedWorkspaceIdKey] as? UUID else {
+            return nil
+        }
+        focusedWorkspaceId = focusedId
+    }
+
+    func userInfo() -> [AnyHashable: Any] {
+        [Self.focusedWorkspaceIdKey: focusedWorkspaceId]
+    }
+}
+
+struct SidebarMultiSelectionDidHideEvent: Sendable {
+    static let notificationName = Notification.Name("cmux.sidebarMultiSelectionDidHide")
+    private static let hiddenWorkspaceIdsKey = "hiddenWorkspaceIds"
+    private static let focusedWorkspaceIdKey = "focusedWorkspaceId"
+
+    let hiddenWorkspaceIds: Set<UUID>
+    let focusedWorkspaceId: UUID?
+
+    init(hiddenWorkspaceIds: Set<UUID>, focusedWorkspaceId: UUID?) {
+        self.hiddenWorkspaceIds = hiddenWorkspaceIds
+        self.focusedWorkspaceId = focusedWorkspaceId
+    }
+
+    init?(_ notification: Notification) {
+        guard notification.name == Self.notificationName,
+              let hidden = notification.userInfo?[Self.hiddenWorkspaceIdsKey] as? Set<UUID> else {
+            return nil
+        }
+        hiddenWorkspaceIds = hidden
+        focusedWorkspaceId = notification.userInfo?[Self.focusedWorkspaceIdKey] as? UUID
+    }
+
+    func userInfo() -> [AnyHashable: Any] {
+        var userInfo: [AnyHashable: Any] = [Self.hiddenWorkspaceIdsKey: hiddenWorkspaceIds]
+        if let focusedWorkspaceId {
+            userInfo[Self.focusedWorkspaceIdKey] = focusedWorkspaceId
+        }
+        return userInfo
+    }
+}
+
+struct SidebarWorkspaceDetailVisibility: Equatable, Sendable {
+    let showsWorkspaceDescription: Bool
+    let showsNotificationMessage: Bool
+
+    init(
+        showWorkspaceDescription: Bool,
+        showNotificationMessage: Bool,
+        hideAllDetails: Bool
+    ) {
+        showsWorkspaceDescription = showWorkspaceDescription && !hideAllDetails
+        showsNotificationMessage = showNotificationMessage && !hideAllDetails
+    }
+}
+
+struct SidebarWorkspaceAuxiliaryDetailVisibility: Equatable, Sendable {
+    let showsMetadata: Bool
+    let showsLog: Bool
+    let showsProgress: Bool
+    let showsBranchDirectory: Bool
+    let showsPullRequests: Bool
+    let showsPorts: Bool
+
+    init(
+        showsMetadata: Bool,
+        showsLog: Bool,
+        showsProgress: Bool,
+        showsBranchDirectory: Bool,
+        showsPullRequests: Bool,
+        showsPorts: Bool
+    ) {
+        self.showsMetadata = showsMetadata
+        self.showsLog = showsLog
+        self.showsProgress = showsProgress
+        self.showsBranchDirectory = showsBranchDirectory
+        self.showsPullRequests = showsPullRequests
+        self.showsPorts = showsPorts
+    }
+
+    static let hidden = Self(
+        showsMetadata: false,
+        showsLog: false,
+        showsProgress: false,
+        showsBranchDirectory: false,
+        showsPullRequests: false,
+        showsPorts: false
+    )
+
+    static func resolved(
+        showMetadata: Bool,
+        showLog: Bool,
+        showProgress: Bool,
+        showBranchDirectory: Bool,
+        showPullRequests: Bool,
+        showPorts: Bool,
+        hideAllDetails: Bool
+    ) -> Self {
+        guard !hideAllDetails else { return .hidden }
+        return Self(
+            showsMetadata: showMetadata,
+            showsLog: showLog,
+            showsProgress: showProgress,
+            showsBranchDirectory: showBranchDirectory,
+            showsPullRequests: showPullRequests,
+            showsPorts: showPorts
+        )
+    }
+}
+
+@MainActor
+final class SidebarMultiSelectionModel {
+    private(set) var selectedWorkspaceIds: Set<UUID> = []
+    private let notificationCenter: NotificationCenter
+
+    init(notificationCenter: NotificationCenter = .default) {
+        self.notificationCenter = notificationCenter
+    }
+
+    func contains(_ workspaceId: UUID) -> Bool {
+        selectedWorkspaceIds.contains(workspaceId)
+    }
+
+    func replaceSelection(with workspaceIds: Set<UUID>) {
+        selectedWorkspaceIds = workspaceIds
+    }
+
+    func removeFromSelection(_ workspaceId: UUID) {
+        selectedWorkspaceIds.remove(workspaceId)
+    }
+
+    func subtractSelection(_ workspaceIds: Set<UUID>) {
+        selectedWorkspaceIds.subtract(workspaceIds)
+    }
+
+    func intersectSelection(with workspaceIds: Set<UUID>) {
+        selectedWorkspaceIds.formIntersection(workspaceIds)
+    }
+
+    func collapseSelection(to workspaceId: UUID, isKnownWorkspace: Bool) {
+        selectedWorkspaceIds = isKnownWorkspace ? [workspaceId] : []
+        notificationCenter.post(
+            name: SidebarMultiSelectionShouldCollapseEvent.notificationName,
+            object: self,
+            userInfo: SidebarMultiSelectionShouldCollapseEvent(focusedWorkspaceId: workspaceId).userInfo()
+        )
+    }
+
+    func postDidHide(hiddenWorkspaceIds: Set<UUID>, focusedWorkspaceId: UUID?) {
+        notificationCenter.post(
+            name: SidebarMultiSelectionDidHideEvent.notificationName,
+            object: self,
+            userInfo: SidebarMultiSelectionDidHideEvent(
+                hiddenWorkspaceIds: hiddenWorkspaceIds,
+                focusedWorkspaceId: focusedWorkspaceId
+            ).userInfo()
+        )
+    }
+}
+
+@MainActor
+protocol SidebarWorkspaceDragRegistering: AnyObject {
+    var currentWorkspaceId: UUID? { get }
+    func begin(workspaceId: UUID)
+    func end(workspaceId: UUID)
+}
+
+@MainActor
+final class SidebarWorkspaceDragRegistry: SidebarWorkspaceDragRegistering {
+    private var activeWorkspaceId: UUID?
+
+    var currentWorkspaceId: UUID? { activeWorkspaceId }
+
+    func begin(workspaceId: UUID) {
+        activeWorkspaceId = workspaceId
+    }
+
+    func end(workspaceId: UUID) {
+        if activeWorkspaceId == workspaceId {
+            activeWorkspaceId = nil
+        }
+    }
+}
+
+@MainActor
+@Observable
+final class SidebarDragState {
+    var draggedTabId: UUID?
+    var dropIndicator: SidebarDropIndicator?
+    var dropIndicatorUsesTopLevelRows = false
+    var dropIndicatorScope: SidebarWorkspaceReorderDropIndicatorScope = .raw
+    var isSimulated = false
+    var foreignDraggedIsPinned: Bool?
+
+    private var originatedActiveDrag = false
+    private let workspaceDragRegistry: any SidebarWorkspaceDragRegistering
+
+    init(workspaceDragRegistry: any SidebarWorkspaceDragRegistering) {
+        self.workspaceDragRegistry = workspaceDragRegistry
+    }
+
+    var currentWorkspaceDragId: UUID? {
+        workspaceDragRegistry.currentWorkspaceId
+    }
+
+    func beginDragging(tabId: UUID) {
+        draggedTabId = tabId
+        clearDropIndicator()
+        originatedActiveDrag = true
+        workspaceDragRegistry.begin(workspaceId: tabId)
+    }
+
+    func setDropIndicator(_ indicator: SidebarDropIndicator?, usesTopLevelRows: Bool = false) {
+        setDropIndicator(indicator, scope: usesTopLevelRows ? .topLevel : .raw)
+    }
+
+    func setDropIndicator(
+        _ indicator: SidebarDropIndicator?,
+        scope: SidebarWorkspaceReorderDropIndicatorScope
+    ) {
+        dropIndicator = indicator
+        dropIndicatorScope = indicator == nil ? .raw : scope
+        dropIndicatorUsesTopLevelRows = indicator != nil && scope == .topLevel
+    }
+
+    func clearDropIndicator() {
+        setDropIndicator(nil)
+    }
+
+    func clearDrag() {
+        if originatedActiveDrag, let draggedTabId {
+            workspaceDragRegistry.end(workspaceId: draggedTabId)
+        }
+        originatedActiveDrag = false
+        foreignDraggedIsPinned = nil
+        draggedTabId = nil
+        clearDropIndicator()
+    }
+}
+
+#if DEBUG
+@MainActor
+final class SidebarDragStateRegistry {
+    private var statesByWindowId: [UUID: SidebarDragState] = [:]
+
+    func register(windowId: UUID, dragState: SidebarDragState) {
+        statesByWindowId[windowId] = dragState
+    }
+
+    func unregister(windowId: UUID) {
+        statesByWindowId.removeValue(forKey: windowId)
+    }
+
+    func state(forWindowId windowId: UUID) -> SidebarDragState? {
+        statesByWindowId[windowId]
+    }
+
+    func registeredWindowIds() -> [UUID] {
+        Array(statesByWindowId.keys)
+    }
+}
+#endif
+
+@MainActor
+protocol SidebarGitHosting: AnyObject {}
+
+final class WorkspaceGitMetadataProbeLimiter: @unchecked Sendable {
+    init(limit: Int) {
+        _ = limit
+    }
+}
+
+protocol GitPollClock: Sendable {
+    func sleep(for duration: Duration) async throws
+}
+
+struct SystemGitPollClock: GitPollClock {
+    func sleep(for duration: Duration) async throws {
+        try await Task.sleep(for: duration)
+    }
+}
+
+protocol WorkspaceGitMetadataReading: Sendable {
+    func workspaceMetadata(for directory: String) async -> GitWorkspaceMetadata
+    func workspaceMetadata(
+        for directory: String,
+        trackedPathEventGeneration: GitTrackedPathEventGeneration?
+    ) async -> GitWorkspaceMetadata
+}
+
+extension WorkspaceGitMetadataReading {
+    func workspaceMetadata(
+        for directory: String,
+        trackedPathEventGeneration: GitTrackedPathEventGeneration?
+    ) async -> GitWorkspaceMetadata {
+        await workspaceMetadata(for: directory)
+    }
+}
+
+extension GitMetadataService: WorkspaceGitMetadataReading {}
+
+struct SidebarPanelGitBranch: Equatable, Sendable {
+    let branch: String
+    let isDirty: Bool
+
+    init(branch: String, isDirty: Bool) {
+        self.branch = branch
+        self.isDirty = isDirty
+    }
+}
+
+struct SidebarPullRequestBadge: Equatable, Sendable {
+    let number: Int
+    let label: String
+    let url: URL
+    let status: PullRequestStatus
+    let branch: String?
+    let isStale: Bool
+
+    init(
+        number: Int,
+        label: String,
+        url: URL,
+        status: PullRequestStatus,
+        branch: String? = nil,
+        isStale: Bool = false
+    ) {
+        self.number = number
+        self.label = label
+        self.url = url
+        self.status = status
+        self.branch = branch
+        self.isStale = isStale
+    }
+}
+
+@MainActor
+protocol PullRequestProbing: AnyObject {
+    func attach(host: any SidebarGitHosting)
+    func scheduleWorkspacePullRequestRefresh(workspaceId: UUID, panelId: UUID, reason: String)
+    func refreshTrackedWorkspacePullRequestsIfNeeded(reason: String)
+    func sidebarPullRequestPollingSettingsDidChange()
+    func handleWorkspacePullRequestCommandHint(workspaceId: UUID, panelId: UUID, action: String, target: String?)
+    func clearWorkspacePullRequestTracking(workspaceId: UUID, panelId: UUID)
+    func clearWorkspacePullRequestMetadata(workspaceId: UUID, panelId: UUID)
+    func clearWorkspacePullRequestTracking(workspaceId: UUID)
+    func resetWorkspacePullRequestRefreshState()
+    func workspacePullRequestTrackedPanelIds(workspaceId: UUID) -> Set<UUID>
+}
+
+@MainActor
+protocol SidebarGitMetadataServing: AnyObject {
+    func attach(host: any SidebarGitHosting)
+    func scheduleInitialWorkspaceGitMetadataRefreshIfPossible(workspaceId: UUID, panelId: UUID, reason: String)
+    func updateSurfaceDirectory(workspaceId: UUID, panelId: UUID, directory: String)
+    func updateSurfaceGitBranch(workspaceId: UUID, panelId: UUID, branch: String, isDirty: Bool?)
+    func clearSurfaceGitBranch(workspaceId: UUID, panelId: UUID)
+    func refreshTrackedWorkspaceGitMetadata(reason: String)
+    func sidebarGitMetadataWatchSettingsDidChange()
+    func clearWorkspaceGitProbes(workspaceId: UUID)
+    func resetAllWorkspaceGitProbeTracking()
+    func trackedWorkspaceGitMetadataPollCandidatePanelIds(workspaceId: UUID) -> Set<UUID>
+    func activeWorkspaceGitProbePanelIds(workspaceId: UUID) -> Set<UUID>
+}
+
+final class PullRequestProbeService {
+    init(commandRunner: any CommandRunning, debugLog: @escaping @Sendable (String) -> Void) {
+        _ = commandRunner
+        _ = debugLog
+    }
+}
+
+@MainActor
+final class PullRequestPollService: PullRequestProbing {
+    init(
+        gitMetadataService: GitMetadataService,
+        probeService: PullRequestProbeService,
+        clock: any GitPollClock,
+        debugLog: @escaping @Sendable (String) -> Void
+    ) {
+        _ = gitMetadataService
+        _ = probeService
+        _ = clock
+        _ = debugLog
+    }
+
+    func attach(host: any SidebarGitHosting) { _ = host }
+    func scheduleWorkspacePullRequestRefresh(workspaceId: UUID, panelId: UUID, reason: String) {
+        _ = workspaceId
+        _ = panelId
+        _ = reason
+    }
+    func refreshTrackedWorkspacePullRequestsIfNeeded(reason: String) { _ = reason }
+    func sidebarPullRequestPollingSettingsDidChange() {}
+    func handleWorkspacePullRequestCommandHint(workspaceId: UUID, panelId: UUID, action: String, target: String?) {
+        _ = workspaceId
+        _ = panelId
+        _ = action
+        _ = target
+    }
+    func clearWorkspacePullRequestTracking(workspaceId: UUID, panelId: UUID) {
+        _ = workspaceId
+        _ = panelId
+    }
+    func clearWorkspacePullRequestMetadata(workspaceId: UUID, panelId: UUID) {
+        _ = workspaceId
+        _ = panelId
+    }
+    func clearWorkspacePullRequestTracking(workspaceId: UUID) { _ = workspaceId }
+    func resetWorkspacePullRequestRefreshState() {}
+    func workspacePullRequestTrackedPanelIds(workspaceId: UUID) -> Set<UUID> {
+        _ = workspaceId
+        return []
+    }
+}
+
+@MainActor
+final class SidebarGitMetadataService: SidebarGitMetadataServing {
+    init(
+        workspaceGitMetadataReader: any WorkspaceGitMetadataReading,
+        gitMetadataService: GitMetadataService,
+        pullRequestProbing: any PullRequestProbing,
+        probeLimiter: WorkspaceGitMetadataProbeLimiter,
+        clock: any GitPollClock,
+        debugLog: @escaping @Sendable (String) -> Void
+    ) {
+        _ = workspaceGitMetadataReader
+        _ = gitMetadataService
+        _ = pullRequestProbing
+        _ = probeLimiter
+        _ = clock
+        _ = debugLog
+    }
+
+    func attach(host: any SidebarGitHosting) { _ = host }
+    func scheduleInitialWorkspaceGitMetadataRefreshIfPossible(workspaceId: UUID, panelId: UUID, reason: String) {
+        _ = workspaceId
+        _ = panelId
+        _ = reason
+    }
+    func updateSurfaceDirectory(workspaceId: UUID, panelId: UUID, directory: String) {
+        _ = workspaceId
+        _ = panelId
+        _ = directory
+    }
+    func updateSurfaceGitBranch(workspaceId: UUID, panelId: UUID, branch: String, isDirty: Bool?) {
+        _ = workspaceId
+        _ = panelId
+        _ = branch
+        _ = isDirty
+    }
+    func clearSurfaceGitBranch(workspaceId: UUID, panelId: UUID) {
+        _ = workspaceId
+        _ = panelId
+    }
+    func refreshTrackedWorkspaceGitMetadata(reason: String) { _ = reason }
+    func sidebarGitMetadataWatchSettingsDidChange() {}
+    func clearWorkspaceGitProbes(workspaceId: UUID) { _ = workspaceId }
+    func resetAllWorkspaceGitProbeTracking() {}
+    func trackedWorkspaceGitMetadataPollCandidatePanelIds(workspaceId: UUID) -> Set<UUID> {
+        _ = workspaceId
+        return []
+    }
+    func activeWorkspaceGitProbePanelIds(workspaceId: UUID) -> Set<UUID> {
+        _ = workspaceId
+        return []
+    }
+}
+
+protocol RemotePTYBridgeStrings: Sendable {}
+
+struct AppRemotePTYBridgeStrings: RemotePTYBridgeStrings {
+    init() {}
+}
+
+struct RemoteDaemonStrings: Sendable {
+    static let appLocalized = RemoteDaemonStrings()
+}
+
+struct RemoteDaemonProxyTunnelProvider: Sendable {
+    init(strings: RemoteDaemonStrings, ptyBridgeStrings: any RemotePTYBridgeStrings) {
+        _ = strings
+        _ = ptyBridgeStrings
+    }
+}
+
+protocol RemoteProxyBrokering: AnyObject, Sendable {}
+
+final class RemoteProxyBroker: RemoteProxyBrokering, @unchecked Sendable {
+    init(tunnelProvider: RemoteDaemonProxyTunnelProvider) {
+        _ = tunnelProvider
+    }
+}
+
+enum PortScanKickReason: String, Sendable {
+    case command
+    case refresh
+
+    var burstOffsets: [Double] {
+        switch self {
+        case .command:
+            return [0.5, 1.5, 3.0, 5.0, 7.5, 10.0]
+        case .refresh:
+            return [0.0]
+        }
+    }
+
+    func merged(with other: Self) -> Self {
+        self == .command || other == .command ? .command : .refresh
+    }
+}
+
+protocol RemoteSessionProcessRunning: Sendable {}
+
+struct RemoteSessionProcessRunner: RemoteSessionProcessRunning {
+    init() {}
+}
+
+struct RemoteSessionStrings: Sendable {
+    static let appLocalized = RemoteSessionStrings()
+}
+
+struct RemoteDaemonManifestRepository: Sendable {
+    init(homeDirectory: URL) {
+        _ = homeDirectory
+    }
+}
+
+struct RemoteHostReachabilityProbe: Sendable {
+    init() {}
+}
+
+struct WorkspaceRemoteSessionBuildInfo: Sendable {
+    init() {}
+}
+
+struct WorkspaceRemoteRelayCommandRewriter: Sendable {
+    init() {}
+}
+
+final class WorkspaceRemoteSessionHostAdapter: @unchecked Sendable {
+    init(workspace: Workspace, controllerID: UUID) {
+        _ = workspace
+        _ = controllerID
+    }
+}
+
+enum RemotePTYBridgeServer {
+    struct Endpoint: Equatable, Sendable {
+        let host: String
+        let port: Int
+        let token: String
+        let sessionID: String
+        let attachmentID: String
+
+        init(host: String = "127.0.0.1", port: Int = 0, token: String = "", sessionID: String = "", attachmentID: String = "") {
+            self.host = host
+            self.port = port
+            self.token = token
+            self.sessionID = sessionID
+            self.attachmentID = attachmentID
+        }
+    }
+}
+
+final class RemoteSessionCoordinator: @unchecked Sendable {
+    init(
+        host: WorkspaceRemoteSessionHostAdapter,
+        configuration: WorkspaceRemoteConfiguration,
+        proxyBroker: any RemoteProxyBrokering,
+        manifestRepository: RemoteDaemonManifestRepository,
+        processRunner: any RemoteSessionProcessRunning,
+        reachabilityProbe: RemoteHostReachabilityProbe,
+        relayCommandRewriter: WorkspaceRemoteRelayCommandRewriter,
+        buildInfo: WorkspaceRemoteSessionBuildInfo,
+        daemonStrings: RemoteDaemonStrings,
+        strings: RemoteSessionStrings
+    ) {
+        _ = host
+        _ = configuration
+        _ = proxyBroker
+        _ = manifestRepository
+        _ = processRunner
+        _ = reachabilityProbe
+        _ = relayCommandRewriter
+        _ = buildInfo
+        _ = daemonStrings
+        _ = strings
+    }
+
+    static func remoteDropPath(for fileURL: URL, uuid: UUID = UUID()) -> String {
+        let extensionSuffix = fileURL.pathExtension.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lowercasedSuffix = extensionSuffix.isEmpty ? "" : ".\(extensionSuffix.lowercased())"
+        return "/tmp/cmux-drop-\(uuid.uuidString.lowercased())\(lowercasedSuffix)"
+    }
+
+    func start() {}
+    func stop() {}
+    func updateRemotePortScanTTYs(_ ttys: [UUID: String]) { _ = ttys }
+    func kickRemotePortScan(panelId: UUID, reason: PortScanKickReason) {
+        _ = panelId
+        _ = reason
+    }
+    func updateRemotePortScanningEnabled(_ enabled: Bool) { _ = enabled }
+    func updateRemoteRelayIDAliases(workspaceAliases: [UUID: UUID], surfaceAliases: [UUID: UUID]) {
+        _ = workspaceAliases
+        _ = surfaceAliases
+    }
+    func uploadDroppedFiles(
+        _ fileURLs: [URL],
+        operation: TerminalImageTransferOperation,
+        completion: @escaping (Result<[String], Error>) -> Void
+    ) {
+        _ = fileURLs
+        _ = operation
+        completion(.failure(RemoteDropUploadError.unavailable))
+    }
+    func listPTYSessions() throws -> [[String: Any]] { [] }
+    func closePTYSession(sessionID: String) throws { _ = sessionID }
+    func detachPTYSession(sessionID: String, attachmentID: String, attachmentToken: String) throws {
+        _ = sessionID
+        _ = attachmentID
+        _ = attachmentToken
+    }
+    func startPTYBridge(
+        sessionID: String,
+        attachmentID: String,
+        command: String?,
+        requireExisting: Bool,
+        waitForReady: Bool = false,
+        timeout: TimeInterval = 0
+    ) throws -> RemotePTYBridgeServer.Endpoint {
+        _ = command
+        _ = requireExisting
+        _ = waitForReady
+        _ = timeout
+        return RemotePTYBridgeServer.Endpoint(sessionID: sessionID, attachmentID: attachmentID)
+    }
+    func resizePTY(sessionID: String, attachmentID: String, attachmentToken: String, cols: Int, rows: Int) throws {
+        _ = sessionID
+        _ = attachmentID
+        _ = attachmentToken
+        _ = cols
+        _ = rows
+    }
+}
+
+struct SidebarActionDispatch: Sendable {
+    struct Action: Sendable {
+        let commands: [Command]
+    }
+
+    enum Command: Sendable {
+        case cmux(String, [String: String])
+        case openURL(String)
+        case log
+    }
+
+    let handler: @Sendable (Action) -> Void
+
+    init(_ handler: @escaping @Sendable (Action) -> Void) {
+        self.handler = handler
+    }
+
+    static let noop = SidebarActionDispatch { _ in }
+}
+
+final class RenderWorkerClient {
+    static let workerModeArgument = "--cmux-sidebar-render-worker"
+
+    func shutdown() async {}
+}
+
+enum InterpreterClient {
+    static let workerModeArgument = "--cmux-sidebar-interpreter-worker"
+}
+
+func runSidebarRenderWorker() {
+    exit(0)
+}
+
+func runSidebarInterpreterWorker() {
+    exit(0)
+}
+
+struct CustomSidebarContentInsets: Equatable, Sendable {
+    var top: CGFloat
+    var bottom: CGFloat
+    var leading: CGFloat
+    var trailing: CGFloat
+
+    init(top: CGFloat = 0, bottom: CGFloat = 0, leading: CGFloat = 0, trailing: CGFloat = 0) {
+        self.top = top
+        self.bottom = bottom
+        self.leading = leading
+        self.trailing = trailing
+    }
+
+    static let zero = CustomSidebarContentInsets()
+}
+
+struct CustomSidebarSurfaceSnapshot: Equatable, Sendable {
+    init(
+        panelId: UUID,
+        title: String,
+        isFocused: Bool,
+        isPinned: Bool,
+        directory: String?,
+        gitBranch: String?,
+        gitIsDirty: Bool,
+        listeningPorts: [Int]
+    ) {}
+}
+
+struct CustomSidebarWorkspaceSnapshot: Equatable, Sendable {
+    struct Progress: Equatable, Sendable {
+        init(value: Double, label: String?) {}
+    }
+
+    struct Remote: Equatable, Sendable {
+        init(target: String, stateRawValue: String, isConnected: Bool) {}
+    }
+
+    init(
+        id: UUID,
+        title: String,
+        isSelected: Bool,
+        isPinned: Bool,
+        index: Int,
+        directory: String?,
+        listeningPorts: [Int],
+        unreadCount: Int,
+        surfaces: [CustomSidebarSurfaceSnapshot],
+        surfaceCount: Int,
+        customDescription: String?,
+        customColor: String?,
+        gitBranch: String?,
+        gitIsDirty: Bool,
+        pullRequestValues: [SwiftValue],
+        progress: Progress?,
+        latestConversationMessage: String?,
+        latestSubmittedMessage: String?,
+        latestSubmittedAt: Date?,
+        remote: Remote?
+    ) {}
+}
+
+struct CustomSidebarContextSnapshot: Equatable, Sendable {
+    init(
+        workspaces: [CustomSidebarWorkspaceSnapshot],
+        selectedWorkspaceId: UUID?,
+        selectedWorkspaceTitle: String,
+        totalUnreadCount: Int,
+        now: Date
+    ) {}
+}
+
+struct CustomSidebarDataContextBuilder {
+    func dataContext(for snapshot: CustomSidebarContextSnapshot) -> [String: SwiftValue] {
+        _ = snapshot
+        return [:]
+    }
+}
+
+struct CustomSidebarSurface: View {
+    init(
+        fileURL: URL,
+        dataContext: [String: SwiftValue],
+        dispatch: SidebarActionDispatch,
+        contentInsets: CustomSidebarContentInsets,
+        rendersInProcess: Bool,
+        client: Binding<RenderWorkerClient?>
+    ) {}
+
+    var body: some View { Color.clear }
+}
+
+struct CmuxExtensionAPIVersion: Codable, Comparable, Equatable, Sendable {
+    var major: Int
+    var minor: Int
+
+    static let sidebarV2 = CmuxExtensionAPIVersion(major: 2, minor: 0)
+
+    static func < (lhs: CmuxExtensionAPIVersion, rhs: CmuxExtensionAPIVersion) -> Bool {
+        if lhs.major != rhs.major { return lhs.major < rhs.major }
+        return lhs.minor < rhs.minor
+    }
+}
+
+enum CmuxExtensionScope: String, Codable, CaseIterable, Equatable, Sendable {
+    case workspaceList
+    case workspaceMetadata
+    case surfaceMetadata
+    case workspacePaths
+    case notifications
+    case networkPorts
+    case pullRequests
+}
+
+enum CmuxExtensionActionScope: String, Codable, CaseIterable, Equatable, Sendable {
+    case createWorkspace
+    case selectWorkspace
+    case closeWorkspace
+    case createSurface
+    case selectSurface
+    case closeSurface
+    case splitSurface
+    case zoomSurface
+    case navigateWorkspace
+    case navigateSurface
+    case openURL
+    case createWorkspaceWithPath
+}
+
+enum CmuxSidebarSplitDirection: String, Codable, CaseIterable, Equatable, Sendable {
+    case left
+    case right
+    case up
+    case down
+}
+
+enum CmuxSidebarSurfaceKind: String, Codable, CaseIterable, Equatable, Sendable {
+    case terminal
+    case browser
+    case markdown
+    case filePreview
+    case rightSidebarTool
+    case agentSession
+    case project
+    case unknown
+}
+
+struct CmuxSidebarSurface: Codable, Equatable, Identifiable, Sendable {
+    var id: UUID
+    var title: String
+    var kind: CmuxSidebarSurfaceKind
+    var isFocused: Bool
+    var isPinned: Bool
+    var unreadCount: Int
+    var workingDirectory: String?
+
+    init(
+        id: UUID,
+        title: String,
+        kind: CmuxSidebarSurfaceKind = .unknown,
+        isFocused: Bool = false,
+        isPinned: Bool = false,
+        unreadCount: Int = 0,
+        workingDirectory: String? = nil
+    ) {
+        self.id = id
+        self.title = title
+        self.kind = kind
+        self.isFocused = isFocused
+        self.isPinned = isPinned
+        self.unreadCount = unreadCount
+        self.workingDirectory = workingDirectory
+    }
+}
+
+struct CmuxSidebarWorkspace: Codable, Equatable, Identifiable, Sendable {
+    var id: UUID
+    var title: String
+    var detail: String?
+    var isPinned: Bool
+    var rootPath: String?
+    var projectRootPath: String?
+    var gitBranch: String?
+    var unreadCount: Int
+    var latestNotification: String?
+    var listeningPorts: [Int]
+    var pullRequestURLs: [String]
+    var surfaces: [CmuxSidebarSurface]
+
+    init(
+        id: UUID,
+        title: String,
+        detail: String? = nil,
+        isPinned: Bool = false,
+        rootPath: String? = nil,
+        projectRootPath: String? = nil,
+        gitBranch: String? = nil,
+        unreadCount: Int = 0,
+        latestNotification: String? = nil,
+        listeningPorts: [Int] = [],
+        pullRequestURLs: [String] = [],
+        surfaces: [CmuxSidebarSurface] = []
+    ) {
+        self.id = id
+        self.title = title
+        self.detail = detail
+        self.isPinned = isPinned
+        self.rootPath = rootPath
+        self.projectRootPath = projectRootPath
+        self.gitBranch = gitBranch
+        self.unreadCount = unreadCount
+        self.latestNotification = latestNotification
+        self.listeningPorts = listeningPorts
+        self.pullRequestURLs = pullRequestURLs
+        self.surfaces = surfaces
+    }
+}
+
+struct CmuxSidebarSnapshot: Codable, Equatable, Sendable {
+    var apiVersion: CmuxExtensionAPIVersion
+    var sequence: UInt64
+    var windowID: UUID?
+    var selectedWorkspaceID: UUID?
+    var grantedReadScopes: Set<CmuxExtensionScope>
+    var grantedActionScopes: Set<CmuxExtensionActionScope>
+    var workspaces: [CmuxSidebarWorkspace]
+
+    init(
+        apiVersion: CmuxExtensionAPIVersion = .sidebarV2,
+        sequence: UInt64,
+        windowID: UUID? = nil,
+        selectedWorkspaceID: UUID?,
+        grantedReadScopes: Set<CmuxExtensionScope> = [],
+        grantedActionScopes: Set<CmuxExtensionActionScope> = [],
+        workspaces: [CmuxSidebarWorkspace]
+    ) {
+        self.apiVersion = apiVersion
+        self.sequence = sequence
+        self.windowID = windowID
+        self.selectedWorkspaceID = selectedWorkspaceID
+        self.grantedReadScopes = grantedReadScopes
+        self.grantedActionScopes = grantedActionScopes
+        self.workspaces = workspaces
+    }
+}
+
+enum CmuxSidebarAction: Codable, Equatable, Sendable {
+    case createWorkspace(title: String?, workingDirectory: String?, select: Bool)
+    case selectWorkspace(UUID)
+    case closeWorkspace(UUID)
+    case selectNextWorkspace
+    case selectPreviousWorkspace
+    case createTerminalSurface(workspaceID: UUID?)
+    case createBrowserSurface(workspaceID: UUID?, url: String?)
+    case selectSurface(workspaceID: UUID, surfaceID: UUID)
+    case selectNextSurface
+    case selectPreviousSurface
+    case closeSurface(workspaceID: UUID, surfaceID: UUID)
+    case splitTerminal(workspaceID: UUID, surfaceID: UUID, direction: CmuxSidebarSplitDirection)
+    case splitBrowser(workspaceID: UUID, surfaceID: UUID, direction: CmuxSidebarSplitDirection, url: String?)
+    case toggleSurfaceZoom(workspaceID: UUID, surfaceID: UUID)
+    case openURL(String)
+}
+
+struct CmuxSidebarActionResult: Codable, Equatable, Sendable {
+    var accepted: Bool
+    var message: String?
+    var rejectionReason: CmuxSidebarActionRejectionReason?
+
+    init(
+        accepted: Bool,
+        message: String? = nil,
+        rejectionReason: CmuxSidebarActionRejectionReason? = nil
+    ) {
+        self.accepted = accepted
+        self.message = message
+        self.rejectionReason = accepted ? nil : rejectionReason
+    }
+
+    static let accepted = CmuxSidebarActionResult(accepted: true)
+
+    static func rejected(
+        _ message: String,
+        reason: CmuxSidebarActionRejectionReason = .rejected
+    ) -> CmuxSidebarActionResult {
+        CmuxSidebarActionResult(accepted: false, message: message, rejectionReason: reason)
+    }
+}
+
+enum CmuxSidebarActionRejectionReason: String, Codable, Equatable, Sendable {
+    case rejected
+    case cancelled
+}
+
+struct CMUXInstalledExtensionSidebarHostView: View {
+    init(
+        snapshotProvider: @escaping @MainActor () -> CmuxSidebarSnapshot,
+        snapshotUpdateToken: UInt64,
+        actionHandler: @escaping @MainActor (CmuxSidebarAction) -> CmuxSidebarActionResult,
+        onUseDefaultSidebar: @escaping () -> Void
+    ) {}
+
+    var body: some View { Color.clear }
+}
+
+enum SidebarExamples {
+    static var providers: [any CmuxSidebarProvider] { [] }
+}
+
+extension Notification.Name {
+    static let customSidebarReloadRequested = Notification.Name("cmux.customSidebarReloadRequested")
+}
+
+struct CustomSidebarValidationEntry: Equatable, Sendable {
+    struct FileKind: RawRepresentable, Equatable, Sendable {
+        var rawValue: String
+        init(rawValue: String) { self.rawValue = rawValue }
+    }
+
+    var name: String
+    var fileURL: URL
+    var kind: FileKind
+    var isValid: Bool
+    var errorMessage: String?
+}
+
+struct CustomSidebarValidationReport: Equatable, Sendable {
+    var entries: [CustomSidebarValidationEntry] = []
+    var validCount: Int { entries.filter(\.isValid).count }
+    var errorCount: Int { entries.filter { !$0.isValid }.count }
+    var names: [String] { entries.map(\.name) }
+    var validNames: [String] { entries.filter(\.isValid).map(\.name) }
+}
+
+struct CustomSidebarValidator {
+    func validate(directory: URL, name: String?) -> CustomSidebarValidationReport {
+        _ = directory
+        _ = name
+        return CustomSidebarValidationReport()
+    }
+}
 
 enum GhosttyBackgroundTheme {
     static func clampedOpacity(_ opacity: Double) -> CGFloat {

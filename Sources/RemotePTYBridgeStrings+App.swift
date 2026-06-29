@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import CmuxRemoteWorkspace
 import Foundation
 
@@ -49,3 +50,4 @@ struct AppRemotePTYBridgeStrings: RemotePTYBridgeStrings {
         )
     }
 }
+#endif

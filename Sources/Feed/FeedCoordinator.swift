@@ -4,7 +4,9 @@ import CMUXAgentLaunch
 import Foundation
 @preconcurrency import UserNotifications
 import CmuxSettings
+#if !DEPPY_LITE
 import CmuxSidebar
+#endif
 
 /// App-level coordinator that owns the shared `WorkstreamStore` and
 /// mediates between the socket thread (which processes `feed.*` V2

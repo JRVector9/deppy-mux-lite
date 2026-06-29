@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import CmuxRemoteDaemon
 import Foundation
 
@@ -21,3 +22,4 @@ extension RemoteDaemonStrings {
         )
     }
 }
+#endif

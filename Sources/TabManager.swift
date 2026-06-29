@@ -11,8 +11,10 @@ import CmuxGit
 import CmuxNotifications
 import CmuxPanes
 import CmuxSettings
+#if !DEPPY_LITE
 import CmuxSidebar
 import CmuxSidebarGit
+#endif
 import CmuxWorkspaces
 import CoreVideo
 import Combine

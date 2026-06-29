@@ -1,7 +1,9 @@
 import Foundation
 import CmuxTerminal
 import AppKit
+#if !DEPPY_LITE
 import CmuxRemoteSession
+#endif
 import UniformTypeIdentifiers
 
 enum TerminalImageTransferMode {

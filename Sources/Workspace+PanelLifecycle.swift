@@ -3,7 +3,9 @@ import CmuxSettings
 import CmuxCore
 import Darwin
 import Foundation
+#if !DEPPY_LITE
 import CmuxSidebar
+#endif
 
 extension Workspace {
     private static let structuredAgentHookStatusKeys = AgentHibernationLifecycleStatusKeys.allowedStatusKeys

@@ -1,7 +1,9 @@
 import AppKit
 import CmuxControlSocket
 import CmuxSettings
+#if !DEPPY_LITE
 import CmuxSwiftRenderUI
+#endif
 import Foundation
 
 extension TerminalController {

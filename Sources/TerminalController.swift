@@ -1,6 +1,8 @@
 import CmuxSettingsUI
 import AppKit
+#if !DEPPY_LITE
 import CmuxRemoteSession
+#endif
 import CmuxCore
 import CmuxAuthRuntime
 import CmuxFeedback
@@ -10,18 +12,24 @@ import CmuxBrowser
 import CmuxControlSocket
 import CmuxFoundation
 import CmuxPanes
+#if !DEPPY_LITE
 import CmuxRemoteDaemon
 import CmuxRemoteWorkspace
+#endif
 import CmuxTerminal
 import CmuxSettings
+#if !DEPPY_LITE
 import CmuxSwiftRenderUI
+#endif
 import Carbon.HIToolbox
 import CMUXMobileCore
 import CMUXAgentLaunch
 import Foundation
 import Bonsplit
 import WebKit
+#if !DEPPY_LITE
 import CmuxSidebar
+#endif
 import CmuxWorkspaces
 
 extension Notification.Name {

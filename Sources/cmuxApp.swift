@@ -2,8 +2,10 @@ import AppKit
 import CmuxAppKitSupportUI
 import CmuxFoundation
 import CmuxPanes
+#if !DEPPY_LITE
 import CmuxSidebarInterpreterClient
 import CmuxSidebarRemoteRender
+#endif
 import CmuxSettings
 import CmuxSettingsUI
 import CmuxWorkspaces

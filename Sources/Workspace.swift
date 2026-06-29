@@ -2,9 +2,11 @@ import CmuxAppKitSupportUI
 import CmuxFoundation
 import Foundation
 import CmuxCore
+#if !DEPPY_LITE
 import CmuxRemoteDaemon
 import CmuxRemoteSession
 import CmuxRemoteWorkspace
+#endif
 import CmuxWorkspaces
 import CmuxTerminal
 import SwiftUI
@@ -18,7 +20,9 @@ import CmuxBrowser
 #endif
 import CmuxCanvasUI
 import CmuxPanes
+#if !DEPPY_LITE
 import CmuxSidebar
+#endif
 import CmuxNotifications
 import Combine
 import CryptoKit
