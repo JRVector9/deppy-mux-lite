@@ -85,12 +85,14 @@ struct MobileFeedbackRouteTests {
     // MARK: - Build-type derivation
 
     @Test func debugBuildIsAlwaysDev() {
+        #expect(MobileBuildType.resolve(isDebugBuild: true, bundleIdentifier: "dev.dodomux.app.beta") == .dev)
         #expect(MobileBuildType.resolve(isDebugBuild: true, bundleIdentifier: "dev.cmux.app.beta") == .dev)
         #expect(MobileBuildType.resolve(isDebugBuild: true, bundleIdentifier: "dev.cmux.app") == .dev)
         #expect(MobileBuildType.resolve(isDebugBuild: true, bundleIdentifier: nil) == .dev)
     }
 
     @Test func releaseBetaBundleIsBeta() {
+        #expect(MobileBuildType.resolve(isDebugBuild: false, bundleIdentifier: "dev.dodomux.app.beta") == .beta)
         #expect(MobileBuildType.resolve(isDebugBuild: false, bundleIdentifier: "dev.cmux.app.beta") == .beta)
     }
 

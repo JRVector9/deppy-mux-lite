@@ -442,7 +442,7 @@ struct TerminalComposerView: View {
             // Sends staged images first (in order), then the text. Acknowledged
             // attachments are removed from the staged set; a failed send keeps the
             // rest staged for a retry.
-            await store.submitComposer()
+            await store.submitComposer(forTerminalID: terminalID)
             // Drop cached thumbnails for attachments that are no longer staged
             // (the acknowledged ones), keeping any that a failed send left behind.
             thumbnailCache.retain(ids: pendingAttachments.map(\.id))

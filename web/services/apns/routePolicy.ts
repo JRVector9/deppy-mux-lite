@@ -62,8 +62,15 @@ export type JsonObjectResult =
   | { readonly ok: true; readonly value: Record<string, unknown> }
   | { readonly ok: false; readonly error: "invalid_json" | "request_too_large" };
 
-const DEV_TAGGED_BUNDLE_ID = /^dev\.cmux\.ios\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
-const PROD_BUNDLE_IDS = new Set(["com.cmuxterm.app", "dev.cmux.app.beta"]);
+const DEV_BUNDLE_IDS = new Set(["dev.cmux.ios", "dev.dodomux.ios"]);
+const DEV_TAGGED_BUNDLE_ID = /^dev\.(?:cmux|dodomux)\.ios\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+const PROD_BUNDLE_IDS = new Set([
+  "com.cmuxterm.app",
+  "dev.cmux.app.beta",
+  "com.dodomux.app",
+  "com.dodomux.app.debug",
+  "dev.dodomux.app.beta",
+]);
 
 function stringValue(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -80,7 +87,7 @@ export function normalizeApnsBundle(bundleId: string): ApnsBundlePolicy | null {
   if (PROD_BUNDLE_IDS.has(normalized)) {
     return { bundleId: normalized, environment: "production" };
   }
-  if (DEV_TAGGED_BUNDLE_ID.test(normalized)) {
+  if (DEV_BUNDLE_IDS.has(normalized) || DEV_TAGGED_BUNDLE_ID.test(normalized)) {
     return { bundleId: normalized, environment: "sandbox" };
   }
   return null;

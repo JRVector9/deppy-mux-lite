@@ -774,6 +774,19 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
         return selectedWorkspace.preferredTerminal
     }
 
+    private struct TerminalRPCTarget {
+        var workspaceID: MobileWorkspacePreview.ID
+        var terminalID: MobileTerminalPreview.ID
+    }
+
+    private func terminalRPCTarget(containingTerminalID rawTerminalID: String) -> TerminalRPCTarget? {
+        let terminalID = MobileTerminalPreview.ID(rawValue: rawTerminalID)
+        guard let workspace = workspaces.first(where: { workspace in
+            workspace.terminals.contains(where: { $0.id == terminalID })
+        }) else { return nil }
+        return TerminalRPCTarget(workspaceID: workspace.id, terminalID: terminalID)
+    }
+
     /// Create a mobile shell store with injectable runtime services for app
     /// composition, previews, and package tests.
     public init(
@@ -4171,6 +4184,15 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
         await submitComposerInput(workspaceID: workspaceID, terminalID: terminalID)
     }
 
+    public func submitComposerInput(forTerminalID terminalID: String) async {
+        guard let target = terminalRPCTarget(containingTerminalID: terminalID) else { return }
+        await submitComposerInput(
+            workspaceID: target.workspaceID,
+            terminalID: target.terminalID,
+            clearActiveFieldOnAck: true
+        )
+    }
+
     /// Submit the composer's text to an explicitly captured terminal. Used by
     /// ``submitComposer()`` so a terminal switch mid-send cannot reroute the text
     /// to whatever is selected when the (awaited) image sends return: the target
@@ -4193,7 +4215,8 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
     func submitComposerInput(
         workspaceID: MobileWorkspacePreview.ID,
         terminalID: MobileTerminalPreview.ID,
-        capturedText: String? = nil
+        capturedText: String? = nil,
+        clearActiveFieldOnAck: Bool = false
     ) async -> Bool {
         let text = capturedText ?? terminalInputText
         // Empty text is "nothing to send", which is a success from the caller's
@@ -4219,6 +4242,9 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
         // must be cleared from that key, not from whatever terminal is selected
         // when the ack returns.
         await reconcileComposerDraftAfterSend(sentText: text, submittedTerminalID: terminalID)
+        if clearActiveFieldOnAck, selectedTerminalID == terminalID, terminalInputText == text {
+            terminalInputText = ""
+        }
         return true
     }
 
@@ -4241,6 +4267,40 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
     /// instead of silently losing photos (matching the text-keep-on-failure
     /// semantics of ``submitComposerInput()``).
     public func submitComposer() async {
+        guard let workspaceID = selectedWorkspace?.id,
+              let submittedTerminalID = selectedTerminalID else {
+            // No target: fall back to the text-only path, which is itself a no-op
+            // without a selected terminal.
+            await submitComposerInput()
+            return
+        }
+        await submitComposer(
+            workspaceID: workspaceID,
+            submittedTerminalID: submittedTerminalID,
+            clearActiveFieldOnAck: false
+        )
+    }
+
+    public func submitComposer(forTerminalID terminalID: String) async {
+        guard let target = terminalRPCTarget(containingTerminalID: terminalID) else { return }
+        let selectedMatchesTarget = selectedTerminalID == target.terminalID
+        let capturedText = selectedMatchesTarget
+            ? terminalInputText
+            : await draftStore?.draft(forTerminalID: target.terminalID.rawValue) ?? ""
+        await submitComposer(
+            workspaceID: target.workspaceID,
+            submittedTerminalID: target.terminalID,
+            clearActiveFieldOnAck: selectedMatchesTarget,
+            capturedText: capturedText
+        )
+    }
+
+    private func submitComposer(
+        workspaceID: MobileWorkspacePreview.ID,
+        submittedTerminalID: MobileTerminalPreview.ID,
+        clearActiveFieldOnAck: Bool,
+        capturedText: String? = nil
+    ) async {
         // Reject a re-entrant submit (e.g. a double tap on Send): the button
         // stays enabled while the first image RPC awaits, and a second submit
         // would capture the same still-staged attachments and re-upload them.
@@ -4250,20 +4310,13 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
         guard !isSubmittingComposer else { return }
         isSubmittingComposer = true
         defer { isSubmittingComposer = false }
-        guard let workspaceID = selectedWorkspace?.id,
-              let submittedTerminalID = selectedTerminalID else {
-            // No target: fall back to the text-only path, which is itself a no-op
-            // without a selected terminal.
-            await submitComposerInput()
-            return
-        }
         // Snapshot the text BEFORE any await (the image sends below). Threaded
         // through the text submit + the post-send reconcile so a terminal switch
         // (which swaps the draft into a different terminal's text) or a field edit
         // while an image send is in flight cannot make the text send read the
         // wrong draft or skip the message the user composed at Send time. An
         // images-only send snapshots empty text, which the text submit no-ops.
-        let submittedText = terminalInputText
+        let submittedText = capturedText ?? terminalInputText
         let attachments = pendingAttachments(forTerminalID: submittedTerminalID.rawValue)
         // Capture the submit-time session + connection identity ONCE up front and
         // re-check it before every subsequent send. The captured terminal already
@@ -4329,7 +4382,8 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
         await submitComposerInput(
             workspaceID: workspaceID,
             terminalID: submittedTerminalID,
-            capturedText: submittedText
+            capturedText: submittedText,
+            clearActiveFieldOnAck: clearActiveFieldOnAck
         )
     }
 
@@ -4467,12 +4521,8 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
         guard let text = String(data: data, encoding: .utf8) else {
             return
         }
-        let workspaceCandidate = workspaces.first(where: { workspace in
-            workspace.terminals.contains(where: { $0.id.rawValue == surfaceID })
-        })
-        guard let workspace = workspaceCandidate else { return }
-        let terminalID = MobileTerminalPreview.ID(rawValue: surfaceID)
-        await submitTerminalRawInput(text, workspaceID: workspace.id, terminalID: terminalID)
+        guard let target = terminalRPCTarget(containingTerminalID: surfaceID) else { return }
+        await submitTerminalRawInput(text, workspaceID: target.workspaceID, terminalID: target.terminalID)
     }
 
     private func submitTerminalRawInput(
@@ -5041,7 +5091,7 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
         let macVersion = Self.mobileShellNormalizedNonEmpty(ticket.macAppVersion)
         let format = L10n.string(
             "mobile.pairing.versionWarningFormat",
-            defaultValue: "This iPhone is running cmux %@, but the Mac is running cmux %@. Pairing across different compatibility levels can break terminal input, workspace sync, or notifications. Continue only if you trust this Mac and accept that some features may fail."
+            defaultValue: "This iPhone is running dodomux %@, but the Mac is running dodomux %@. Pairing across different compatibility levels can break terminal input, workspace sync, or notifications. Continue only if you trust this Mac and accept that some features may fail."
         )
         return String(
             format: format,
@@ -5546,6 +5596,17 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
             format: format,
             workspaceID: workspaceID,
             terminalID: terminalID
+        )
+    }
+
+    @discardableResult
+    public func submitTerminalPasteImage(_ data: Data, format: String, surfaceID: String) async -> Bool {
+        guard let target = terminalRPCTarget(containingTerminalID: surfaceID) else { return false }
+        return await submitTerminalPasteImage(
+            data,
+            format: format,
+            workspaceID: target.workspaceID,
+            terminalID: target.terminalID
         )
     }
 

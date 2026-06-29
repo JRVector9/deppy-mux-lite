@@ -67,6 +67,18 @@ public protocol SettingsHostActions: AnyObject {
     /// package can't open it directly.
     func openMobilePairingWindow()
 
+    /// Returns the current browser Web Access session, if this Mac has already
+    /// created one during the app run. The Mobile section uses this to keep the
+    /// URL visible after Settings reopens.
+    func currentMobileWebAccessSession() -> MobileWebAccessSessionSnapshot?
+
+    /// Creates a browser Web Access session and starts the host-side heartbeat
+    /// that keeps this Mac visible behind the public URL.
+    func startMobileWebAccessSession() async -> MobileWebAccessStartResult
+
+    /// Copies a browser Web Access URL using the host app's pasteboard bridge.
+    func copyMobileWebAccessURL(_ url: String)
+
     /// Plays the currently configured notification sound so the user
     /// can preview it from the Settings UI.
     func previewNotificationSound(value: String, customFilePath: String)
@@ -163,6 +175,12 @@ public protocol SettingsHostActions: AnyObject {
 
 public extension SettingsHostActions {
     func openMobilePairingWindow() {}
+
+    func currentMobileWebAccessSession() -> MobileWebAccessSessionSnapshot? { nil }
+
+    func startMobileWebAccessSession() async -> MobileWebAccessStartResult { .failed }
+
+    func copyMobileWebAccessURL(_ url: String) {}
 
     /// Default no-op preview action for hosts without a Sleepy Mode overlay.
     func sleepyModePreview() {}

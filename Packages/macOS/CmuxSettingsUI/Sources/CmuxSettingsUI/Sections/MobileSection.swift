@@ -12,6 +12,7 @@ public struct MobileSection: View {
     @State private var port: DefaultsValueModel<Int>
     @State private var displayName: DefaultsValueModel<String>
     @State private var status: MobilePairingStatusModel
+    @State private var webAccess: MobileWebAccessSessionModel
 
     /// The user's in-progress port edit, or `nil` when the field should track
     /// the persisted value. Local so editing does not rebind the listener; only
@@ -46,6 +47,7 @@ public struct MobileSection: View {
         _port = State(initialValue: DefaultsValueModel(store: defaultsStore, key: catalog.mobile.iOSPairingPort))
         _displayName = State(initialValue: DefaultsValueModel(store: defaultsStore, key: catalog.mobile.iOSPairingDisplayName))
         _status = State(initialValue: MobilePairingStatusModel(hostActions: hostActions))
+        _webAccess = State(initialValue: MobileWebAccessSessionModel(hostActions: hostActions))
         self.hostActions = hostActions
     }
 
@@ -72,6 +74,11 @@ public struct MobileSection: View {
             SettingsCard {
                 pairDeviceRow
                 SettingsCardDivider()
+                webAccessRow
+                if webAccess.current != nil || webAccess.lastError != nil {
+                    webAccessStatusView
+                }
+                SettingsCardDivider()
                 iOSPairingHostRow
                 SettingsCardDivider()
                 portRow
@@ -84,7 +91,7 @@ public struct MobileSection: View {
                 }
                 SettingsCardNote(String(
                     localized: "settings.mobile.port.note",
-                    defaultValue: "Click Apply to change the port. cmux checks the port is free first: if it's in use, the current listener keeps running untouched; if it's free, it rebinds and connected devices reconnect on the new port."
+                    defaultValue: "Click Apply to change the port. dodomux checks the port is free first: if it's in use, the current listener keeps running untouched; if it's free, it rebinds and connected devices reconnect on the new port."
                 ))
             }
         }
@@ -99,6 +106,7 @@ public struct MobileSection: View {
             status,
         ]
         models.forEach { $0.startObserving() }
+        webAccess.refreshCurrentSession()
     }
 
     @ViewBuilder
@@ -115,6 +123,79 @@ public struct MobileSection: View {
             .buttonStyle(.bordered)
             .controlSize(.small)
             .accessibilityIdentifier("SettingsMobilePairDeviceButton")
+        }
+    }
+
+    @ViewBuilder
+    private var webAccessRow: some View {
+        SettingsCardRow(
+            configurationReview: .action,
+            searchAnchorID: "setting:mobile:webAccess",
+            String(localized: "settings.mobile.webAccess", defaultValue: "Web Access"),
+            subtitle: String(localized: "settings.mobile.webAccess.subtitle", defaultValue: "Create a browser link for accessing this Mac's dodomux terminal from another device.")
+        ) {
+            Button(webAccess.current == nil
+                ? String(localized: "settings.mobile.webAccess.create", defaultValue: "Create Link")
+                : String(localized: "settings.mobile.webAccess.refresh", defaultValue: "Refresh Link")
+            ) {
+                Task { await webAccess.start() }
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(webAccess.isStarting)
+            .accessibilityIdentifier("SettingsMobileWebAccessCreateButton")
+        }
+    }
+
+    @ViewBuilder
+    private var webAccessStatusView: some View {
+        if let session = webAccess.current {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(session.publicURL)
+                    .cmuxFont(.caption, design: .monospaced)
+                    .lineLimit(2)
+                    .textSelection(.enabled)
+                    .accessibilityIdentifier("SettingsMobileWebAccessURL")
+                HStack(spacing: 8) {
+                    Label(
+                        String(
+                            localized: "settings.mobile.webAccess.activeUntil",
+                            defaultValue: "Active until \(session.expiresAt.formatted(date: .omitted, time: .shortened))"
+                        ),
+                        systemImage: "checkmark.circle.fill"
+                    )
+                    .foregroundStyle(.secondary)
+                    Spacer(minLength: 8)
+                    Button(webAccess.didCopyCurrentURL
+                        ? String(localized: "settings.mobile.webAccess.copied", defaultValue: "Copied")
+                        : String(localized: "settings.mobile.webAccess.copy", defaultValue: "Copy")
+                    ) {
+                        webAccess.copyCurrentURL()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .accessibilityIdentifier("SettingsMobileWebAccessCopyButton")
+                }
+            }
+            .cmuxFont(.caption)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.bottom, 8)
+        } else if webAccess.lastError == .notSignedIn {
+            SettingsCardNote(String(
+                localized: "settings.mobile.webAccess.notSignedIn",
+                defaultValue: "Sign in to dodomux before creating a browser link."
+            ))
+        } else if webAccess.lastError == .tailscaleUnavailable {
+            SettingsCardNote(String(
+                localized: "settings.mobile.webAccess.tailscaleUnavailable",
+                defaultValue: "Tailscale is required for browser access. Turn on Tailscale on this Mac, then create the link again."
+            ))
+        } else if webAccess.lastError == .failed {
+            SettingsCardNote(String(
+                localized: "settings.mobile.webAccess.failed",
+                defaultValue: "Could not create a browser link. Check your connection and try again."
+            ))
         }
     }
 

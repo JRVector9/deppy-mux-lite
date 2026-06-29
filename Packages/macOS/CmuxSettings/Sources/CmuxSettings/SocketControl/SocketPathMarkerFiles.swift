@@ -3,9 +3,12 @@ public import Foundation
 public enum SocketPathMarkerFiles {
     public static let stableMarkerFileName = "last-socket-path"
     public static let stableTmpPath = "/tmp/cmux-last-socket-path"
-    public static let nightlyBundleIdentifier = "com.cmuxterm.app.nightly"
-    public static let stagingBundleIdentifier = "com.cmuxterm.app.staging"
-    public static let defaultBaseDebugBundleIdentifier = "com.cmuxterm.app.debug"
+    public static let nightlyBundleIdentifier = "com.dodomux.app.nightly"
+    public static let stagingBundleIdentifier = "com.dodomux.app.staging"
+    public static let defaultBaseDebugBundleIdentifier = "com.dodomux.app.debug"
+    static let legacyNightlyBundleIdentifier = "com.cmuxterm.app.nightly"
+    static let legacyStagingBundleIdentifier = "com.cmuxterm.app.staging"
+    static let legacyBaseDebugBundleIdentifier = "com.cmuxterm.app.debug"
     public static let defaultDebugSocketPath = "/tmp/cmux-debug.sock"
     public static let defaultNightlySocketPath = "/tmp/cmux-nightly.sock"
     public static let defaultStagingSocketPath = "/tmp/cmux-staging.sock"
@@ -45,29 +48,38 @@ public enum SocketPathMarkerFiles {
         baseDebugBundleIdentifier: String = defaultBaseDebugBundleIdentifier
     ) -> SocketPathVariant {
         let bundleId = bundleIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if bundleId == nightlyBundleIdentifier {
-            return .nightly(slug: nil)
-        }
-        let nightlyPrefix = nightlyBundleIdentifier + "."
-        if bundleId.hasPrefix(nightlyPrefix) {
-            return .nightly(slug: bundleSuffixSlug(bundleId, prefix: nightlyPrefix))
-        }
-        if bundleId == stagingBundleIdentifier {
-            return .staging(slug: nil)
-        }
-        let stagingPrefix = stagingBundleIdentifier + "."
-        if bundleId.hasPrefix(stagingPrefix) {
-            return .staging(slug: bundleSuffixSlug(bundleId, prefix: stagingPrefix))
-        }
-        if bundleId == baseDebugBundleIdentifier {
-            if let tag = normalized(environment["CMUX_TAG"]),
-               let slug = sanitizeSocketSlug(tag) {
-                return .dev(slug: slug)
+        for nightlyIdentifier in [nightlyBundleIdentifier, legacyNightlyBundleIdentifier] {
+            if bundleId == nightlyIdentifier {
+                return .nightly(slug: nil)
             }
-            return .dev(slug: nil)
+            let nightlyPrefix = nightlyIdentifier + "."
+            if bundleId.hasPrefix(nightlyPrefix) {
+                return .nightly(slug: bundleSuffixSlug(bundleId, prefix: nightlyPrefix))
+            }
         }
-        if bundleId.hasPrefix("\(baseDebugBundleIdentifier).") {
-            return .dev(slug: bundleSuffixSlug(bundleId, prefix: "\(baseDebugBundleIdentifier)."))
+
+        for stagingIdentifier in [stagingBundleIdentifier, legacyStagingBundleIdentifier] {
+            if bundleId == stagingIdentifier {
+                return .staging(slug: nil)
+            }
+            let stagingPrefix = stagingIdentifier + "."
+            if bundleId.hasPrefix(stagingPrefix) {
+                return .staging(slug: bundleSuffixSlug(bundleId, prefix: stagingPrefix))
+            }
+        }
+
+        for debugIdentifier in debugBundleIdentifiers(baseDebugBundleIdentifier) {
+            if bundleId == debugIdentifier {
+                if let tag = normalized(environment["CMUX_TAG"]),
+                   let slug = sanitizeSocketSlug(tag) {
+                    return .dev(slug: slug)
+                }
+                return .dev(slug: nil)
+            }
+            let debugPrefix = debugIdentifier + "."
+            if bundleId.hasPrefix(debugPrefix) {
+                return .dev(slug: bundleSuffixSlug(bundleId, prefix: debugPrefix))
+            }
         }
         return .stable
     }
@@ -124,6 +136,14 @@ public enum SocketPathMarkerFiles {
         guard let value else { return nil }
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private static func debugBundleIdentifiers(_ baseDebugBundleIdentifier: String) -> [String] {
+        dedupe([
+            baseDebugBundleIdentifier,
+            defaultBaseDebugBundleIdentifier,
+            legacyBaseDebugBundleIdentifier,
+        ])
     }
 
     private static func dedupe(_ values: [String]) -> [String] {

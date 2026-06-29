@@ -18,8 +18,11 @@ public struct SocketControlSettings {
     public static let socketPasswordEnvKey = "CMUX_SOCKET_PASSWORD"
     /// Environment key carrying the dev build's launch tag.
     public static let launchTagEnvKey = "CMUX_TAG"
-    /// Base bundle identifier shared by all debug builds.
-    public static let baseDebugBundleIdentifier = "com.cmuxterm.app.debug"
+    /// Base bundle identifier shared by all dodomux debug builds.
+    public static let baseDebugBundleIdentifier = "com.dodomux.app.debug"
+    static let legacyBaseDebugBundleIdentifier = "com.cmuxterm.app.debug"
+    static let stableReleaseBundleIdentifier = "com.dodomux.app"
+    static let legacyStableReleaseBundleIdentifier = "com.cmuxterm.app"
     private static let stableSocketFileName = "cmux.sock"
     /// Legacy stable socket path used before the Application Support location.
     public static let legacyStableDefaultSocketPath = "/tmp/cmux.sock"
@@ -126,11 +129,11 @@ public struct SocketControlSettings {
             return false
         }
 
-        if bundleIdentifier.hasPrefix("\(baseDebugBundleIdentifier).") {
+        if isTaggedDevBuild(bundleIdentifier: bundleIdentifier) {
             return false
         }
 
-        guard bundleIdentifier == baseDebugBundleIdentifier else {
+        guard isBareDebugLikeBundleIdentifier(bundleIdentifier) else {
             return false
         }
 
@@ -212,7 +215,7 @@ public struct SocketControlSettings {
         stableDefaultSocketCanBeReclaimed: (String) -> Bool = { _ in true }
     ) -> String {
         guard !isDebugBuild,
-              normalizedBundleIdentifier(bundleIdentifier) == "com.cmuxterm.app",
+              isStableReleaseBundleIdentifier(bundleIdentifier),
               isStableReleaseSocketPath(preferredPath, currentUserID: currentUserID) else {
             return preferredPath
         }
@@ -323,7 +326,7 @@ public struct SocketControlSettings {
 
     private static func shouldReserveStableSocketPath(bundleIdentifier: String?, isDebugBuild: Bool) -> Bool {
         if isDebugBuild { return true }
-        return normalizedBundleIdentifier(bundleIdentifier) != "com.cmuxterm.app"
+        return !isStableReleaseBundleIdentifier(bundleIdentifier)
     }
 
     private static func isStableReleaseSocketPath(_ path: String, currentUserID: uid_t) -> Bool {
@@ -406,22 +409,40 @@ public struct SocketControlSettings {
 
     /// Whether the bundle identifier is a debug build identifier.
     public static func isDebugLikeBundleIdentifier(_ bundleIdentifier: String?) -> Bool {
-        guard let bundleIdentifier else { return false }
-        return bundleIdentifier == "com.cmuxterm.app.debug"
-            || bundleIdentifier.hasPrefix("com.cmuxterm.app.debug.")
+        isBareDebugLikeBundleIdentifier(bundleIdentifier) || isTaggedDevBuild(bundleIdentifier: bundleIdentifier)
     }
 
-    /// Whether the bundle identifier is a tagged DEV build (`com.cmuxterm.app.debug.<tag>`).
+    /// Whether the bundle identifier is a tagged DEV build (`com.dodomux.app.debug.<tag>`).
     public static func isTaggedDevBuild(bundleIdentifier: String? = Bundle.main.bundleIdentifier) -> Bool {
-        guard let bundleIdentifier else { return false }
-        return bundleIdentifier.hasPrefix("\(baseDebugBundleIdentifier).")
+        guard let bundleIdentifier = normalizedBundleIdentifier(bundleIdentifier) else { return false }
+        return debugBundleBases.contains { bundleIdentifier.hasPrefix("\($0).") }
     }
 
     /// Whether the bundle identifier is a staging build identifier.
     public static func isStagingBundleIdentifier(_ bundleIdentifier: String?) -> Bool {
-        guard let bundleIdentifier else { return false }
-        return bundleIdentifier == "com.cmuxterm.app.staging"
-            || bundleIdentifier.hasPrefix("com.cmuxterm.app.staging.")
+        guard let bundleIdentifier = normalizedBundleIdentifier(bundleIdentifier) else { return false }
+        return stagingBundleBases.contains {
+            bundleIdentifier == $0 || bundleIdentifier.hasPrefix("\($0).")
+        }
+    }
+
+    private static var debugBundleBases: [String] {
+        [baseDebugBundleIdentifier, legacyBaseDebugBundleIdentifier]
+    }
+
+    private static var stagingBundleBases: [String] {
+        ["com.dodomux.app.staging", "com.cmuxterm.app.staging"]
+    }
+
+    private static func isBareDebugLikeBundleIdentifier(_ bundleIdentifier: String?) -> Bool {
+        guard let bundleIdentifier = normalizedBundleIdentifier(bundleIdentifier) else { return false }
+        return debugBundleBases.contains(bundleIdentifier)
+    }
+
+    private static func isStableReleaseBundleIdentifier(_ bundleIdentifier: String?) -> Bool {
+        guard let bundleIdentifier = normalizedBundleIdentifier(bundleIdentifier) else { return false }
+        return bundleIdentifier == stableReleaseBundleIdentifier
+            || bundleIdentifier == legacyStableReleaseBundleIdentifier
     }
 
     /// The directory holding the control socket and its marker files.

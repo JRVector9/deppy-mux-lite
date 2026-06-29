@@ -102,7 +102,7 @@ public struct KeyboardShortcutsSection: View {
             configurationReview: .action,
             searchAnchorID: "setting:keyboardShortcuts:shortcut-chords",
             String(localized: "settings.shortcuts.chords", defaultValue: "Shortcut Chords"),
-            subtitle: String(localized: "settings.shortcuts.chords.subtitle", defaultValue: "Add tmux-style multi-step shortcuts in cmux.json, for example [\"ctrl+b\", \"c\"].")
+            subtitle: String(localized: "settings.shortcuts.chords.subtitle", defaultValue: "Add tmux-style multi-step shortcuts in dodomux.json, for example [\"ctrl+b\", \"c\"].")
         ) {
             HStack(spacing: 8) {
                 Link(
@@ -112,7 +112,7 @@ public struct KeyboardShortcutsSection: View {
                 .cmuxFont(.caption)
                 .accessibilityIdentifier("SettingsKeyboardShortcutsChordDocsLink")
 
-                Button(String(localized: "settings.app.settingsFile.openButton", defaultValue: "Open cmux.json")) {
+                Button(String(localized: "settings.app.settingsFile.openButton", defaultValue: "Open dodomux.json")) {
                     hostActions.openConfigInExternalEditor()
                 }
                 .buttonStyle(.bordered)

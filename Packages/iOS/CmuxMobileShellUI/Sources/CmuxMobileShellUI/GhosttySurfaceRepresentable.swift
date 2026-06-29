@@ -274,7 +274,7 @@ struct GhosttySurfaceRepresentable: UIViewRepresentable {
             // writes a temp file and injects its path into the terminal so the
             // running TUI (e.g. Claude Code) attaches it.
             Task { @MainActor [weak store] in
-                await store?.submitTerminalPasteImage(data, format: format)
+                await store?.submitTerminalPasteImage(data, format: format, surfaceID: self.surfaceID)
             }
         }
 

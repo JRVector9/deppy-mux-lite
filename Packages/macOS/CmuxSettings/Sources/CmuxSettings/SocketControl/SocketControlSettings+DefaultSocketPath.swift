@@ -12,8 +12,7 @@ extension SocketControlSettings {
     ) -> String {
         if isDebugBuild,
            isBareDebugBundleIdentifier(
-               bundleIdentifier,
-               baseDebugBundleIdentifier: baseDebugBundleIdentifier
+               bundleIdentifier
            ),
            launchTag(environment: environment) == nil,
            environment["CMUX_SOCKET_PATH"]?.isEmpty != false,
@@ -35,10 +34,11 @@ extension SocketControlSettings {
 }
 
 private func isBareDebugBundleIdentifier(
-    _ bundleIdentifier: String?,
-    baseDebugBundleIdentifier: String
+    _ bundleIdentifier: String?
 ) -> Bool {
-    bundleIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines) == baseDebugBundleIdentifier
+    let normalized = bundleIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines)
+    return normalized == SocketControlSettings.baseDebugBundleIdentifier
+        || normalized == SocketControlSettings.legacyBaseDebugBundleIdentifier
 }
 
 private func xctestDebugSocketPath(environment: [String: String]) -> String? {

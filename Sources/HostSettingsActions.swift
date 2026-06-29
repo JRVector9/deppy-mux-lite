@@ -167,6 +167,20 @@ final class HostSettingsActions: SettingsHostActions {
         MobilePairingWindowController.shared.show()
     }
 
+    func currentMobileWebAccessSession() -> MobileWebAccessSessionSnapshot? {
+        MobileWebAccessClient.shared.currentSession()
+    }
+
+    func startMobileWebAccessSession() async -> MobileWebAccessStartResult {
+        await MobileWebAccessClient.shared.startSession()
+    }
+
+    func copyMobileWebAccessURL(_ url: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(url, forType: .string)
+    }
+
     private func existingConfigWindow() -> NSWindow? {
         if let configWindow, configWindow.isVisible || configWindow.isMiniaturized {
             return configWindow

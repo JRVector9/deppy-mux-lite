@@ -10,9 +10,14 @@
 // pairing — a phone keeps its own local paired-Mac store and falls back to it
 // when the registry is unreachable, so pairing survives the cloud being down.
 
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { cloudDb } from "../../../db/client";
 import { deviceAppInstances, devices } from "../../../db/schema";
+import {
+  listRegisteredDevices,
+  resolveDeviceRegistryTeam,
+} from "../../../services/device-registry";
+import { readBoundedJsonObject } from "../../../services/http/bounded-json";
 import { jsonResponse } from "../../../services/vms/routeHelpers";
 import {
   unauthorized,
@@ -67,32 +72,6 @@ function resolveTeam(request: Request, user: AuthedUser): TeamResolution {
   return { ok: true, teamId: user.selectedTeamId ?? user.billingTeamId };
 }
 
-async function readBoundedJson(
-  request: Request,
-): Promise<{ ok: true; value: Record<string, unknown> } | { ok: false; status: number }> {
-  const lengthHeader = request.headers.get("content-length");
-  if (lengthHeader && Number(lengthHeader) > MAX_REQUEST_BYTES) {
-    return { ok: false, status: 413 };
-  }
-  let raw: string;
-  try {
-    raw = await request.text();
-  } catch {
-    return { ok: false, status: 400 };
-  }
-  if (raw.length > MAX_REQUEST_BYTES) return { ok: false, status: 413 };
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return { ok: false, status: 400 };
-  }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return { ok: false, status: 400 };
-  }
-  return { ok: true, value: parsed as Record<string, unknown> };
-}
-
 function trimmedString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -134,7 +113,7 @@ export async function POST(request: Request): Promise<Response> {
   const team = resolveTeam(request, user);
   if (!team.ok) return team.response;
 
-  const body = await readBoundedJson(request);
+  const body = await readBoundedJsonObject(request, MAX_REQUEST_BYTES);
   if (!body.ok) return jsonResponse({ error: "invalid_request" }, body.status);
 
   const deviceUuid = trimmedString(body.value.deviceId).toLowerCase();
@@ -311,15 +290,6 @@ export async function POST(request: Request): Promise<Response> {
   return jsonResponse({ ok: true, deviceId: deviceUuid, teamId: team.teamId, tag });
 }
 
-type DeviceListRow = {
-  id: string;
-  deviceUuid: string;
-  platform: string;
-  displayName: string | null;
-  labels: Record<string, unknown>;
-  lastSeenAt: Date;
-};
-
 /**
  * List the team's registered devices and their app instances, so a phone can
  * find the Mac it last paired with and refresh routes on reload.
@@ -331,60 +301,10 @@ export async function GET(request: Request): Promise<Response> {
   });
   if (!user) return unauthorized();
 
-  const team = resolveTeam(request, user);
-  if (!team.ok) return team.response;
+  const team = resolveDeviceRegistryTeam(request, user);
+  if (!team.ok) return jsonResponse({ error: team.error }, 403);
 
-  const db = cloudDb();
-
-  const deviceRows = (await db
-    .select({
-      id: devices.id,
-      deviceUuid: devices.deviceUuid,
-      platform: devices.platform,
-      displayName: devices.displayName,
-      labels: devices.labels,
-      lastSeenAt: devices.lastSeenAt,
-    })
-    .from(devices)
-    .where(eq(devices.teamId, team.teamId))
-    .orderBy(desc(devices.lastSeenAt))) as DeviceListRow[];
-
-  const instanceRows = await db
-    .select({
-      deviceId: deviceAppInstances.deviceId,
-      tag: deviceAppInstances.tag,
-      routes: deviceAppInstances.routes,
-      labels: deviceAppInstances.labels,
-      lastSeenAt: deviceAppInstances.lastSeenAt,
-    })
-    .from(deviceAppInstances)
-    .where(eq(deviceAppInstances.teamId, team.teamId))
-    .orderBy(desc(deviceAppInstances.lastSeenAt));
-
-  const instancesByDevice = new Map<string, typeof instanceRows>();
-  for (const row of instanceRows) {
-    const list = instancesByDevice.get(row.deviceId) ?? [];
-    list.push(row);
-    instancesByDevice.set(row.deviceId, list);
-  }
-
-  const devicesPayload = deviceRows.map((device) => ({
-    // The phone matches its stored `macDeviceID` (the cmux device UUID) against
-    // this, so expose `deviceUuid`, not the internal surrogate row id.
-    deviceId: device.deviceUuid,
-    platform: device.platform,
-    displayName: device.displayName,
-    labels: device.labels,
-    lastSeenAt: device.lastSeenAt.toISOString(),
-    instances: (instancesByDevice.get(device.id) ?? []).map((instance) => ({
-      tag: instance.tag,
-      routes: instance.routes,
-      labels: instance.labels,
-      lastSeenAt: instance.lastSeenAt.toISOString(),
-    })),
-  }));
-
-  return jsonResponse({ teamId: team.teamId, devices: devicesPayload });
+  return jsonResponse(await listRegisteredDevices(team.teamId));
 }
 
 /**
@@ -402,7 +322,7 @@ export async function DELETE(request: Request): Promise<Response> {
   const team = resolveTeam(request, user);
   if (!team.ok) return team.response;
 
-  const body = await readBoundedJson(request);
+  const body = await readBoundedJsonObject(request, MAX_REQUEST_BYTES);
   if (!body.ok) return jsonResponse({ error: "invalid_request" }, body.status);
 
   const deviceUuid = trimmedString(body.value.deviceId).toLowerCase();

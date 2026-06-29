@@ -20,11 +20,12 @@ public struct MobileIOSBuildScope: Sendable, Equatable {
         infoDictionary: [String: Any]? = Bundle.main.infoDictionary,
         bundleIdentifier: String? = Bundle.main.bundleIdentifier
     ) -> MobileIOSBuildScope? {
-        let prefix = "dev.cmux.ios."
-        if let bundleIdentifier,
-           bundleIdentifier.hasPrefix(prefix),
-           let scope = MobileIOSBuildScope(String(bundleIdentifier.dropFirst(prefix.count))) {
-            return scope
+        for prefix in ["dev.cmux.ios.", "dev.dodomux.ios."] {
+            if let bundleIdentifier,
+               bundleIdentifier.hasPrefix(prefix),
+               let scope = MobileIOSBuildScope(String(bundleIdentifier.dropFirst(prefix.count))) {
+                return scope
+            }
         }
 
         if let value = infoDictionary?["CMUXDevTag"] as? String,

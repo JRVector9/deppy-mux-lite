@@ -1401,13 +1401,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Presence is the Mac's own heartbeat to the presence service, which is currently a DEV-only feature. Stable cmux Macs don't announce it yet, so a Mac you're connected to may show no server heartbeat. If presence says online but This phone is not connected, the Mac is reachable elsewhere but not from your phone, usually a Tailscale or route problem."
+            "value": "Presence is the Mac's own heartbeat to the presence service, which is currently a DEV-only feature. Stable dodomux Macs don't announce it yet, so a Mac you're connected to may show no server heartbeat. If presence says online but This phone is not connected, the Mac is reachable elsewhere but not from your phone, usually a Tailscale or route problem."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "プレゼンスは Mac 自身のプレゼンスサービスへのハートビートで、現在は DEV 限定の機能です。安定版の cmux Mac はまだ通知しないため、接続中の Mac でもサーバーハートビートが表示されないことがあります。プレゼンスがオンラインなのに「この電話」が未接続の場合、Mac は他からは到達できるが電話からは到達できません。通常は Tailscale かルートの問題です。"
+            "value": "プレゼンスは Mac 自身のプレゼンスサービスへのハートビートで、現在は DEV 限定の機能です。安定版の dodomux Mac はまだ通知しないため、接続中の Mac でもサーバーハートビートが表示されないことがあります。プレゼンスがオンラインなのに「この電話」が未接続の場合、Mac は他からは到達できるが電話からは到達できません。通常は Tailscale かルートの問題です。"
           }
         }
       }
@@ -1707,13 +1707,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reachable, but cmux isn't listening"
+            "value": "Reachable, but dodomux isn't listening"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "到達可能ですが、cmux が応答していません"
+            "value": "到達可能ですが、dodomux が応答していません"
           }
         }
       }
@@ -2047,13 +2047,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Devices and their cmux builds come from your team's registry. Tap a build to connect, then a workspace to open it."
+            "value": "Devices and their dodomux builds come from your team's registry. Tap a build to connect, then a workspace to open it."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "デバイスとそのcmuxビルドはチームのレジストリから取得されます。ビルドをタップして接続し、ワークスペースをタップして開きます。"
+            "value": "デバイスとそのdodomuxビルドはチームのレジストリから取得されます。ビルドをタップして接続し、ワークスペースをタップして開きます。"
           }
         }
       }
@@ -2370,13 +2370,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Emails your feedback to the cmux team, stamped with your app version and device."
+            "value": "Emails your feedback to the dodomux team, stamped with your app version and device."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "アプリのバージョンとデバイス情報を付けて、フィードバックを cmux チームにメールで送信します。"
+            "value": "アプリのバージョンとデバイス情報を付けて、フィードバックを dodomux チームにメールで送信します。"
           }
         }
       }
@@ -2659,13 +2659,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Make sure cmux on your Mac is signed in to the same account, then scan the pairing QR code it shows (or enter its address by hand). You only do this once per Mac."
+            "value": "Make sure dodomux on your Mac is signed in to the same account, then scan the pairing QR code it shows (or enter its address by hand). You only do this once per Mac."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mac版cmuxが同じアカウントでサインインしていることを確認し、表示されるペアリングQRコードを読み取ってください（またはアドレスを手入力します）。これはMacごとに一度だけ行います。"
+            "value": "Mac版dodomuxが同じアカウントでサインインしていることを確認し、表示されるペアリングQRコードを読み取ってください（またはアドレスを手入力します）。これはMacごとに一度だけ行います。"
           }
         }
       }
@@ -2795,13 +2795,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Keep both signed in to the same cmux account too. Pairing checks that they match."
+            "value": "Keep both signed in to the same dodomux account too. Pairing checks that they match."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "両方を同じcmuxアカウントでもサインインしておきます。ペアリング時に一致を確認します。"
+            "value": "両方を同じdodomuxアカウントでもサインインしておきます。ペアリング時に一致を確認します。"
           }
         }
       }
@@ -2846,13 +2846,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "cmux runs your terminals and AI coding agents on your Mac. This app lets you watch them, type, and get notified when an agent needs you, right from your phone."
+            "value": "dodomux runs your terminals and AI coding agents on your Mac. This app lets you watch them, type, and get notified when an agent needs you, right from your phone."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "cmuxはMac上でターミナルとAIコーディングエージェントを動かします。このアプリを使えば、iPhoneからその様子を見たり、入力したり、エージェントから呼ばれたときに通知を受け取れます。"
+            "value": "dodomuxはMac上でターミナルとAIコーディングエージェントを動かします。このアプリを使えば、iPhoneからその様子を見たり、入力したり、エージェントから呼ばれたときに通知を受け取れます。"
           }
         }
       }
@@ -2880,13 +2880,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This Mac is signed in to a different cmux account. Sign out and sign back in with the account that owns this Mac."
+            "value": "This Mac is signed in to a different dodomux account. Sign out and sign back in with the account that owns this Mac."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このMacは別のcmuxアカウントでサインインしています。サインアウトして、このMacを所有するアカウントでサインインし直してください。"
+            "value": "このMacは別のdodomuxアカウントでサインインしています。サインアウトして、このMacを所有するアカウントでサインインし直してください。"
           }
         }
       }
@@ -2897,13 +2897,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your Mac is reachable, but cmux isn't running there (or mobile pairing is off). Open cmux on the Mac, then try again."
+            "value": "Your Mac is reachable, but dodomux isn't running there (or mobile pairing is off). Open dodomux on the Mac, then try again."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Macには接続できますが、cmuxが起動していません（またはモバイルのペア設定がオフです）。Macでcmuxを開いてから、もう一度お試しください。"
+            "value": "Macには接続できますが、dodomuxが起動していません（またはモバイルのペア設定がオフです）。Macでdodomuxを開いてから、もう一度お試しください。"
           }
         }
       }
@@ -3186,13 +3186,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Settings > cmux > Local Network, then try again."
+            "value": "Settings > dodomux > Local Network, then try again."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "設定 > cmux > ローカルネットワーク を開いてから、もう一度お試しください。"
+            "value": "設定 > dodomux > ローカルネットワーク を開いてから、もう一度お試しください。"
           }
         }
       }
@@ -3203,13 +3203,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open cmux on your Mac, then scan the QR or link from it again."
+            "value": "Open dodomux on your Mac, then scan the QR or link from it again."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Macでcmuxを開いてから、そのQRコードまたはリンクをもう一度スキャンしてください。"
+            "value": "Macでdodomuxを開いてから、そのQRコードまたはリンクをもう一度スキャンしてください。"
           }
         }
       }
@@ -3220,13 +3220,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Check that this phone and your Mac are on the same Wi-Fi or both running Tailscale, that the Mac is awake, and that cmux is open on it."
+            "value": "Check that this phone and your Mac are on the same Wi-Fi or both running Tailscale, that the Mac is awake, and that dodomux is open on it."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このスマートフォンとMacが同じWi-Fi上にあるか、両方でTailscaleが動作していること、Macがスリープしていないこと、Macでcmuxが開いていることを確認してください。"
+            "value": "このスマートフォンとMacが同じWi-Fi上にあるか、両方でTailscaleが動作していること、Macがスリープしていないこと、Macでdodomuxが開いていることを確認してください。"
           }
         }
       }
@@ -3254,13 +3254,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Both devices must be signed in to the same cmux account."
+            "value": "Both devices must be signed in to the same dodomux account."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "両方の端末が同じcmuxアカウントでサインインしている必要があります。"
+            "value": "両方の端末が同じdodomuxアカウントでサインインしている必要があります。"
           }
         }
       }
@@ -3271,13 +3271,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Update cmux from the App Store (or TestFlight), then scan again."
+            "value": "Update dodomux from the App Store (or TestFlight), then scan again."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "App Store（またはTestFlight）でcmuxを更新してから、もう一度スキャンしてください。"
+            "value": "App Store（またはTestFlight）でdodomuxを更新してから、もう一度スキャンしてください。"
           }
         }
       }
@@ -3305,13 +3305,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This isn't a cmux pairing QR. Scan the code shown in the Pair iPhone window on your Mac."
+            "value": "This isn't a dodomux pairing QR. Scan the code shown in the Pair iPhone window on your Mac."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "これはcmuxのペアリングQRコードではありません。Macの「iPhoneをペアリング」ウインドウに表示されているコードをスキャンしてください。"
+            "value": "これはdodomuxのペアリングQRコードではありません。Macの「iPhoneをペアリング」ウインドウに表示されているコードをスキャンしてください。"
           }
         }
       }
@@ -3322,13 +3322,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "iOS blocked the connection. Allow cmux to use the Local Network in iOS Settings, then try again."
+            "value": "iOS blocked the connection. Allow dodomux to use the Local Network in iOS Settings, then try again."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "iOSが接続をブロックしました。iOSの設定でcmuxにローカルネットワークの使用を許可してから、もう一度お試しください。"
+            "value": "iOSが接続をブロックしました。iOSの設定でdodomuxにローカルネットワークの使用を許可してから、もう一度お試しください。"
           }
         }
       }
@@ -3526,13 +3526,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This QR needs a newer version of cmux. Update the app and try again."
+            "value": "This QR needs a newer version of dodomux. Update the app and try again."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このQRコードには新しいバージョンのcmuxが必要です。アプリを更新してからもう一度お試しください。"
+            "value": "このQRコードには新しいバージョンのdodomuxが必要です。アプリを更新してからもう一度お試しください。"
           }
         }
       }
@@ -3577,13 +3577,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This iPhone is running cmux %@, but the Mac is running cmux %@. Pairing across different compatibility levels can break terminal input, workspace sync, or notifications. Continue only if you trust this Mac and accept that some features may fail."
+            "value": "This iPhone is running dodomux %@, but the Mac is running dodomux %@. Pairing across different compatibility levels can break terminal input, workspace sync, or notifications. Continue only if you trust this Mac and accept that some features may fail."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "この iPhone は cmux %@ を実行していますが、Mac は cmux %@ を実行しています。異なる互換性レベル間でペアリングすると、ターミナル入力、ワークスペース同期、通知が壊れる可能性があります。この Mac を信頼し、一部の機能が失敗する可能性を受け入れる場合のみ続行してください。"
+            "value": "この iPhone は dodomux %@ を実行していますが、Mac は dodomux %@ を実行しています。異なる互換性レベル間でペアリングすると、ターミナル入力、ワークスペース同期、通知が壊れる可能性があります。この Mac を信頼し、一部の機能が失敗する可能性を受け入れる場合のみ続行してください。"
           }
         }
       }
@@ -4155,13 +4155,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Install the cmux Mac app and leave it running, signed in to the same account. The phone pairs to a running Mac, so a quit or never-installed app is the most common reason pairing does nothing."
+            "value": "Install the dodomux Mac app and leave it running, signed in to the same account. The phone pairs to a running Mac, so a quit or never-installed app is the most common reason pairing does nothing."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "cmuxのMacアプリをインストールし、同じアカウントでサインインしたまま起動しておきます。iPhoneは起動中のMacとペアリングするため、アプリが終了している、または未インストールであることが、ペアリングが進まない最も多い原因です。"
+            "value": "dodomuxのMacアプリをインストールし、同じアカウントでサインインしたまま起動しておきます。iPhoneは起動中のMacとペアリングするため、アプリが終了している、または未インストールであることが、ペアリングが進まない最も多い原因です。"
           }
         }
       }
@@ -4172,13 +4172,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Download cmux for Mac"
+            "value": "Download dodomux for Mac"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mac版cmuxをダウンロード"
+            "value": "Mac版dodomuxをダウンロード"
           }
         }
       }
@@ -4189,13 +4189,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Run cmux on your Mac"
+            "value": "Run dodomux on your Mac"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Macでcmuxを起動"
+            "value": "Macでdodomuxを起動"
           }
         }
       }
@@ -4206,13 +4206,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "If the Mac rejects this device's sign-in, the two are on different cmux accounts or this device's session is stale. Sign this phone in to the Mac's account (or sign the Mac in to this one), then pair again."
+            "value": "If the Mac rejects this device's sign-in, the two are on different dodomux accounts or this device's session is stale. Sign this phone in to the Mac's account (or sign the Mac in to this one), then pair again."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Macがこの端末のサインインを拒否する場合、両者が別々のcmuxアカウントになっているか、この端末のセッションが古くなっています。この端末をMacのアカウントでサインインし（またはMacをこの端末のアカウントでサインインし）、もう一度ペアリングしてください。"
+            "value": "Macがこの端末のサインインを拒否する場合、両者が別々のdodomuxアカウントになっているか、この端末のセッションが古くなっています。この端末をMacのアカウントでサインインし（またはMacをこの端末のアカウントでサインインし）、もう一度ペアリングしてください。"
           }
         }
       }
@@ -4274,13 +4274,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The Mac and this phone must be signed in to the same cmux account, and on the same tailnet (or the same Wi-Fi for a manual local connection)."
+            "value": "The Mac and this phone must be signed in to the same dodomux account, and on the same tailnet (or the same Wi-Fi for a manual local connection)."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Macとこの端末は、同じcmuxアカウントでサインインし、同じtailnet（手動でローカル接続する場合は同じWi-Fi）にある必要があります。"
+            "value": "Macとこの端末は、同じdodomuxアカウントでサインインし、同じtailnet（手動でローカル接続する場合は同じWi-Fi）にある必要があります。"
           }
         }
       }
@@ -4291,13 +4291,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sign in to cmux on this phone with the same account your Mac uses. Without that, there is nothing to connect to."
+            "value": "Sign in to dodomux on this phone with the same account your Mac uses. Without that, there is nothing to connect to."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "この端末で、Macと同じアカウントを使ってcmuxにサインインします。サインインしないと、接続先がありません。"
+            "value": "この端末で、Macと同じアカウントを使ってdodomuxにサインインします。サインインしないと、接続先がありません。"
           }
         }
       }
@@ -4376,13 +4376,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You have paired this Mac before but it is not reachable now. Wake it, make sure cmux is running, and confirm both devices are on the same tailnet or Wi-Fi. Then reconnect."
+            "value": "You have paired this Mac before but it is not reachable now. Wake it, make sure dodomux is running, and confirm both devices are on the same tailnet or Wi-Fi. Then reconnect."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このMacは以前ペアリング済みですが、今は届きません。Macを起こし、cmuxが起動していることを確認し、両方の端末が同じtailnetまたはWi-Fiにあることを確かめてから再接続してください。"
+            "value": "このMacは以前ペアリング済みですが、今は届きません。Macを起こし、dodomuxが起動していることを確認し、両方の端末が同じtailnetまたはWi-Fiにあることを確かめてから再接続してください。"
           }
         }
       }
@@ -4750,13 +4750,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "cmux could not finish checking your saved session. Check your connection, then retry."
+            "value": "dodomux could not finish checking your saved session. Check your connection, then retry."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "cmux は保存済みセッションの確認を完了できませんでした。接続を確認してから再試行してください。"
+            "value": "dodomux は保存済みセッションの確認を完了できませんでした。接続を確認してから再試行してください。"
           }
         }
       }
@@ -4818,13 +4818,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "cmux"
+            "value": "dodomux"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "cmux"
+            "value": "dodomux"
           }
         }
       }
@@ -6535,13 +6535,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "cmux could not finish restoring this session. Check that the Mac app is running, then retry or add this Mac again."
+            "value": "dodomux could not finish restoring this session. Check that the Mac app is running, then retry or add this Mac again."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "cmux はこのセッションの復元を完了できませんでした。Mac アプリが起動していることを確認してから、再試行するか、この Mac をもう一度追加してください。"
+            "value": "dodomux はこのセッションの復元を完了できませんでした。Mac アプリが起動していることを確認してから、再試行するか、この Mac をもう一度追加してください。"
           }
         }
       }

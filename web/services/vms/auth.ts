@@ -27,7 +27,11 @@ export type AuthedTeam = {
  */
 export async function verifyRequest(
   request: Request,
-  options: { readonly requestedTeamId?: string | null; readonly allowCookie?: boolean } = {},
+  options: {
+    readonly requestedTeamId?: string | null;
+    readonly allowCookie?: boolean;
+    readonly includeTeams?: boolean;
+  } = {},
 ): Promise<AuthedUser | null> {
   if (!isStackConfigured()) {
     return null;
@@ -64,13 +68,16 @@ export async function verifyRequest(
 
 async function authedUserFromStackUser(
   user: StackUserLike,
-  options: { readonly requestedTeamId?: string | null },
+  options: { readonly requestedTeamId?: string | null; readonly includeTeams?: boolean },
 ): Promise<AuthedUser> {
   const selectedTeam = teamLike(user.selectedTeam);
   const requestedTeamId = normalizedOptionalString(options.requestedTeamId);
   // When the selected team is enough, entitlements resolve from it before any
   // multi-team guard needs a full team list.
-  const needsListedTeams = !selectedTeam || (!!requestedTeamId && requestedTeamId !== selectedTeam.id);
+  const needsListedTeams =
+    options.includeTeams === true ||
+    !selectedTeam ||
+    (!!requestedTeamId && requestedTeamId !== selectedTeam.id);
   const listedTeams = needsListedTeams && typeof user.listTeams === "function"
     ? (await user.listTeams()).map(teamLike).filter((team): team is TeamLike => !!team)
     : [];

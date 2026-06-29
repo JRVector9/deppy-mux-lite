@@ -55,7 +55,7 @@ struct MobilePairingView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(String(localized: "mobile.pairing.window.heading", defaultValue: "Pair your iPhone"))
                 .cmuxFont(.title2, weight: .semibold)
-            Text(String(localized: "mobile.pairing.window.subheading", defaultValue: "Scan this code with the cmux app on your iPhone to sync your terminal workspaces."))
+            Text(String(localized: "mobile.pairing.window.subheading", defaultValue: "Scan this code with the dodomux app on your iPhone to sync your terminal workspaces."))
                 .cmuxFont(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -73,7 +73,7 @@ struct MobilePairingView: View {
 
     private var signInRow: some View {
         requirementRow(
-            title: String(localized: "mobile.pairing.req.signIn.title", defaultValue: "Signed in to cmux"),
+            title: String(localized: "mobile.pairing.req.signIn.title", defaultValue: "Signed in to dodomux"),
             subtitle: model.signedInEmail
                 ?? String(localized: "mobile.pairing.req.signIn.subtitle", defaultValue: "Sign in to authorize this Mac for pairing.")
         ) {
@@ -190,7 +190,7 @@ struct MobilePairingView: View {
             Image(systemName: "person.crop.circle.badge.plus")
                 .cmuxFont(size: 28)
                 .foregroundStyle(.tint)
-            Text(String(localized: "mobile.pairing.signIn.prompt", defaultValue: "Sign in with your cmux account to pair your iPhone."))
+            Text(String(localized: "mobile.pairing.signIn.prompt", defaultValue: "Sign in with your dodomux account to pair your iPhone."))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -334,14 +334,14 @@ struct MobilePairingView: View {
 
     private var steps: some View {
         VStack(alignment: .leading, spacing: 10) {
-            step(1, String(localized: "mobile.pairing.step.install", defaultValue: "Install cmux on your iPhone and open it."))
+            step(1, String(localized: "mobile.pairing.step.install", defaultValue: "Install dodomux on your iPhone and open it."))
             HStack(spacing: 4) {
                 Spacer(minLength: 30)
                 Text(String(localized: "mobile.pairing.getApp.prompt", defaultValue: "Don't have it yet?"))
                     .cmuxFont(.caption)
                     .foregroundStyle(.secondary)
                 Link(
-                    String(localized: "mobile.pairing.getApp.link", defaultValue: "Get cmux for iPhone"),
+                    String(localized: "mobile.pairing.getApp.link", defaultValue: "Get dodomux for iPhone"),
                     destination: Self.iphoneAppURL
                 )
                 .cmuxFont(.caption)

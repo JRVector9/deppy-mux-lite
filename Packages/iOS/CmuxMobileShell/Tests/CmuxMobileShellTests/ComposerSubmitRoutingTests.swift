@@ -34,6 +34,89 @@ import Testing
         #expect(store.pendingAttachments(forTerminalID: termA).isEmpty)
     }
 
+    /// The mounted composer owns an explicit terminal id. If selection state has
+    /// gone stale and points at a different terminal, Send must still target the
+    /// terminal whose composer is on screen, but it must not paste the selected
+    /// terminal's live draft into that visible terminal.
+    @Test func explicitComposerSubmitDoesNotLeakSelectedDraftWhenSelectionDiffers() async throws {
+        let router = RoutingHostRouter()
+        let store = try await makeRoutingConnectedStore(router: router)
+        let termA = RoutingHostRouter.terminalA
+        let termB = RoutingHostRouter.terminalB
+        store.selectTerminal(MobileTerminalPreview.ID(rawValue: termB))
+
+        store.addPendingAttachment(Self.bytes("visible-a-image"), format: "png", forTerminalID: termA)
+        store.terminalInputText = "visible-a"
+
+        await store.submitComposer(forTerminalID: termA)
+
+        let images = await router.recordedPasteImages()
+        let pastes = await router.recordedPastes()
+        #expect(images.map(\.surfaceID) == [termA])
+        #expect(pastes.isEmpty)
+        #expect(images.allSatisfy { $0.surfaceID != termB })
+        #expect(store.pendingAttachments(forTerminalID: termA).isEmpty)
+        #expect(store.terminalInputText == "visible-a")
+    }
+
+    /// When an explicit composer submit targets a terminal different from the
+    /// selected terminal, text comes only from that target terminal's stored
+    /// draft. This prevents a stale visible-terminal fallback from pasting the
+    /// selected terminal's field text into another terminal.
+    @Test func explicitComposerSubmitUsesTargetDraftWhenSelectionDiffers() async throws {
+        let router = RoutingHostRouter()
+        let drafts = InMemoryTerminalDraftStore()
+        let termA = RoutingHostRouter.terminalA
+        let termB = RoutingHostRouter.terminalB
+        await drafts.saveDraft("a-draft", forTerminalID: termA)
+        let store = try await makeRoutingConnectedStore(router: router, draftStore: drafts)
+        store.selectTerminal(MobileTerminalPreview.ID(rawValue: termB))
+        store.terminalInputText = "b-draft"
+
+        await store.submitComposer(forTerminalID: termA)
+
+        let pastes = await router.recordedPastes()
+        #expect(pastes.map(\.surfaceID) == [termA])
+        #expect(pastes.first?.text == "a-draft")
+        #expect(pastes.allSatisfy { $0.text != "b-draft" })
+        #expect(store.terminalInputText == "b-draft")
+    }
+
+    /// Clipboard/image paste originates from a concrete rendered surface, so it
+    /// must not fall back through stale selection either.
+    @Test func explicitImagePasteUsesVisibleTerminalWhenSelectionDiffers() async throws {
+        let router = RoutingHostRouter()
+        let store = try await makeRoutingConnectedStore(router: router)
+        let termA = RoutingHostRouter.terminalA
+        let termB = RoutingHostRouter.terminalB
+        store.selectTerminal(MobileTerminalPreview.ID(rawValue: termB))
+
+        let sent = await store.submitTerminalPasteImage(Self.bytes("visible-a-image"), format: "png", surfaceID: termA)
+
+        let images = await router.recordedPasteImages()
+        #expect(sent)
+        #expect(images.map(\.surfaceID) == [termA])
+        #expect(images.allSatisfy { $0.surfaceID != termB })
+    }
+
+    /// Raw terminal input (including Return from the rendered terminal surface)
+    /// originates from a concrete surface. It must target that surface even if
+    /// selection state points at another terminal.
+    @Test func explicitRawInputUsesVisibleTerminalWhenSelectionDiffers() async throws {
+        let router = RoutingHostRouter()
+        let store = try await makeRoutingConnectedStore(router: router)
+        let termA = RoutingHostRouter.terminalA
+        let termB = RoutingHostRouter.terminalB
+        store.selectTerminal(MobileTerminalPreview.ID(rawValue: termB))
+
+        await store.submitTerminalRawInput(Data("\r".utf8), surfaceID: termA)
+
+        let inputs = await router.recordedInputs()
+        #expect(inputs.map(\.surfaceID) == [termA])
+        #expect(inputs.first?.text == "\r")
+        #expect(inputs.allSatisfy { $0.surfaceID != termB })
+    }
+
     /// A terminal switch WHILE the first image send is in flight must not reroute
     /// the later image or the text: both still target the captured terminal.
     @Test func midSendSwitchDoesNotRerouteLaterImageOrText() async throws {

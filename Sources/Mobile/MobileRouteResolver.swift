@@ -215,7 +215,7 @@ final class MobileRouteResolver: @unchecked Sendable {
         return callbacks
     }
 
-    private static func tailscaleRouteHosts(resolveDNS: Bool) -> [String] {
+    static func tailscaleRouteHosts(resolveDNS: Bool) -> [String] {
         guard let candidate = preferredTailscaleAddressCandidate(resolveDNS: resolveDNS) else {
             return []
         }

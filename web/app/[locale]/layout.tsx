@@ -58,7 +58,7 @@ export async function generateMetadata({
       title: t("title"),
       description: t("ogDescription"),
       url: alternates.canonical,
-      siteName: "cmux",
+      siteName: "dodomux",
       type: "website",
     },
     twitter: {
@@ -97,7 +97,7 @@ export default async function LocaleLayout({
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: "cmux",
+    name: "dodomux",
     operatingSystem: "macOS",
     applicationCategory: "DeveloperApplication",
     url: "https://cmux.com",

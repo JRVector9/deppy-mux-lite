@@ -256,3 +256,66 @@ export const deviceAppInstances = pgTable(
     index("device_app_instances_team_last_seen_idx").on(table.teamId, table.lastSeenAt),
   ],
 );
+
+/**
+ * Public Web Access rendezvous sessions. A cmux host creates one of these when
+ * it exposes a browser/PWA entry URL; browsers can resolve the public slug
+ * without auth, while the host proves liveness with the one-time returned token.
+ */
+export const webAccessSessions = pgTable(
+  "web_access_sessions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    slug: text("slug").notNull(),
+    hostTokenHash: text("host_token_hash").notNull(),
+    browserTokenHash: text("browser_token_hash").notNull(),
+    userId: text("user_id").notNull(),
+    teamId: text("team_id").notNull(),
+    deviceId: text("device_id"),
+    displayName: text("display_name"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    lastHostSeenAt: timestamp("last_host_seen_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("web_access_sessions_slug_unique").on(table.slug),
+    uniqueIndex("web_access_sessions_host_token_hash_unique").on(table.hostTokenHash),
+    uniqueIndex("web_access_sessions_browser_token_hash_unique").on(table.browserTokenHash),
+    index("web_access_sessions_owner_expires_idx").on(table.teamId, table.userId, table.expiresAt),
+    index("web_access_sessions_expires_idx").on(table.expiresAt),
+    index("web_access_sessions_owner_device_idx")
+      .on(table.teamId, table.userId, table.deviceId)
+      .where(sql`${table.deviceId} is not null`),
+  ],
+);
+
+/**
+ * Public browser-to-host RPC relay requests for Web Access. Browsers enqueue
+ * mobile RPC calls against an unguessable public slug; the desktop host polls
+ * with its private host token, executes locally, and completes the row.
+ */
+export const webAccessRpcRequests = pgTable(
+  "web_access_rpc_requests",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    slug: text("slug").notNull(),
+    method: text("method").notNull(),
+    params: jsonb("params").$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+    statusTokenHash: text("status_token_hash").notNull(),
+    status: text("status").notNull().default("pending"),
+    result: jsonb("result").$type<unknown>(),
+    error: jsonb("error").$type<{ code?: string; message: string }>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    index("web_access_rpc_requests_slug_status_created_idx").on(
+      table.slug,
+      table.status,
+      table.createdAt,
+    ),
+    index("web_access_rpc_requests_expires_idx").on(table.expiresAt),
+  ],
+);

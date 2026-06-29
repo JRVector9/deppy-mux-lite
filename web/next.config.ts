@@ -21,6 +21,7 @@ const agentSlugMoves: [from: string, to: string][] = [
 
 const nextConfig: NextConfig = {
   poweredByHeader,
+  allowedDevOrigins: ["100.75.156.51"],
   async redirects() {
     // Cover the HTML page plus its agent-readable .md/.txt variants, which were
     // live and advertised in llms.txt before the move.

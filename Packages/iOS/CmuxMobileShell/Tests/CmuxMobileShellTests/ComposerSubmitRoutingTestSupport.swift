@@ -40,8 +40,13 @@ actor RoutingHostRouter {
         var surfaceID: String
         var text: String
     }
+    struct InputRecord: Sendable {
+        var surfaceID: String
+        var text: String
+    }
     private(set) var pasteImages: [PasteImageRecord] = []
     private(set) var pastes: [PasteRecord] = []
+    private(set) var inputs: [InputRecord] = []
     private(set) var dismisses: [(notificationIDs: [String], clientID: String?)] = []
     /// Reject the Nth (0-based) and later paste_image requests; `nil` accepts all.
     private var rejectPasteImageFromIndex: Int?
@@ -89,6 +94,7 @@ actor RoutingHostRouter {
 
     func recordedPasteImages() -> [PasteImageRecord] { pasteImages }
     func recordedPastes() -> [PasteRecord] { pastes }
+    func recordedInputs() -> [InputRecord] { inputs }
     func recordedDismisses() -> [(notificationIDs: [String], clientID: String?)] { dismisses }
 
     /// Sendable extract of the request fields the router needs, pulled off the
@@ -165,6 +171,11 @@ actor RoutingHostRouter {
             let surfaceID = info.surfaceID ?? ""
             let text = info.text ?? ""
             pastes.append(PasteRecord(surfaceID: surfaceID, text: text))
+            return try? Self.resultFrame(id: id, result: [:])
+        case "terminal.input":
+            let surfaceID = info.surfaceID ?? ""
+            let text = info.text ?? ""
+            inputs.append(InputRecord(surfaceID: surfaceID, text: text))
             return try? Self.resultFrame(id: id, result: [:])
         case "notification.dismiss":
             dismisses.append((
@@ -288,6 +299,7 @@ private actor RoutingTransport: CmxByteTransport {
 @MainActor
 func makeRoutingConnectedStore(
     router: RoutingHostRouter,
+    draftStore: (any TerminalDraftStoring)? = nil,
     pendingDismissQueue: PendingNotificationDismissQueue = PendingNotificationDismissQueue(
         defaults: UserDefaults(suiteName: "routing-dismiss-\(UUID().uuidString)")!
     )
@@ -309,7 +321,8 @@ func makeRoutingConnectedStore(
                 terminals: terminals
             ),
         ],
-        pendingDismissQueue: pendingDismissQueue
+        pendingDismissQueue: pendingDismissQueue,
+        draftStore: draftStore
     )
     // 127.0.0.1 is a Stack-auth-trusted route, so authorized requests carry the
     // Stack token and do not throw insecureManualRoute before reaching the

@@ -66,7 +66,7 @@ struct MobileSettingsView: View {
                 } footer: {
                     Text(L10n.string(
                         "mobile.settings.accountFooter",
-                        defaultValue: "This device must be signed in to the same cmux account as the Mac you pair with."
+                        defaultValue: "This device must be signed in to the same dodomux account as the Mac you pair with."
                     ))
                 }
 

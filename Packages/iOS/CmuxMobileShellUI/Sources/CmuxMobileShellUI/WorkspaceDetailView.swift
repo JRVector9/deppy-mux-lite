@@ -78,6 +78,10 @@ struct WorkspaceDetailView: View {
         workspace.terminals.first { $0.id == store.selectedTerminalID } ?? workspace.terminals.first
     }
 
+    private var visibleTerminalSelectionKey: String {
+        "\(workspace.id.rawValue)#\(selectedTerminal?.id.rawValue ?? "none")#\(store.selectedTerminalID?.rawValue ?? "none")#\(activeBrowser == nil ? "terminal" : "browser")"
+    }
+
     /// Extra blank top padding for the terminal/chat, on top of the safe area. The
     /// grid already sits below the nav bar (in the top safe area), so this is just
     /// a hairline so the first row is not jammed against the bar's bottom edge.
@@ -453,6 +457,7 @@ struct WorkspaceDetailView: View {
         .mobileTerminalNavigationChrome()
         #if os(iOS)
         .task(id: chatRefreshKey) { await refreshChatSessions() }
+        .task(id: visibleTerminalSelectionKey) { syncVisibleTerminalSelectionIfNeeded() }
         #endif
         .toolbar {
             #if os(iOS)
@@ -550,6 +555,14 @@ struct WorkspaceDetailView: View {
         .foregroundStyle(TerminalPalette.foreground)
         .accessibilityIdentifier("MobileTerminalDropdown")
         .accessibilityValue(host)
+    }
+
+    @MainActor
+    private func syncVisibleTerminalSelectionIfNeeded() {
+        guard activeBrowser == nil,
+              let visibleTerminalID = selectedTerminal?.id,
+              visibleTerminalID != store.selectedTerminalID else { return }
+        store.selectTerminalFromChrome(visibleTerminalID)
     }
 
     @ViewBuilder
@@ -776,7 +789,7 @@ struct WorkspaceDetailView: View {
         }
         return L10n.string(
             "mobile.feedback.explanation.email",
-            defaultValue: "Emails your feedback to the cmux team, stamped with your app version and device."
+            defaultValue: "Emails your feedback to the dodomux team, stamped with your app version and device."
         )
     }
 
