@@ -11,6 +11,7 @@ import SwiftUI
 public struct SidebarSection: View {
     private let catalog: SettingCatalog
     private let hostActions: SettingsHostActions
+    private let featureAvailability: SettingsFeatureAvailability
     private let rightSidebarWidthSettings = RightSidebarWidthSettings()
 
     @State private var sidebarFont: SettingsFontSize
@@ -38,9 +39,15 @@ public struct SidebarSection: View {
     @State private var rightMaxWidth: DefaultsValueModel<Double>
     @State private var rememberedRightMaxWidth: DefaultsValueModel<Double>
 
-    public init(defaultsStore: UserDefaultsSettingsStore, catalog: SettingCatalog, hostActions: SettingsHostActions) {
+    public init(
+        defaultsStore: UserDefaultsSettingsStore,
+        catalog: SettingCatalog,
+        hostActions: SettingsHostActions,
+        featureAvailability: SettingsFeatureAvailability = .all
+    ) {
         self.catalog = catalog
         self.hostActions = hostActions
+        self.featureAvailability = featureAvailability
         _sidebarFont = State(initialValue: hostActions.sidebarFontSize())
         _matchTerminal = State(initialValue: DefaultsValueModel(store: defaultsStore, key: catalog.sidebarAppearance.matchTerminalBackground))
         _hideAll = State(initialValue: DefaultsValueModel(store: defaultsStore, key: catalog.sidebar.hideAllDetails))
@@ -393,32 +400,36 @@ public struct SidebarSection: View {
                     .accessibilityIdentifier("SettingsSidebarPullRequestClickableToggle")
             }
             .disabled(hideAll.current || !showPR.current)
-            SettingsCardDivider()
 
-            SettingsCardRow(
-                configurationReview: .json("sidebar.openPullRequestLinksInCmuxBrowser"),
-                String(localized: "settings.app.openSidebarPRLinks", defaultValue: "Open Sidebar PR Links in deppy-mux Browser"),
-                subtitle: prLinksSubtitle(prVisible: showPR.current, prClickable: prClickable.current, openInCmux: prLinks.current)
-            ) {
-                Toggle("", isOn: Binding(get: { prLinks.current }, set: { prLinks.set($0) }))
-                    .labelsHidden()
-                    .controlSize(.small)
+            if featureAvailability.isSettingEntryVisible(section: .sidebarAppearance, id: "open-pr-links") {
+                SettingsCardDivider()
+                SettingsCardRow(
+                    configurationReview: .json("sidebar.openPullRequestLinksInCmuxBrowser"),
+                    String(localized: "settings.app.openSidebarPRLinks", defaultValue: "Open Sidebar PR Links in deppy-mux Browser"),
+                    subtitle: prLinksSubtitle(prVisible: showPR.current, prClickable: prClickable.current, openInCmux: prLinks.current)
+                ) {
+                    Toggle("", isOn: Binding(get: { prLinks.current }, set: { prLinks.set($0) }))
+                        .labelsHidden()
+                        .controlSize(.small)
+                }
+                .disabled(hideAll.current || !showPR.current || !prClickable.current)
             }
-            .disabled(hideAll.current || !showPR.current || !prClickable.current)
-            SettingsCardDivider()
 
-            SettingsCardRow(
-                configurationReview: .json("sidebar.openPortLinksInCmuxBrowser"),
-                String(localized: "settings.app.openSidebarPortLinks", defaultValue: "Open Sidebar Port Links in deppy-mux Browser"),
-                subtitle: portLinks.current
-                    ? String(localized: "settings.app.openSidebarPortLinks.subtitleOn", defaultValue: "Port clicks open inside deppy-mux browser.")
-                    : String(localized: "settings.app.openSidebarPortLinks.subtitleOff", defaultValue: "Port clicks open in your default browser.")
-            ) {
-                Toggle("", isOn: Binding(get: { portLinks.current }, set: { portLinks.set($0) }))
-                    .labelsHidden()
-                    .controlSize(.small)
+            if featureAvailability.isSettingEntryVisible(section: .sidebarAppearance, id: "open-port-links") {
+                SettingsCardDivider()
+                SettingsCardRow(
+                    configurationReview: .json("sidebar.openPortLinksInCmuxBrowser"),
+                    String(localized: "settings.app.openSidebarPortLinks", defaultValue: "Open Sidebar Port Links in deppy-mux Browser"),
+                    subtitle: portLinks.current
+                        ? String(localized: "settings.app.openSidebarPortLinks.subtitleOn", defaultValue: "Port clicks open inside deppy-mux browser.")
+                        : String(localized: "settings.app.openSidebarPortLinks.subtitleOff", defaultValue: "Port clicks open in your default browser.")
+                ) {
+                    Toggle("", isOn: Binding(get: { portLinks.current }, set: { portLinks.set($0) }))
+                        .labelsHidden()
+                        .controlSize(.small)
+                }
+                .disabled(hideAll.current)
             }
-            .disabled(hideAll.current)
             SettingsCardDivider()
 
             SettingsCardRow(

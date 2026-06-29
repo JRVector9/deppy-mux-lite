@@ -195,15 +195,20 @@ struct WorkspaceTerminalTabWorkingDirectoryTests {
         let manager = TabManager()
         let workspace = try #require(manager.selectedWorkspace)
         workspace.currentDirectory = workspaceDirectory
-        let pane = try #require(workspace.bonsplitController.focusedPaneId)
-        let agentPanel = try #require(workspace.newAgentSessionSurface(
-            inPane: pane,
-            rendererKind: .react,
-            workingDirectory: nil,
-            focus: true
-        ))
-        workspace.panelDirectories.removeValue(forKey: agentPanel.id)
-        #expect(workspace.focusedPanelId == agentPanel.id)
+        if DeppyLiteFeaturePolicy.isEnabled {
+            let focusedPanelId = try #require(workspace.focusedPanelId)
+            workspace.panelDirectories.removeValue(forKey: focusedPanelId)
+        } else {
+            let pane = try #require(workspace.bonsplitController.focusedPaneId)
+            let agentPanel = try #require(workspace.newAgentSessionSurface(
+                inPane: pane,
+                rendererKind: .react,
+                workingDirectory: nil,
+                focus: true
+            ))
+            workspace.panelDirectories.removeValue(forKey: agentPanel.id)
+            #expect(workspace.focusedPanelId == agentPanel.id)
+        }
         TerminalController.shared.setActiveTabManager(manager)
         defer {
             TerminalController.shared.setActiveTabManager(previousManager)

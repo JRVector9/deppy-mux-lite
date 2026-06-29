@@ -8,8 +8,10 @@ import CmuxSettings
 import CmuxSettingsUI
 import CmuxWorkspaces
 import CmuxTestSupport
+#if !DEPPY_LITE
 import CmuxUpdater
 import CmuxUpdaterUI
+#endif
 import SwiftUI
 import Observation
 import Darwin
@@ -175,7 +177,8 @@ struct cmuxApp: App {
                 coordinator: authComposition.coordinator,
                 browserSignIn: authComposition.browserSignIn
             ),
-            hostActions: HostSettingsActions(configFileURL: configFileURL)
+            hostActions: HostSettingsActions(configFileURL: configFileURL),
+            featureAvailability: Self.deppyLiteSettingsFeatureAvailability()
         )
         StartupBreadcrumbLog.append("app.init.settingsRuntime.created")
 
@@ -227,6 +230,81 @@ struct cmuxApp: App {
             auth: authComposition
         )
         StartupBreadcrumbLog.append("app.init.delegate.configured")
+    }
+
+    private static func deppyLiteSettingsFeatureAvailability() -> SettingsFeatureAvailability {
+        guard DeppyLiteFeaturePolicy.isEnabled else { return .all }
+
+        var hiddenSections = Set<SettingsSectionID>()
+        var hiddenSettingEntries = Set<String>()
+        var hiddenShortcutActions = Set<ShortcutAction>()
+
+        func hideSetting(_ section: SettingsSectionID, _ id: String) {
+            hiddenSettingEntries.insert(SettingsFeatureAvailability.settingEntryKey(section: section, id: id))
+        }
+
+        if !DeppyLiteFeaturePolicy.internalBrowserEnabled {
+            hiddenSections.formUnion([.browser, .browserImport])
+            hideSetting(.sidebarAppearance, "open-pr-links")
+            hideSetting(.sidebarAppearance, "open-port-links")
+            hiddenShortcutActions.formUnion([
+                .newBrowserWorkspace,
+                .reopenClosedBrowserPanel,
+                .splitBrowserRight,
+                .splitBrowserDown,
+                .openBrowser,
+                .focusBrowserAddressBar,
+                .browserBack,
+                .browserForward,
+                .browserReload,
+                .browserHardReload,
+                .browserZoomIn,
+                .browserZoomOut,
+                .browserZoomReset,
+                .toggleBrowserDeveloperTools,
+                .showBrowserJavaScriptConsole,
+                .toggleBrowserFocusMode,
+                .toggleReactGrab,
+            ])
+        }
+
+        if !DeppyLiteFeaturePolicy.previewPanelsEnabled {
+            hideSetting(.app, "supported-file-previews")
+            hideSetting(.app, "markdown-viewer")
+            hideSetting(.app, "file-editor-word-wrap")
+            hiddenShortcutActions.formUnion([
+                .openDiffViewer,
+                .saveFilePreview,
+                .markdownZoomIn,
+                .markdownZoomOut,
+                .markdownZoomReset,
+                .diffViewerScrollDown,
+                .diffViewerScrollUp,
+                .diffViewerScrollToBottom,
+                .diffViewerScrollToTop,
+                .diffViewerOpenFileSearch,
+            ])
+        }
+
+        if !DeppyLiteFeaturePolicy.feedEnabled {
+            hideSetting(.betaFeatures, "feed")
+            hiddenShortcutActions.insert(.switchRightSidebarToFeed)
+        }
+
+        if !DeppyLiteFeaturePolicy.customSidebarProvidersEnabled {
+            hiddenSections.insert(.customSidebars)
+            hideSetting(.betaFeatures, "customSidebars")
+        }
+
+        if !DeppyLiteFeaturePolicy.extensionSidebarProvidersEnabled {
+            hideSetting(.betaFeatures, "extensions")
+        }
+
+        return SettingsFeatureAvailability(
+            hiddenSections: hiddenSections,
+            hiddenSettingEntries: hiddenSettingEntries,
+            hiddenShortcutActions: hiddenShortcutActions
+        )
     }
 
     private static func terminateForMissingLaunchTag() -> Never {
@@ -720,17 +798,19 @@ struct cmuxApp: App {
                     }
                 }
 
-                splitCommandButton(title: String(localized: "menu.file.newBrowserWorkspace", defaultValue: "New Browser Workspace"), shortcut: menuShortcut(for: .newBrowserWorkspace)) {
-                    if let appDelegate = AppDelegate.shared {
-                        appDelegate.performNewBrowserWorkspaceAction(
-                            tabManager: activeTabManager,
-                            debugSource: "menu.newBrowserWorkspace"
-                        )
-                    } else if BrowserAvailabilitySettings.isEnabled() {
-                        // Last-resort fallback for a missing AppDelegate; keep
-                        // the browser-availability gate identical to the
-                        // shared action path.
-                        activeTabManager.addWorkspace(initialSurface: .browser)
+                if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+                    splitCommandButton(title: String(localized: "menu.file.newBrowserWorkspace", defaultValue: "New Browser Workspace"), shortcut: menuShortcut(for: .newBrowserWorkspace)) {
+                        if let appDelegate = AppDelegate.shared {
+                            appDelegate.performNewBrowserWorkspaceAction(
+                                tabManager: activeTabManager,
+                                debugSource: "menu.newBrowserWorkspace"
+                            )
+                        } else if BrowserAvailabilitySettings.isEnabled() {
+                            // Last-resort fallback for a missing AppDelegate; keep
+                            // the browser-availability gate identical to the
+                            // shared action path.
+                            activeTabManager.addWorkspace(initialSurface: .browser)
+                        }
                     }
                 }
 
@@ -738,15 +818,17 @@ struct cmuxApp: App {
                     AppDelegate.shared?.showOpenFolderPanel()
                 }
 
-                Button(
-                    String(
-                        localized: "menu.file.openFolderInVSCodeInline",
-                        defaultValue: "Open Folder in VS Code (Inline)…"
-                    )
-                ) {
-                    AppDelegate.shared?.showOpenFolderInInlineVSCodePanel()
+                if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+                    Button(
+                        String(
+                            localized: "menu.file.openFolderInVSCodeInline",
+                            defaultValue: "Open Folder in VS Code (Inline)…"
+                        )
+                    ) {
+                        AppDelegate.shared?.showOpenFolderInInlineVSCodePanel()
+                    }
+                    .disabled(!TerminalDirectoryOpenTarget.vscodeInline.isAvailable())
                 }
-                .disabled(!TerminalDirectoryOpenTarget.vscodeInline.isAvailable())
             }
 
             // Close tab/workspace
@@ -882,8 +964,10 @@ struct cmuxApp: App {
     @CommandsBuilder
     private var windowAndViewCommands: some Commands {
         CommandGroup(after: .windowArrangement) {
-            Button(String(localized: "menu.window.taskManager", defaultValue: "Task Manager...")) {
-                TaskManagerWindowController.shared.show()
+            if DeppyLiteFeaturePolicy.taskManagerEnabled {
+                Button(String(localized: "menu.window.taskManager", defaultValue: "Task Manager...")) {
+                    TaskManagerWindowController.shared.show()
+                }
             }
         }
         helpCommands
@@ -920,66 +1004,68 @@ struct cmuxApp: App {
                 activeTabManager.selectPreviousSurface()
             }
 
-            splitCommandButton(title: String(localized: "menu.view.back", defaultValue: "Back"), shortcut: menuShortcut(for: .browserBack)) {
-                activeTabManager.focusedBrowserPanel?.goBack()
-            }
-
-            splitCommandButton(title: String(localized: "menu.view.forward", defaultValue: "Forward"), shortcut: menuShortcut(for: .browserForward)) {
-                activeTabManager.focusedBrowserPanel?.goForward()
-            }
-
-            splitCommandButton(title: String(localized: "menu.view.reloadPage", defaultValue: "Reload Page"), shortcut: menuShortcut(for: .browserReload)) {
-                activeTabManager.focusedBrowserPanel?.reload()
-            }
-
-            splitCommandButton(title: String(localized: "menu.view.toggleDevTools", defaultValue: "Toggle Developer Tools"), shortcut: menuShortcut(for: .toggleBrowserDeveloperTools)) {
-                let manager = activeTabManager
-                if !manager.toggleDeveloperToolsFocusedBrowser() {
-                    NSSound.beep()
+            if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+                splitCommandButton(title: String(localized: "menu.view.back", defaultValue: "Back"), shortcut: menuShortcut(for: .browserBack)) {
+                    activeTabManager.focusedBrowserPanel?.goBack()
                 }
-            }
 
-            splitCommandButton(title: String(localized: "menu.view.showJSConsole", defaultValue: "Show JavaScript Console"), shortcut: menuShortcut(for: .showBrowserJavaScriptConsole)) {
-                let manager = activeTabManager
-                if !manager.showJavaScriptConsoleFocusedBrowser() {
-                    NSSound.beep()
+                splitCommandButton(title: String(localized: "menu.view.forward", defaultValue: "Forward"), shortcut: menuShortcut(for: .browserForward)) {
+                    activeTabManager.focusedBrowserPanel?.goForward()
                 }
-            }
 
-            splitCommandButton(title: String(localized: "menu.view.toggleReactGrab", defaultValue: "Toggle React Grab"), shortcut: menuShortcut(for: .toggleReactGrab)) {
-                if !activeTabManager.toggleReactGrabFromCurrentFocus() {
-                    NSSound.beep()
+                splitCommandButton(title: String(localized: "menu.view.reloadPage", defaultValue: "Reload Page"), shortcut: menuShortcut(for: .browserReload)) {
+                    activeTabManager.focusedBrowserPanel?.reload()
                 }
-            }
 
-            let browserFocusModeMenu = browserFocusModeMenuSnapshot
-            Button(browserFocusModeMenu.title) {
-                if !activeTabManager.toggleBrowserFocusModeForFocusedBrowser(reason: "viewMenu") {
-                    NSSound.beep()
+                splitCommandButton(title: String(localized: "menu.view.toggleDevTools", defaultValue: "Toggle Developer Tools"), shortcut: menuShortcut(for: .toggleBrowserDeveloperTools)) {
+                    let manager = activeTabManager
+                    if !manager.toggleDeveloperToolsFocusedBrowser() {
+                        NSSound.beep()
+                    }
                 }
-            }
-            .disabled(!browserFocusModeMenu.canToggle)
 
-            splitCommandButton(title: String(localized: "menu.view.zoomIn", defaultValue: "Zoom In"), shortcut: menuShortcut(for: .browserZoomIn)) {
-                _ = activeTabManager.zoomInFocusedBrowser()
-            }
+                splitCommandButton(title: String(localized: "menu.view.showJSConsole", defaultValue: "Show JavaScript Console"), shortcut: menuShortcut(for: .showBrowserJavaScriptConsole)) {
+                    let manager = activeTabManager
+                    if !manager.showJavaScriptConsoleFocusedBrowser() {
+                        NSSound.beep()
+                    }
+                }
 
-            splitCommandButton(title: String(localized: "menu.view.zoomOut", defaultValue: "Zoom Out"), shortcut: menuShortcut(for: .browserZoomOut)) {
-                _ = activeTabManager.zoomOutFocusedBrowser()
-            }
+                splitCommandButton(title: String(localized: "menu.view.toggleReactGrab", defaultValue: "Toggle React Grab"), shortcut: menuShortcut(for: .toggleReactGrab)) {
+                    if !activeTabManager.toggleReactGrabFromCurrentFocus() {
+                        NSSound.beep()
+                    }
+                }
 
-            splitCommandButton(title: String(localized: "menu.view.actualSize", defaultValue: "Actual Size"), shortcut: menuShortcut(for: .browserZoomReset)) {
-                _ = activeTabManager.resetZoomFocusedBrowser()
-            }
+                let browserFocusModeMenu = browserFocusModeMenuSnapshot
+                Button(browserFocusModeMenu.title) {
+                    if !activeTabManager.toggleBrowserFocusModeForFocusedBrowser(reason: "viewMenu") {
+                        NSSound.beep()
+                    }
+                }
+                .disabled(!browserFocusModeMenu.canToggle)
 
-            Button(String(localized: "menu.view.clearBrowserHistory", defaultValue: "Clear Browser History")) {
-                BrowserHistoryStore.shared.clearHistory()
-            }
+                splitCommandButton(title: String(localized: "menu.view.zoomIn", defaultValue: "Zoom In"), shortcut: menuShortcut(for: .browserZoomIn)) {
+                    _ = activeTabManager.zoomInFocusedBrowser()
+                }
 
-            Button(String(localized: "menu.view.importFromBrowser", defaultValue: "Import Browser Data…")) {
-                // Defer modal presentation until after AppKit finishes menu tracking.
-                DispatchQueue.main.async {
-                    BrowserDataImportCoordinator.shared.presentImportDialog()
+                splitCommandButton(title: String(localized: "menu.view.zoomOut", defaultValue: "Zoom Out"), shortcut: menuShortcut(for: .browserZoomOut)) {
+                    _ = activeTabManager.zoomOutFocusedBrowser()
+                }
+
+                splitCommandButton(title: String(localized: "menu.view.actualSize", defaultValue: "Actual Size"), shortcut: menuShortcut(for: .browserZoomReset)) {
+                    _ = activeTabManager.resetZoomFocusedBrowser()
+                }
+
+                Button(String(localized: "menu.view.clearBrowserHistory", defaultValue: "Clear Browser History")) {
+                    BrowserHistoryStore.shared.clearHistory()
+                }
+
+                Button(String(localized: "menu.view.importFromBrowser", defaultValue: "Import Browser Data…")) {
+                    // Defer modal presentation until after AppKit finishes menu tracking.
+                    DispatchQueue.main.async {
+                        BrowserDataImportCoordinator.shared.presentImportDialog()
+                    }
                 }
             }
 
@@ -1014,12 +1100,14 @@ struct cmuxApp: App {
                 performSplitFromMenu(direction: .down)
             }
 
-            splitCommandButton(title: String(localized: "menu.view.splitBrowserRight", defaultValue: "Split Browser Right"), shortcut: menuShortcut(for: .splitBrowserRight)) {
-                performBrowserSplitFromMenu(direction: .right)
-            }
+            if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+                splitCommandButton(title: String(localized: "menu.view.splitBrowserRight", defaultValue: "Split Browser Right"), shortcut: menuShortcut(for: .splitBrowserRight)) {
+                    performBrowserSplitFromMenu(direction: .right)
+                }
 
-            splitCommandButton(title: String(localized: "menu.view.splitBrowserDown", defaultValue: "Split Browser Down"), shortcut: menuShortcut(for: .splitBrowserDown)) {
-                performBrowserSplitFromMenu(direction: .down)
+                splitCommandButton(title: String(localized: "menu.view.splitBrowserDown", defaultValue: "Split Browser Down"), shortcut: menuShortcut(for: .splitBrowserDown)) {
+                    performBrowserSplitFromMenu(direction: .down)
+                }
             }
 
             equalizeSplitsCommandButton()

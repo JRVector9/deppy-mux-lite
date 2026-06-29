@@ -69,6 +69,10 @@ struct SidebarProviderMenuRegressionTests {
     func builtInViewsAvailableWhenExtensionsBetaDisabled() {
         withExtensionsBeta(false) {
             let availableIDs = Set(CmuxExtensionSidebarSelection.descriptors.map(\.id))
+            if DeppyLiteFeaturePolicy.isEnabled {
+                #expect(availableIDs == Set([CmuxExtensionSidebarSelection.defaultProviderId]))
+                return
+            }
             for builtInID in Self.builtInViewIDs {
                 #expect(
                     availableIDs.contains(builtInID),
@@ -95,8 +99,11 @@ struct SidebarProviderMenuRegressionTests {
                         extensionsEnabled: CmuxExtensionSidebarSelection.isEnabled
                     )
                     let checkedID = CmuxExtensionSidebarSelection.descriptor(for: effective).id
+                    let expectedID = DeppyLiteFeaturePolicy.isEnabled
+                        ? CmuxExtensionSidebarSelection.defaultProviderId
+                        : builtInID
                     #expect(
-                        checkedID == builtInID,
+                        checkedID == expectedID,
                         "Persisted selection \(builtInID) did not drive the menu checkmark (got \(checkedID))"
                     )
                 }
@@ -112,16 +119,22 @@ struct SidebarProviderMenuRegressionTests {
     @Test
     func effectiveSelectionGatesHostedExtensionButNotBuiltInViews() {
         let projectWorktrees = "com.example.cmux.sidebar.project-worktrees"
+        let expectedBuiltIn = DeppyLiteFeaturePolicy.isEnabled
+            ? CmuxExtensionSidebarSelection.defaultProviderId
+            : projectWorktrees
         #expect(
-            CmuxExtensionSidebarSelection.effectiveProviderId(projectWorktrees, extensionsEnabled: false) == projectWorktrees
+            CmuxExtensionSidebarSelection.effectiveProviderId(projectWorktrees, extensionsEnabled: false) == expectedBuiltIn
         )
         #expect(
-            CmuxExtensionSidebarSelection.effectiveProviderId(projectWorktrees, extensionsEnabled: true) == projectWorktrees
+            CmuxExtensionSidebarSelection.effectiveProviderId(projectWorktrees, extensionsEnabled: true) == expectedBuiltIn
         )
 
         let hosted = CmuxExtensionSidebarSelection.hostedExtensionsProviderId
+        let expectedHostedWhenEnabled = DeppyLiteFeaturePolicy.isEnabled
+            ? CmuxExtensionSidebarSelection.defaultProviderId
+            : hosted
         #expect(
-            CmuxExtensionSidebarSelection.effectiveProviderId(hosted, extensionsEnabled: true) == hosted
+            CmuxExtensionSidebarSelection.effectiveProviderId(hosted, extensionsEnabled: true) == expectedHostedWhenEnabled
         )
         #expect(
             CmuxExtensionSidebarSelection.effectiveProviderId(hosted, extensionsEnabled: false) == CmuxExtensionSidebarSelection.defaultProviderId
@@ -140,6 +153,10 @@ struct SidebarProviderMenuRegressionTests {
     func builtInProviderRendersRowsThroughHostExistential() {
         let snapshot = Self.populatedSnapshot(workspaceCount: 3)
         let provider = CmuxExtensionSidebarSelection.provider(for: "com.example.cmux.sidebar.super-compact")
+        if DeppyLiteFeaturePolicy.isEnabled {
+            #expect(provider == nil, "deppy-lite should not register custom/bundled sidebar providers")
+            return
+        }
         #expect(provider != nil, "Super Compact provider should be registered")
         let model = provider?.render(snapshot: snapshot)
         #expect(
@@ -178,6 +195,13 @@ struct SidebarProviderMenuRegressionTests {
                     )
                 )
                 for presetID in Self.builtInViewIDs.dropFirst() {
+                    if DeppyLiteFeaturePolicy.isEnabled {
+                        #expect(
+                            CmuxExtensionSidebarSelection.resolvesToDefaultSidebar(effectiveProviderId: presetID),
+                            "deppy-lite should route bundled preset \(presetID) back to the default sidebar"
+                        )
+                        continue
+                    }
                     #expect(
                         !CmuxExtensionSidebarSelection.resolvesToDefaultSidebar(effectiveProviderId: presetID),
                         "Bundled preset \(presetID) must route to an extension sidebar, not the default"
@@ -194,7 +218,11 @@ struct SidebarProviderMenuRegressionTests {
     func resolvesToDefaultSidebarRoutesHostedExtensionToExtensionSidebar() {
         withExtensionsBeta(true) {
             let hosted = CmuxExtensionSidebarSelection.hostedExtensionsProviderId
-            #expect(!CmuxExtensionSidebarSelection.resolvesToDefaultSidebar(effectiveProviderId: hosted))
+            if DeppyLiteFeaturePolicy.isEnabled {
+                #expect(CmuxExtensionSidebarSelection.resolvesToDefaultSidebar(effectiveProviderId: hosted))
+            } else {
+                #expect(!CmuxExtensionSidebarSelection.resolvesToDefaultSidebar(effectiveProviderId: hosted))
+            }
             #expect(
                 CmuxExtensionSidebarSelection.resolvesToDefaultSidebar(effectiveProviderId: hosted)
                     == (CmuxExtensionSidebarSelection.descriptor(for: hosted).id
@@ -239,11 +267,12 @@ struct SidebarProviderMenuRegressionTests {
         let validName = "valid-\(UUID().uuidString)"
         let validURL = sidebarsDirectory.appendingPathComponent("\(validName).swift", isDirectory: false)
         try Data().write(to: validURL)
+        let expectedValidURL = DeppyLiteFeaturePolicy.customSidebarProvidersEnabled ? validURL : nil
         #expect(
             CmuxExtensionSidebarSelection.customSidebarFileURL(
                 forProviderId: CmuxExtensionSidebarSelection.customSidebarProviderPrefix + validName,
                 sidebarsDirectory: sidebarsDirectory
-            ) == validURL
+            ) == expectedValidURL
         )
 
         let escapedName = "outside-\(UUID().uuidString)"

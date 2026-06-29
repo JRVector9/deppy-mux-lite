@@ -21,6 +21,11 @@ final class WorkspaceCustomSidebarPullRequestContextTests: XCTestCase {
             let workspace = Workspace()
             let paneId = try XCTUnwrap(workspace.bonsplitController.focusedPaneId)
             CmuxEventBus.shared.resetForTesting()
+            if !DeppyLiteFeaturePolicy.customSidebarProvidersEnabled {
+                XCTAssertNil(workspace.newCustomSidebarSurface(inPane: paneId, name: sidebarName, focus: true))
+                XCTAssertFalse(workspace.sessionSnapshot(includeScrollback: false).panels.contains { $0.type == .customSidebar })
+                return
+            }
             let panel = try XCTUnwrap(
                 workspace.newCustomSidebarSurface(inPane: paneId, name: sidebarName, focus: true)
             )
@@ -62,6 +67,19 @@ final class WorkspaceCustomSidebarPullRequestContextTests: XCTestCase {
             let sourcePaneId = try XCTUnwrap(workspace.bonsplitController.focusedPaneId)
             CmuxEventBus.shared.resetForTesting()
 
+            if !DeppyLiteFeaturePolicy.customSidebarProvidersEnabled {
+                XCTAssertNil(
+                    workspace.splitPaneWithCustomSidebar(
+                        targetPane: sourcePaneId,
+                        orientation: .horizontal,
+                        insertFirst: false,
+                        name: sidebarName
+                    )
+                )
+                XCTAssertTrue(CmuxEventBus.shared.retainedSnapshot().isEmpty)
+                return
+            }
+
             let panel = try XCTUnwrap(
                 workspace.splitPaneWithCustomSidebar(
                     targetPane: sourcePaneId,
@@ -96,9 +114,13 @@ final class WorkspaceCustomSidebarPullRequestContextTests: XCTestCase {
 
             switch TerminalController.shared.v2CustomSidebarOpen(params: ["name": missingName]) {
             case .err(let code, _, let data):
-                XCTAssertEqual(code, "validation_failed")
-                let payload = data as? [String: Any]
-                XCTAssertEqual(payload?["error_count"] as? Int, 1)
+                if DeppyLiteFeaturePolicy.customSidebarProvidersEnabled {
+                    XCTAssertEqual(code, "validation_failed")
+                    let payload = data as? [String: Any]
+                    XCTAssertEqual(payload?["error_count"] as? Int, 1)
+                } else {
+                    XCTAssertEqual(code, "method_not_found")
+                }
             case .ok(let payload):
                 XCTFail("Expected validation error, got \(payload)")
             }
@@ -116,8 +138,12 @@ final class WorkspaceCustomSidebarPullRequestContextTests: XCTestCase {
                 params: ["name": sidebarName, "workspace_id": "not-a-workspace"]
             ) {
             case .err(let code, let message, _):
-                XCTAssertEqual(code, "invalid_params")
-                XCTAssertEqual(message, "Missing or invalid workspace_id")
+                if DeppyLiteFeaturePolicy.customSidebarProvidersEnabled {
+                    XCTAssertEqual(code, "invalid_params")
+                    XCTAssertEqual(message, "Missing or invalid workspace_id")
+                } else {
+                    XCTAssertEqual(code, "method_not_found")
+                }
             case .ok(let payload):
                 XCTFail("Expected invalid_params, got \(payload)")
             }
@@ -152,16 +178,30 @@ final class WorkspaceCustomSidebarPullRequestContextTests: XCTestCase {
                 params: ["name": sidebarName, "workspace_id": workspace.id.uuidString, "focus": true]
             ) {
             case .ok(let payload):
+                guard DeppyLiteFeaturePolicy.customSidebarProvidersEnabled else {
+                    XCTFail("Expected method_not_found in deppy-lite, got \(payload)")
+                    return
+                }
                 let dictionary = try XCTUnwrap(payload as? [String: Any])
                 XCTAssertEqual(dictionary["opened_name"] as? String, sidebarName)
                 XCTAssertEqual(dictionary["type"] as? String, PanelType.customSidebar.rawValue)
             case .err(let code, let message, _):
-                XCTFail("Expected fallback open to succeed, got \(code): \(message)")
+                if DeppyLiteFeaturePolicy.customSidebarProvidersEnabled {
+                    XCTFail("Expected fallback open to succeed, got \(code): \(message)")
+                } else {
+                    XCTAssertEqual(code, "method_not_found")
+                }
             }
 
-            XCTAssertNotNil(
-                workspace.panels.values.compactMap { $0 as? CustomSidebarPanel }.first { $0.name == sidebarName }
-            )
+            if DeppyLiteFeaturePolicy.customSidebarProvidersEnabled {
+                XCTAssertNotNil(
+                    workspace.panels.values.compactMap { $0 as? CustomSidebarPanel }.first { $0.name == sidebarName }
+                )
+            } else {
+                XCTAssertNil(
+                    workspace.panels.values.compactMap { $0 as? CustomSidebarPanel }.first { $0.name == sidebarName }
+                )
+            }
         }
     }
 

@@ -49,6 +49,7 @@ final class PaneMemoryGuardrail {
 
     func start() {
         startSystemMemoryPressureSourceIfNeeded()
+        guard DeppyLiteFeaturePolicy.paneMemoryPollingEnabled else { return }
         guard timer == nil else { return }
         let timer = DispatchSource.makeTimerSource(queue: timerQueue)
         timer.schedule(

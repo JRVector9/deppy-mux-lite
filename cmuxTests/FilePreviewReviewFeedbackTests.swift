@@ -329,6 +329,26 @@ final class FilePreviewReviewFeedbackTests: XCTestCase {
         let workspace = manager.addWorkspace(select: true, eagerLoadTerminal: false)
         defer { workspace.teardownAllPanels() }
         let firstPane = try XCTUnwrap(workspace.bonsplitController.allPaneIds.first)
+        if !DeppyLiteFeaturePolicy.previewPanelsEnabled {
+            XCTAssertNil(workspace.newFilePreviewSurface(
+                inPane: firstPane,
+                filePath: originalURL.path,
+                focus: false
+            ))
+            TerminalController.shared.setActiveTabManager(manager)
+            let result = TerminalController.shared.v2FileOpen(params: [
+                "paths": [originalURL.path],
+                "workspace_id": workspace.id.uuidString,
+                "pane_id": firstPane.id.uuidString,
+                "focus": false
+            ])
+            guard case .err(let code, _, _) = result else {
+                XCTFail("Expected file.open to be unavailable in deppy-lite, got \(result)")
+                return
+            }
+            XCTAssertEqual(code, "method_not_found")
+            return
+        }
         let existingPanel = try XCTUnwrap(workspace.newFilePreviewSurface(
             inPane: firstPane,
             filePath: originalURL.path,

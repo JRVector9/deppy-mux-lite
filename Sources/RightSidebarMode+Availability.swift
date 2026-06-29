@@ -42,7 +42,7 @@ extension RightSidebarMode {
         case .files, .find, .sessions:
             return true
         case .feed:
-            return feedEnabled
+            return DeppyLiteFeaturePolicy.feedEnabled && feedEnabled
         case .dock:
             return dockEnabled
         case .customSidebar:

@@ -31,6 +31,18 @@ struct AgentSessionSocketSurfaceTests {
         let workspace = try #require(manager.selectedWorkspace)
         let paneId = try #require(workspace.bonsplitController.focusedPaneId)
 
+        if DeppyLiteFeaturePolicy.isEnabled {
+            let panel = workspace.newAgentSessionSurface(
+                inPane: paneId,
+                providerID: .opencode,
+                rendererKind: .solid,
+                workingDirectory: "/tmp",
+                focus: true
+            )
+            #expect(panel == nil)
+            return
+        }
+
         let panel = try #require(
             workspace.newAgentSessionSurface(
                 inPane: paneId,
@@ -54,6 +66,19 @@ struct AgentSessionSocketSurfaceTests {
         let manager = TabManager()
         let workspace = try #require(manager.selectedWorkspace)
         let paneId = try #require(workspace.bonsplitController.focusedPaneId)
+
+        if DeppyLiteFeaturePolicy.isEnabled {
+            let panel = workspace.newAgentSessionSurface(
+                inPane: paneId,
+                providerID: .codex,
+                rendererKind: .react,
+                workingDirectory: "/tmp/cmux-agent-session-cwd",
+                focus: true
+            )
+            #expect(panel == nil)
+            #expect(!workspace.sessionSnapshot(includeScrollback: false).panels.contains { $0.type == .agentSession })
+            return
+        }
 
         let panel = try #require(
             workspace.newAgentSessionSurface(

@@ -3566,7 +3566,10 @@ final class NewBrowserWorkspaceCreationTests: XCTestCase {
     func testNewBrowserWorkspaceShortcutDefaultsAndMetadata() {
         XCTAssertEqual(KeyboardShortcutSettings.Action.newBrowserWorkspace.label, "New Browser Workspace")
         XCTAssertEqual(KeyboardShortcutSettings.Action.newBrowserWorkspace.defaultsKey, "shortcut.newBrowserWorkspace")
-        XCTAssertTrue(KeyboardShortcutSettings.publicShortcutActions.contains(.newBrowserWorkspace))
+        XCTAssertEqual(
+            KeyboardShortcutSettings.publicShortcutActions.contains(.newBrowserWorkspace),
+            !DeppyLiteFeaturePolicy.isEnabled
+        )
 
         let shortcut = KeyboardShortcutSettings.Action.newBrowserWorkspace.defaultShortcut
         XCTAssertEqual(shortcut.key, "n")
@@ -3602,6 +3605,18 @@ final class NewBrowserWorkspaceCreationTests: XCTestCase {
         XCTAssertEqual(manager.tabs.map(\.id).filter { $0 != workspace.id }, baselineOrder)
 
         XCTAssertEqual(workspace.panels.count, 1)
+        if DeppyLiteFeaturePolicy.isEnabled {
+            XCTAssertNotNil(workspace.focusedTerminalPanel)
+            XCTAssertTrue(workspace.panels.values.first is TerminalPanel)
+            XCTAssertEqual(
+                workspace.bonsplitController.allTabIds.first.flatMap {
+                    workspace.bonsplitController.tab($0)?.kind
+                },
+                SurfaceKind.terminal.rawValue
+            )
+            return
+        }
+
         guard let browserPanel = workspace.panels.values.first as? BrowserPanel else {
             XCTFail("Expected the initial surface to be a browser pane")
             return
@@ -5638,7 +5653,12 @@ final class WorkspacePanelGitBranchTests: XCTestCase {
         }
 
         guard let newPanel = workspace.newBrowserSurface(inPane: originalPaneId, focus: false) else {
-            XCTFail("Expected browser surface to be created")
+            XCTAssertTrue(DeppyLiteFeaturePolicy.isEnabled)
+            XCTAssertEqual(workspace.focusedPanelId, originalFocusedPanelId)
+            return
+        }
+        guard !DeppyLiteFeaturePolicy.isEnabled else {
+            XCTFail("deppy-lite should not create browser surfaces")
             return
         }
 
@@ -5673,7 +5693,13 @@ final class WorkspacePanelGitBranchTests: XCTestCase {
             mode: .files,
             focus: false
         ) else {
-            XCTFail("Expected right sidebar tool surface to be created")
+            XCTAssertTrue(DeppyLiteFeaturePolicy.isEnabled)
+            XCTAssertEqual(workspace.focusedPanelId, originalFocusedPanelId)
+            XCTAssertEqual(workspace.bonsplitController.selectedTab(inPane: originalPaneId)?.id, originalTabId)
+            return
+        }
+        guard !DeppyLiteFeaturePolicy.isEnabled else {
+            XCTFail("deppy-lite should not create right sidebar tool surfaces")
             return
         }
 
@@ -5712,7 +5738,11 @@ final class WorkspacePanelGitBranchTests: XCTestCase {
             mode: .sessions,
             focus: true
         ) else {
-            XCTFail("Expected Vault tool surface to be created")
+            XCTAssertTrue(DeppyLiteFeaturePolicy.isEnabled)
+            return
+        }
+        guard !DeppyLiteFeaturePolicy.isEnabled else {
+            XCTFail("deppy-lite should not create right sidebar tool surfaces")
             return
         }
         guard let secondPanel = workspace.openOrFocusRightSidebarToolSurface(

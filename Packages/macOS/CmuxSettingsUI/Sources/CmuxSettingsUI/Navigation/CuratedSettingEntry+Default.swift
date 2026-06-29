@@ -232,7 +232,7 @@ extension Array where Element == CuratedSettingEntry {
     }
 
     private static var keyboardShortcutActionSynonyms: String {
-        ShortcutAction.allCases
+        ShortcutAction.settingsVisibleActions
             .filter { $0 != .showHideAllWindows }
             .map(\.displayName)
             .joined(separator: " ")

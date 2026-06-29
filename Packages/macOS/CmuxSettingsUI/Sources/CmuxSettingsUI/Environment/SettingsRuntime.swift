@@ -28,6 +28,8 @@ public struct SettingsRuntime: @unchecked Sendable {
     public let accountFlow: AccountFlow?
     /// Host callbacks for actions the package cannot perform itself.
     public let hostActions: SettingsHostActions
+    /// Host-provided settings visibility for optional feature surfaces.
+    public let featureAvailability: SettingsFeatureAvailability
 
     /// Creates the settings runtime bundle injected into the settings UI.
     ///
@@ -39,6 +41,7 @@ public struct SettingsRuntime: @unchecked Sendable {
     ///   - errorLog: Rolling settings error log displayed as alerts.
     ///   - accountFlow: Optional host-owned account flow actions.
     ///   - hostActions: Host callbacks for actions the package cannot perform itself.
+    ///   - featureAvailability: Visibility for optional feature settings.
     ///   - searchIndex: Prebuilt search index to share across settings roots. When `nil`,
     ///     the runtime builds one index from `catalog` and keeps it for its own lifetime.
     @MainActor
@@ -50,16 +53,21 @@ public struct SettingsRuntime: @unchecked Sendable {
         errorLog: SettingsErrorLog,
         accountFlow: AccountFlow? = nil,
         hostActions: SettingsHostActions = NoopSettingsHostActions(),
+        featureAvailability: SettingsFeatureAvailability = .all,
         searchIndex: SettingsSearchIndex? = nil
     ) {
         self.catalog = catalog
-        self.searchIndex = searchIndex ?? SettingsSearchIndex(catalog: catalog)
+        self.searchIndex = searchIndex ?? SettingsSearchIndex(
+            catalog: catalog,
+            featureAvailability: featureAvailability
+        )
         self.userDefaultsStore = userDefaultsStore
         self.jsonStore = jsonStore
         self.secretStore = secretStore
         self.errorLog = errorLog
         self.accountFlow = accountFlow
         self.hostActions = hostActions
+        self.featureAvailability = featureAvailability
     }
 }
 

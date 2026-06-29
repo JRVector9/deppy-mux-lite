@@ -3660,17 +3660,21 @@ final class TabManagerReopenClosedBrowserFocusTests: XCTestCase {
     func testReopenCollapsedSplitFromDifferentWorkspaceFocusesBrowser() {
         let manager = TabManager()
         guard let workspace1 = manager.selectedWorkspace,
-              let sourcePanelId = workspace1.focusedPanelId,
-              let splitBrowserId = manager.newBrowserSplit(
+              let sourcePanelId = workspace1.focusedPanelId else {
+            XCTFail("Expected selected workspace")
+            return
+        }
+        guard let splitBrowserId = manager.newBrowserSplit(
                 tabId: workspace1.id,
                 fromPanelId: sourcePanelId,
                 orientation: .horizontal,
                 insertFirst: false,
                 url: URL(string: "https://example.com/collapsed-split")
               ) else {
-            XCTFail("Expected to create browser split")
+            XCTAssertTrue(DeppyLiteFeaturePolicy.isEnabled)
             return
         }
+        XCTAssertFalse(DeppyLiteFeaturePolicy.isEnabled)
 
         drainMainQueue()
         XCTAssertTrue(workspace1.closePanel(splitBrowserId, force: true))

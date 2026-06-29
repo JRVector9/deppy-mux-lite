@@ -458,10 +458,20 @@ final class AppDelegateShortcutRoutingTests: XCTestCase {
                 return
             }
 
-            XCTAssertTrue(appDelegate.debugHandleCustomShortcut(event: event))
+            let handled = appDelegate.debugHandleCustomShortcut(event: event)
+            XCTAssertEqual(
+                handled,
+                DeppyLiteFeaturePolicy.internalBrowserEnabled,
+                "Browser workspace shortcut should only be handled when the internal browser feature is enabled"
+            )
         }
 
         RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+        if !DeppyLiteFeaturePolicy.internalBrowserEnabled {
+            XCTAssertEqual(manager.tabs.count, initialCount, "deppy-lite should not create a browser workspace")
+            return
+        }
+
         XCTAssertEqual(manager.tabs.count, initialCount + 1, "Option+Cmd+N should create a workspace")
 
         guard let workspace = manager.selectedWorkspace else {
@@ -528,9 +538,10 @@ final class AppDelegateShortcutRoutingTests: XCTestCase {
                 return
             }
 
-            XCTAssertTrue(
+            XCTAssertEqual(
                 appDelegate.debugHandleCustomShortcut(event: event),
-                "The shortcut stays consumed while the browser is disabled"
+                DeppyLiteFeaturePolicy.internalBrowserEnabled,
+                "The shortcut stays consumed only when the browser feature exists but is user-disabled"
             )
         }
 
@@ -2122,9 +2133,10 @@ final class AppDelegateShortcutRoutingTests: XCTestCase {
             .accepted(cmdCtrlShiftD),
             "Default Open Diff Viewer shortcut must not conflict with any other action"
         )
-        XCTAssertTrue(
+        XCTAssertEqual(
             KeyboardShortcutSettings.settingsVisibleActions.contains(.openDiffViewer),
-            "Open Diff Viewer must be visible/editable in Settings → Keyboard Shortcuts"
+            DeppyLiteFeaturePolicy.previewPanelsEnabled,
+            "Open Diff Viewer should only be visible/editable while preview panels are enabled"
         )
 
         let windowId = appDelegate.createMainWindow()
@@ -2151,16 +2163,17 @@ final class AppDelegateShortcutRoutingTests: XCTestCase {
         }
 
 #if DEBUG
-        XCTAssertTrue(
+        XCTAssertEqual(
             appDelegate.debugHandleCustomShortcut(event: event),
-            "Cmd+Ctrl+Shift+D should be consumed by the Open Diff Viewer shortcut"
+            DeppyLiteFeaturePolicy.previewPanelsEnabled,
+            "Cmd+Ctrl+Shift+D should only be consumed while preview panels are enabled"
         )
 #else
         XCTFail("debugHandleCustomShortcut is only available in DEBUG")
 #endif
         XCTAssertEqual(
             openDiffViewerCount,
-            1,
+            DeppyLiteFeaturePolicy.previewPanelsEnabled ? 1 : 0,
             "Cmd+Ctrl+Shift+D must route to the shared diff-open path (same path as the command palette)"
         )
     }

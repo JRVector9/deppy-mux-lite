@@ -64,6 +64,24 @@ struct SettingsSearchIndexTests {
         #expect(sectionCount == SettingsSectionID.allCases.count)
     }
 
+    @Test func featureAvailabilityFiltersSectionsSettingsAndShortcuts() {
+        let availability = SettingsFeatureAvailability(
+            hiddenSections: [.browser, .browserImport],
+            hiddenSettingEntries: [
+                SettingsFeatureAvailability.settingEntryKey(section: .betaFeatures, id: "feed"),
+            ],
+            hiddenShortcutActions: [.openBrowser]
+        )
+        let index = SettingsSearchIndex(catalog: SettingCatalog(), featureAvailability: availability)
+
+        #expect(!index.match("").contains { $0.id == "section:browser" })
+        #expect(!index.match("").contains { $0.id == "section:browserImport" })
+        #expect(!index.match("browser settings").contains { $0.id.hasPrefix("setting:browser:") })
+        #expect(!index.match("import browser data").contains { $0.id.hasPrefix("setting:browserImport:") })
+        #expect(!index.match("feed").contains { $0.id == "setting:betaFeatures:feed" })
+        #expect(!availability.visibleShortcutActions(from: ShortcutAction.settingsVisibleActions).contains(.openBrowser))
+    }
+
     @Test func tokenizedQueryFiltersBothSectionsAndSettings() {
         let index = SettingsSearchIndex(catalog: SettingCatalog())
         let result = index.match("automation")

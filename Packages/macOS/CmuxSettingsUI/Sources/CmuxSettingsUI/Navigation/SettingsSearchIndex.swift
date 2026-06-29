@@ -105,13 +105,14 @@ public struct SettingsSearchIndex: Sendable {
     ///     can append their own entries to expose additional rows.
     public init(
         catalog: SettingCatalog,
-        curatedEntries: [CuratedSettingEntry] = .cmuxDefault
+        curatedEntries: [CuratedSettingEntry] = .cmuxDefault,
+        featureAvailability: SettingsFeatureAvailability = .all
     ) {
         _ = catalog
         let matcher = SettingsSearchMatcher()
         var built: [Entry] = []
 
-        for section in SettingsSectionID.allCases {
+        for section in SettingsSectionID.allCases where featureAvailability.isSectionVisible(section) {
             built.append(Entry(
                 id: "section:\(section.rawValue)",
                 kind: .section,
@@ -126,7 +127,7 @@ public struct SettingsSearchIndex: Sendable {
 
         var pathAnchors: [String: String] = [:]
 
-        for entry in curatedEntries {
+        for entry in curatedEntries where featureAvailability.isCuratedEntryVisible(entry) {
             let entryID = "setting:\(entry.section.rawValue):\(entry.id)"
             let searchPaths = entry.paths.isEmpty
                 ? matcher.dottedTokens(in: entry.synonyms)

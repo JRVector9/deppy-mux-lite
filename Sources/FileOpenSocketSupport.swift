@@ -71,6 +71,9 @@ extension TerminalController {
     }
 
     func v2FileOpen(params: [String: Any]) -> V2CallResult {
+        guard DeppyLiteFeaturePolicy.previewPanelsEnabled else {
+            return .err(code: "method_not_found", message: "Unknown method", data: nil)
+        }
         guard let tabManager = v2ResolveTabManager(params: params) else {
             return .err(code: "unavailable", message: "TabManager not available", data: nil)
         }

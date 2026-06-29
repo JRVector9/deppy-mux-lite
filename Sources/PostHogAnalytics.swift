@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import AppKit
 import Foundation
 import PostHog
@@ -290,3 +291,4 @@ final class PostHogAnalytics: @unchecked Sendable {
         return properties
     }
 }
+#endif

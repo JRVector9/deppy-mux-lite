@@ -7,18 +7,12 @@ extension ContentView {
             { _ in value }
         }
 
-        return [
+        var contributions = [
             CommandPaletteCommandContribution(
                 commandId: "palette.triggerFlash",
                 title: constant(String(localized: "command.triggerFlash.title", defaultValue: "Flash Focused Panel")),
                 subtitle: constant(String(localized: "command.triggerFlash.subtitle", defaultValue: "View")),
                 keywords: ["flash", "highlight", "focus", "panel"]
-            ),
-            CommandPaletteCommandContribution(
-                commandId: "palette.openTaskManager",
-                title: constant(String(localized: "taskManager.title", defaultValue: "Task Manager")),
-                subtitle: constant(String(localized: "command.closeWindow.subtitle", defaultValue: "Window")),
-                keywords: ["task", "manager", "process", "cpu", "memory", "kill"]
             ),
             CommandPaletteCommandContribution(
                 commandId: "palette.sleepyMode",
@@ -27,14 +21,27 @@ extension ContentView {
                 keywords: ["sleepy", "screensaver", "caffeinate", "keep awake", "do not sleep", "lock", "pets", "night"]
             ),
         ]
+        if DeppyLiteFeaturePolicy.taskManagerEnabled {
+            contributions.append(
+                CommandPaletteCommandContribution(
+                    commandId: "palette.openTaskManager",
+                    title: constant(String(localized: "taskManager.title", defaultValue: "Task Manager")),
+                    subtitle: constant(String(localized: "command.closeWindow.subtitle", defaultValue: "Window")),
+                    keywords: ["task", "manager", "process", "cpu", "memory", "kill"]
+                )
+            )
+        }
+        return contributions
     }
 
     func registerViewCommandHandlers(_ registry: inout CommandPaletteHandlerRegistry) {
         registry.register(commandId: "palette.triggerFlash") {
             tabManager.triggerFocusFlash()
         }
-        registry.register(commandId: "palette.openTaskManager") {
-            TaskManagerWindowController.shared.show()
+        if DeppyLiteFeaturePolicy.taskManagerEnabled {
+            registry.register(commandId: "palette.openTaskManager") {
+                TaskManagerWindowController.shared.show()
+            }
         }
         registry.register(commandId: "palette.sleepyMode") {
             SleepyModeController.shared.activate()

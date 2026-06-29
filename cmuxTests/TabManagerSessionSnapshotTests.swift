@@ -660,13 +660,17 @@ final class TabManagerSessionSnapshotTests: XCTestCase {
         let manager = TabManager()
         let workspace = try XCTUnwrap(manager.selectedWorkspace)
         let sourcePanelId = try XCTUnwrap(workspace.focusedPanelId)
-        let splitBrowserId = try XCTUnwrap(manager.newBrowserSplit(
+        guard let splitBrowserId = manager.newBrowserSplit(
             tabId: workspace.id,
             fromPanelId: sourcePanelId,
             orientation: .horizontal,
             insertFirst: false,
             url: URL(string: "https://example.com/unified-history-split")
-        ))
+        ) else {
+            XCTAssertTrue(DeppyLiteFeaturePolicy.isEnabled)
+            return
+        }
+        XCTAssertFalse(DeppyLiteFeaturePolicy.isEnabled)
 
         drainMainQueue()
         XCTAssertEqual(workspace.bonsplitController.allPaneIds.count, 2)
@@ -751,13 +755,17 @@ final class TabManagerSessionSnapshotTests: XCTestCase {
         let secondWorkspace = manager.addWorkspace(select: true)
         secondWorkspace.setCustomTitle("Recovered Browser Split")
         let sourcePanelId = try XCTUnwrap(secondWorkspace.focusedPanelId)
-        let splitBrowserId = try XCTUnwrap(manager.newBrowserSplit(
+        guard let splitBrowserId = manager.newBrowserSplit(
             tabId: secondWorkspace.id,
             fromPanelId: sourcePanelId,
             orientation: .horizontal,
             insertFirst: false,
             url: URL(string: "https://example.com/workspace-restored-browser-split")
-        ))
+        ) else {
+            XCTAssertTrue(DeppyLiteFeaturePolicy.isEnabled)
+            return
+        }
+        XCTAssertFalse(DeppyLiteFeaturePolicy.isEnabled)
 
         drainMainQueue()
         XCTAssertEqual(secondWorkspace.bonsplitController.allPaneIds.count, 2)

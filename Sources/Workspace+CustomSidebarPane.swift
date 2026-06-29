@@ -4,6 +4,7 @@ import CmuxWorkspaces
 
 extension Workspace {
     func customSidebarSessionSnapshot(for panel: any Panel) -> SessionCustomSidebarPanelSnapshot? {
+        guard DeppyLiteFeaturePolicy.supportedSessionPanelType(.customSidebar) else { return nil }
         guard let customSidebarPanel = panel as? CustomSidebarPanel else { return nil }
         return SessionCustomSidebarPanelSnapshot(name: customSidebarPanel.name)
     }
@@ -23,6 +24,7 @@ extension Workspace {
         name rawName: String,
         focus: Bool = true
     ) -> CustomSidebarPanel? {
+        guard DeppyLiteFeaturePolicy.canCreatePanel(.customSidebar) else { return nil }
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return nil }
         for (existingId, panel) in panels {
@@ -43,6 +45,7 @@ extension Workspace {
         from panelId: UUID,
         name rawName: String
     ) -> CustomSidebarPanel? {
+        guard DeppyLiteFeaturePolicy.canCreatePanel(.customSidebar) else { return nil }
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return nil }
         for (existingId, panel) in panels {
@@ -74,6 +77,7 @@ extension Workspace {
         focus: Bool? = nil,
         targetIndex: Int? = nil
     ) -> CustomSidebarPanel? {
+        guard DeppyLiteFeaturePolicy.canCreatePanel(.customSidebar) else { return nil }
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let fileURL = CmuxExtensionSidebarSelection.customSidebarFileURL(forName: name) else {
             return nil
@@ -132,6 +136,7 @@ extension Workspace {
         insertFirst: Bool,
         name rawName: String
     ) -> CustomSidebarPanel? {
+        guard DeppyLiteFeaturePolicy.canCreatePanel(.customSidebar) else { return nil }
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let fileURL = CmuxExtensionSidebarSelection.customSidebarFileURL(forName: name) else {
             return nil

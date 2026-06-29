@@ -16,7 +16,9 @@ import CoreText
 import Darwin
 import Carbon.HIToolbox
 import os
+#if !DEPPY_LITE
 import Sentry
+#endif
 import Bonsplit
 import CMUXAgentLaunch
 import CMUXMobileCore
@@ -713,6 +715,7 @@ class GhosttyApp {
                 lastReportedUptime: lastScrollLagReportUptime,
                 cooldown: scrollLagReportCooldownSeconds
             ) {
+                #if !DEPPY_LITE
                 if TelemetrySettings.enabledForCurrentLaunch {
                     SentrySDK.capture(message: "Scroll lag detected") { scope in
                         scope.setLevel(.warning)
@@ -724,6 +727,7 @@ class GhosttyApp {
                         ], key: "scroll_lag")
                     }
                 }
+                #endif
                 lastScrollLagReportUptime = nowUptime
             }
             // Reset stats

@@ -4,6 +4,8 @@ set -euo pipefail
 APP_NAME="deppy-mux-beta"
 BUNDLE_ID="com.deppy-mux.app.debug"
 BASE_APP_NAME="deppy-mux-beta"
+SCHEME="cmux"
+LITE_BUILD=0
 DERIVED_DATA=""
 NAME_SET=0
 BUNDLE_SET=0
@@ -228,6 +230,7 @@ Options:
                          Sets app name, bundle id, and derived data path unless overridden.
                          After a successful build, terminates any running app with this tag
                          so macOS launches the freshly-built binary on cmd-click or --launch.
+  --lite                 Build the deppy-mux-lite scheme instead of the full app scheme.
   --launch               Launch the app after building. Without this flag, the script
                          builds and prints the app path but does not open it.
   --name <app name>      Override app display/bundle name.
@@ -448,6 +451,18 @@ while [[ $# -gt 0 ]]; do
       fi
       shift 2
       ;;
+    --lite)
+      LITE_BUILD=1
+      SCHEME="deppy-mux-lite"
+      BASE_APP_NAME="deppy-mux-lite"
+      if [[ "$NAME_SET" -eq 0 ]]; then
+        APP_NAME="deppy-mux-lite"
+      fi
+      if [[ "$BUNDLE_SET" -eq 0 ]]; then
+        BUNDLE_ID="com.deppy-mux.lite.debug"
+      fi
+      shift
+      ;;
     --name)
       APP_NAME="${2:-}"
       if [[ -z "$APP_NAME" ]]; then
@@ -513,13 +528,21 @@ if [[ -n "$TAG" ]]; then
     exit 1
   fi
   if [[ "$NAME_SET" -eq 0 ]]; then
-    APP_NAME="deppy-mux-beta"
+    APP_NAME="$BASE_APP_NAME"
   fi
   if [[ "$BUNDLE_SET" -eq 0 ]]; then
-    BUNDLE_ID="com.deppy-mux.app.debug.${TAG_ID}"
+    if [[ "$LITE_BUILD" -eq 1 ]]; then
+      BUNDLE_ID="com.deppy-mux.lite.debug.${TAG_ID}"
+    else
+      BUNDLE_ID="com.deppy-mux.app.debug.${TAG_ID}"
+    fi
   fi
   if [[ "$DERIVED_SET" -eq 0 ]]; then
-    DERIVED_DATA="$(tagged_derived_data_path "$TAG_SLUG")"
+    if [[ "$LITE_BUILD" -eq 1 ]]; then
+      DERIVED_DATA="$(tagged_derived_data_path "lite-${TAG_SLUG}")"
+    else
+      DERIVED_DATA="$(tagged_derived_data_path "$TAG_SLUG")"
+    fi
   fi
 fi
 
@@ -629,7 +652,7 @@ fi
 
 XCODEBUILD_ARGS=(
   -project cmux.xcodeproj
-  -scheme cmux
+  -scheme "$SCHEME"
   -configuration Debug
   -destination 'platform=macOS'
 )

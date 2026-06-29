@@ -18,7 +18,7 @@ enum KeyboardShortcutSettings {
     #endif
 
     static var publicShortcutActions: [Action] {
-        Action.allCases.filter(\.isPublicShortcutAction)
+        Action.allCases.filter { $0.isPublicShortcutAction && isAvailableInCurrentFeaturePolicy($0) }
     }
 
     static var settingsVisibleActions: [Action] {
@@ -47,6 +47,41 @@ enum KeyboardShortcutSettings {
         orderedActions.insert(contentsOf: colocatedSidebarActions, at: anchorIndex + 1)
         return orderedActions
     }
+
+    static func isAvailableInCurrentFeaturePolicy(_ action: Action) -> Bool {
+        guard DeppyLiteFeaturePolicy.isEnabled else { return true }
+        return !liteHiddenShortcutActions.contains(action)
+    }
+
+    private static let liteHiddenShortcutActions: Set<Action> = [
+        .newBrowserWorkspace,
+        .switchRightSidebarToFeed,
+        .reopenClosedBrowserPanel,
+        .splitBrowserRight,
+        .splitBrowserDown,
+        .saveFilePreview,
+        .openBrowser,
+        .focusBrowserAddressBar,
+        .browserBack,
+        .browserForward,
+        .browserReload,
+        .browserHardReload,
+        .browserZoomIn,
+        .browserZoomOut,
+        .browserZoomReset,
+        .markdownZoomIn,
+        .markdownZoomOut,
+        .markdownZoomReset,
+        .toggleBrowserDeveloperTools,
+        .showBrowserJavaScriptConsole,
+        .toggleBrowserFocusMode,
+        .openDiffViewer,
+        .diffViewerScrollDown,
+        .diffViewerScrollUp,
+        .diffViewerScrollToBottom,
+        .diffViewerScrollToTop,
+        .diffViewerOpenFileSearch,
+    ]
 
     enum ShortcutRecordingRejection: Equatable {
         case bareKeyNotAllowed

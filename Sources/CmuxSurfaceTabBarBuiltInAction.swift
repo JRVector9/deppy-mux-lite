@@ -34,6 +34,18 @@ enum CmuxSurfaceTabBarBuiltInAction: String, Codable, Sendable, CaseIterable, Ha
         rawValue
     }
 
+    var isAvailableInCurrentFeaturePolicy: Bool {
+        guard DeppyLiteFeaturePolicy.isEnabled else { return true }
+        switch self {
+        case .cloudVM:
+            return DeppyLiteFeaturePolicy.cloudVMEnabled
+        case .newBrowser:
+            return DeppyLiteFeaturePolicy.internalBrowserEnabled
+        case .newWorkspace, .newTerminal, .splitRight, .splitDown:
+            return true
+        }
+    }
+
     var defaultIcon: String {
         switch self {
         case .newWorkspace:

@@ -87,6 +87,7 @@ public struct SettingsWindowRoot: View {
     private var catalog: SettingCatalog { runtime.catalog }
     private var hostActions: SettingsHostActions { runtime.hostActions }
     private var accountFlow: AccountFlow? { runtime.accountFlow }
+    private var featureAvailability: SettingsFeatureAvailability { runtime.featureAvailability }
 
     /// Resolves the selected section pane from the persisted raw value,
     /// defaulting to ``SettingsSectionID/account`` when the stored value
@@ -439,7 +440,8 @@ public struct SettingsWindowRoot: View {
         AppSection(
             defaultsStore: defaultsStore,
             catalog: catalog,
-            hostActions: hostActions
+            hostActions: hostActions,
+            featureAvailability: featureAvailability
         )
         .id(anchorID(for: .app))
 
@@ -460,18 +462,29 @@ public struct SettingsWindowRoot: View {
         MobileSection(defaultsStore: defaultsStore, catalog: catalog, hostActions: hostActions)
             .id(anchorID(for: .mobile))
 
-        SidebarSection(defaultsStore: defaultsStore, catalog: catalog, hostActions: hostActions)
+        SidebarSection(
+            defaultsStore: defaultsStore,
+            catalog: catalog,
+            hostActions: hostActions,
+            featureAvailability: featureAvailability
+        )
             .id(anchorID(for: .sidebarAppearance))
 
-        CustomSidebarsSection(
-            defaultsStore: defaultsStore,
-            jsonStore: jsonStore,
-            catalog: catalog,
-            errorLog: runtime.errorLog
-        )
-        .id(anchorID(for: .customSidebars))
+        if featureAvailability.isSectionVisible(.customSidebars) {
+            CustomSidebarsSection(
+                defaultsStore: defaultsStore,
+                jsonStore: jsonStore,
+                catalog: catalog,
+                errorLog: runtime.errorLog
+            )
+            .id(anchorID(for: .customSidebars))
+        }
 
-        BetaFeaturesSection(defaultsStore: defaultsStore, catalog: catalog)
+        BetaFeaturesSection(
+            defaultsStore: defaultsStore,
+            catalog: catalog,
+            featureAvailability: featureAvailability
+        )
             .id(anchorID(for: .betaFeatures))
 
         AutomationSection(
@@ -483,13 +496,15 @@ public struct SettingsWindowRoot: View {
         )
         .id(anchorID(for: .automation))
 
-        BrowserSection(
-            defaultsStore: defaultsStore,
-            catalog: catalog,
-            hostActions: hostActions,
-            importAnchorID: anchorID(for: .browserImport)
-        )
-        .id(anchorID(for: .browser))
+        if featureAvailability.isSectionVisible(.browser) {
+            BrowserSection(
+                defaultsStore: defaultsStore,
+                catalog: catalog,
+                hostActions: hostActions,
+                importAnchorID: anchorID(for: .browserImport)
+            )
+            .id(anchorID(for: .browser))
+        }
 
         GlobalHotkeySection(
             defaultsStore: defaultsStore,
@@ -503,7 +518,8 @@ public struct SettingsWindowRoot: View {
             jsonStore: jsonStore,
             catalog: catalog,
             errorLog: runtime.errorLog,
-            hostActions: hostActions
+            hostActions: hostActions,
+            featureAvailability: featureAvailability
         )
         .id(anchorID(for: .keyboardShortcuts))
 

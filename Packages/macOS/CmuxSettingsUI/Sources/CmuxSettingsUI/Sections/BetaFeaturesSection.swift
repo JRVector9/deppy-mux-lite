@@ -7,13 +7,19 @@ import SwiftUI
 /// off by default.
 @MainActor
 public struct BetaFeaturesSection: View {
+    private let featureAvailability: SettingsFeatureAvailability
     @State private var feed: DefaultsValueModel<Bool>
     @State private var dock: DefaultsValueModel<Bool>
     @State private var extensions: DefaultsValueModel<Bool>
     @State private var customSidebars: DefaultsValueModel<Bool>
     @State private var remoteTmux: DefaultsValueModel<Bool>
 
-    public init(defaultsStore: UserDefaultsSettingsStore, catalog: SettingCatalog) {
+    public init(
+        defaultsStore: UserDefaultsSettingsStore,
+        catalog: SettingCatalog,
+        featureAvailability: SettingsFeatureAvailability = .all
+    ) {
+        self.featureAvailability = featureAvailability
         _feed = State(initialValue: DefaultsValueModel(store: defaultsStore, key: catalog.betaFeatures.rightSidebarFeed))
         _dock = State(initialValue: DefaultsValueModel(store: defaultsStore, key: catalog.betaFeatures.rightSidebarDock))
         _extensions = State(initialValue: DefaultsValueModel(store: defaultsStore, key: catalog.betaFeatures.extensions))
@@ -28,14 +34,20 @@ public struct BetaFeaturesSection: View {
                 BetaFeaturesWarningNote(
                     String(localized: "settings.betaFeatures.warning", defaultValue: "These features are experimental and may change or break. Enable them only when you are testing them.")
                 )
-                SettingsCardDivider()
-                feedRow
+                if featureAvailability.isSettingEntryVisible(section: .betaFeatures, id: "feed") {
+                    SettingsCardDivider()
+                    feedRow
+                }
                 SettingsCardDivider()
                 dockRow
-                SettingsCardDivider()
-                extensionsRow
-                SettingsCardDivider()
-                customSidebarsRow
+                if featureAvailability.isSettingEntryVisible(section: .betaFeatures, id: "extensions") {
+                    SettingsCardDivider()
+                    extensionsRow
+                }
+                if featureAvailability.isSettingEntryVisible(section: .betaFeatures, id: "customSidebars") {
+                    SettingsCardDivider()
+                    customSidebarsRow
+                }
                 SettingsCardDivider()
                 remoteTmuxRow
             }

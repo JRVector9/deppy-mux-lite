@@ -54,7 +54,7 @@ extension CmuxSettingsFileStore {
             }
         )
 
-        return [
+        var sections: [[String: Any]] = [
             [
                 "app": [
                     "language": AppCatalogSection().language.defaultValue.rawValue,
@@ -226,6 +226,47 @@ extension CmuxSettingsFileStore {
                 ],
             ],
         ]
+
+        if DeppyLiteFeaturePolicy.isEnabled {
+            if !DeppyLiteFeaturePolicy.internalBrowserEnabled {
+                removeTemplateKeys(
+                    ["openPullRequestLinksInCmuxBrowser", "openPortLinksInCmuxBrowser"],
+                    from: "sidebar",
+                    in: &sections
+                )
+                sections.removeAll { $0.keys.contains("browser") }
+            }
+
+            if !DeppyLiteFeaturePolicy.previewPanelsEnabled {
+                removeTemplateKeys(
+                    ["openSupportedFilesInCmux", "openMarkdownInCmuxViewer"],
+                    from: "app",
+                    in: &sections
+                )
+                sections.removeAll { section in
+                    section.keys.contains("markdown") ||
+                        section.keys.contains("fileEditor") ||
+                        section.keys.contains("diffViewer")
+                }
+            }
+        }
+
+        return sections
+    }
+
+    private static func removeTemplateKeys(
+        _ keys: Set<String>,
+        from sectionName: String,
+        in sections: inout [[String: Any]]
+    ) {
+        guard let sectionIndex = sections.firstIndex(where: { $0[sectionName] != nil }),
+              var section = sections[sectionIndex][sectionName] as? [String: Any] else {
+            return
+        }
+        for key in keys {
+            section.removeValue(forKey: key)
+        }
+        sections[sectionIndex][sectionName] = section
     }
 
     private static func shortcutTemplateValue(

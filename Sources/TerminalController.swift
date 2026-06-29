@@ -4,7 +4,9 @@ import CmuxRemoteSession
 import CmuxCore
 import CmuxAuthRuntime
 import CmuxFeedback
+#if !DEPPY_LITE
 import CmuxBrowser
+#endif
 import CmuxControlSocket
 import CmuxFoundation
 import CmuxPanes
@@ -994,6 +996,9 @@ class TerminalController {
     }
 
     private nonisolated func socketWorkerV2Response(_ request: V2SocketRequest) -> String {
+        if let liteUnavailable = v2LiteUnavailableResponse(request) {
+            return liteUnavailable
+        }
         switch request.method {
         case "auth.status":
             let semaphore = DispatchSemaphore(value: 0)
@@ -1106,8 +1111,14 @@ class TerminalController {
         case "system.capabilities":
             return v2Ok(id: request.id, result: v2Capabilities())
         case "system.top":
+            guard DeppyLiteFeaturePolicy.resourceDiagnosticsEnabled else {
+                return v2Error(id: request.id, code: "method_not_found", message: "Unknown method")
+            }
             return v2Result(id: request.id, v2SystemTop(params: request.params))
         case "system.memory":
+            guard DeppyLiteFeaturePolicy.resourceDiagnosticsEnabled else {
+                return v2Error(id: request.id, code: "method_not_found", message: "Unknown method")
+            }
             return v2Result(id: request.id, v2SystemMemory(params: request.params))
         case "workspace.env":
             return v2Result(id: request.id, v2WorkspaceEnv(params: request.params))
@@ -1784,6 +1795,10 @@ class TerminalController {
             )
         }
 
+        if let liteUnavailable = v2LiteUnavailableResponse(bridged) {
+            return liteUnavailable
+        }
+
         return withSocketCommandPolicy(commandKey: method, isV2: true, params: params) {
             if let workspaceParamError = v2UnsupportedWorkspaceAliasError(method: method, params: params) {
                 return v2Result(id: id, workspaceParamError)
@@ -1942,6 +1957,21 @@ class TerminalController {
         }
     }
 
+    private nonisolated func v2LiteUnavailableResponse(_ request: V2SocketRequest) -> String? {
+        guard DeppyLiteFeaturePolicy.isEnabled else { return nil }
+        let method = request.method
+        let isUnavailable =
+            method.hasPrefix("browser.") ||
+            method.hasPrefix("feed.") ||
+            method.hasPrefix("vm.") ||
+            method == "file.open" ||
+            method == "markdown.open" ||
+            method.hasPrefix("sidebar.custom.") ||
+            method == "extension.sidebar.snapshot"
+        guard isUnavailable else { return nil }
+        return v2Error(id: request.id, code: "method_not_found", message: "Unknown method")
+    }
+
     private nonisolated func v2Capabilities() -> [String: Any] {
         var methods: [String] = [
             "system.ping",
@@ -1949,8 +1979,6 @@ class TerminalController {
             "system.identify",
             "system.tree",
             "sidebar.custom.open",
-            "system.top",
-            "system.memory",
             "mobile.host.status",
             "mobile.attach_ticket.create",
             "mobile.terminal.set_font",
@@ -2182,6 +2210,21 @@ class TerminalController {
             "browser.input_keyboard",
             "browser.input_touch",
         ]
+        if DeppyLiteFeaturePolicy.resourceDiagnosticsEnabled {
+            methods.append("system.top")
+            methods.append("system.memory")
+        }
+        if DeppyLiteFeaturePolicy.isEnabled {
+            methods.removeAll { method in
+                method.hasPrefix("browser.") ||
+                    method.hasPrefix("feed.") ||
+                    method.hasPrefix("vm.") ||
+                    method == "file.open" ||
+                    method == "markdown.open" ||
+                    method.hasPrefix("sidebar.custom.") ||
+                    method == "extension.sidebar.snapshot"
+            }
+        }
 #if DEBUG
         methods.append(contentsOf: Self.v2DebugMethodNames)
 #endif

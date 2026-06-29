@@ -4,7 +4,9 @@ import CmuxTerminalCore
 import SwiftUI
 import Foundation
 import Bonsplit
+#if !DEPPY_LITE
 import CmuxBrowser
+#endif
 import CmuxGit
 import CmuxNotifications
 import CmuxPanes
@@ -1088,8 +1090,9 @@ class TabManager: ObservableObject {
             let insertIndex = newTabInsertIndex(snapshot: snapshot, placementOverride: placementOverride)
             let ordinal = Self.nextPortOrdinal
             Self.nextPortOrdinal += 1
+            let resolvedInitialSurface = DeppyLiteFeaturePolicy.resolvedInitialSurface(initialSurface)
             let defaultTitle: String
-            switch initialSurface {
+            switch resolvedInitialSurface {
             case .terminal:
                 defaultTitle = "Terminal \(nextTabCount)"
             case .browser:
@@ -1103,7 +1106,7 @@ class TabManager: ObservableObject {
                 workingDirectory: workingDirectory,
                 portOrdinal: ordinal,
                 configTemplate: inheritedConfig,
-                initialSurface: initialSurface,
+                initialSurface: resolvedInitialSurface,
                 initialTerminalCommand: initialTerminalCommand,
                 initialTerminalInput: initialTerminalInput,
                 initialTerminalEnvironment: initialTerminalEnvironment,

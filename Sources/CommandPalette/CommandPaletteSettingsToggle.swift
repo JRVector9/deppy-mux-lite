@@ -735,7 +735,8 @@ enum CommandPaletteSettingsToggleCommands {
                 sectionTitle: beta,
                 keywords: ["betaFeatures.feed", "feed", "right", "sidebar", "beta", "agent", "decisions", "permissions"],
                 defaultValue: RightSidebarBetaFeatureSettings.defaultFeedEnabled,
-                defaultsKey: RightSidebarBetaFeatureSettings.feedEnabledKey
+                defaultsKey: RightSidebarBetaFeatureSettings.feedEnabledKey,
+                isAvailable: { _ in DeppyLiteFeaturePolicy.feedEnabled }
             ),
             CommandPaletteSettingToggleDescriptor(
                 commandId: commandIdPrefix + "rightSidebarDock",

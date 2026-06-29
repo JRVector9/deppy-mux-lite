@@ -19,8 +19,10 @@ import CmuxSidebar
 import CmuxSidebarRemoteRender
 import CmuxSwiftRender
 import CmuxSwiftRenderUI
+#if !DEPPY_LITE
 import CmuxUpdater
 import CmuxUpdaterUI
+#endif
 import ImageIO
 import Observation
 import SwiftUI
@@ -6328,15 +6330,17 @@ struct ContentView: View {
                 keywords: ["create", "new", "workspace"]
             )
         )
-        contributions.append(
-            CommandPaletteCommandContribution(
-                commandId: "palette.newBrowserWorkspace",
-                title: constant(String(localized: "command.newBrowserWorkspace.title", defaultValue: "New Browser Workspace")),
-                subtitle: constant(String(localized: "command.newBrowserWorkspace.subtitle", defaultValue: "Workspace")),
-                keywords: ["create", "new", "browser", "workspace", "web"],
-                when: { !$0.bool(CommandPaletteContextKeys.browserDisabled) }
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+            contributions.append(
+                CommandPaletteCommandContribution(
+                    commandId: "palette.newBrowserWorkspace",
+                    title: constant(String(localized: "command.newBrowserWorkspace.title", defaultValue: "New Browser Workspace")),
+                    subtitle: constant(String(localized: "command.newBrowserWorkspace.subtitle", defaultValue: "Workspace")),
+                    keywords: ["create", "new", "browser", "workspace", "web"],
+                    when: { !$0.bool(CommandPaletteContextKeys.browserDisabled) }
+                )
             )
-        )
+        }
         contributions.append(
             CommandPaletteCommandContribution(
                 commandId: "palette.newWindow",
@@ -6371,25 +6375,27 @@ struct ContentView: View {
                 keywords: ["open", "folder", "repository", "project", "directory"]
             )
         )
-        contributions.append(
-            CommandPaletteCommandContribution(
-                commandId: "palette.openFolderInVSCodeInline",
-                title: constant(
-                    String(
-                        localized: "command.openFolderInVSCodeInline.title",
-                        defaultValue: "Open Folder in VS Code (Inline)…"
-                    )
-                ),
-                subtitle: constant(
-                    String(
-                        localized: "command.openFolderInVSCodeInline.subtitle",
-                        defaultValue: "VS Code Inline"
-                    )
-                ),
-                keywords: ["open", "folder", "directory", "project", "vs", "code", "inline", "editor", "browser"],
-                when: { _ in TerminalDirectoryOpenTarget.vscodeInline.isAvailable() }
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+            contributions.append(
+                CommandPaletteCommandContribution(
+                    commandId: "palette.openFolderInVSCodeInline",
+                    title: constant(
+                        String(
+                            localized: "command.openFolderInVSCodeInline.title",
+                            defaultValue: "Open Folder in VS Code (Inline)…"
+                        )
+                    ),
+                    subtitle: constant(
+                        String(
+                            localized: "command.openFolderInVSCodeInline.subtitle",
+                            defaultValue: "VS Code Inline"
+                        )
+                    ),
+                    keywords: ["open", "folder", "directory", "project", "vs", "code", "inline", "editor", "browser"],
+                    when: { _ in TerminalDirectoryOpenTarget.vscodeInline.isAvailable() }
+                )
             )
-        )
+        }
         contributions.append(
             CommandPaletteCommandContribution(
                 commandId: "palette.reopenPreviousSession",
@@ -6407,16 +6413,18 @@ struct ContentView: View {
                 keywords: ["new", "terminal", "tab"]
             )
         )
-        contributions.append(
-            CommandPaletteCommandContribution(
-                commandId: "palette.newBrowserTab",
-                title: constant(String(localized: "command.newBrowserTab.title", defaultValue: "New Tab (Browser)")),
-                subtitle: constant(String(localized: "command.newBrowserTab.subtitle", defaultValue: "Tab")),
-                shortcutHint: "⌘⇧L",
-                keywords: ["new", "browser", "tab", "web"],
-                when: { !$0.bool(CommandPaletteContextKeys.browserDisabled) }
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+            contributions.append(
+                CommandPaletteCommandContribution(
+                    commandId: "palette.newBrowserTab",
+                    title: constant(String(localized: "command.newBrowserTab.title", defaultValue: "New Tab (Browser)")),
+                    subtitle: constant(String(localized: "command.newBrowserTab.subtitle", defaultValue: "Tab")),
+                    shortcutHint: "⌘⇧L",
+                    keywords: ["new", "browser", "tab", "web"],
+                    when: { !$0.bool(CommandPaletteContextKeys.browserDisabled) }
+                )
             )
-        )
+        }
         contributions.append(
             CommandPaletteCommandContribution(
                 commandId: "palette.closeTab",
@@ -6451,14 +6459,16 @@ struct ContentView: View {
                 keywords: ["fullscreen", "full", "screen", "window", "toggle"]
             )
         )
-        contributions.append(
-            CommandPaletteCommandContribution(
-                commandId: "palette.reopenClosedBrowserTab",
-                title: constant(String(localized: "menu.history.reopenLastClosed", defaultValue: "Reopen Last Closed")),
-                subtitle: constant(String(localized: "menu.history.title", defaultValue: "History")),
-                keywords: ["reopen", "closed", "recently", "history", "tab", "workspace", "window"]
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+            contributions.append(
+                CommandPaletteCommandContribution(
+                    commandId: "palette.reopenClosedBrowserTab",
+                    title: constant(String(localized: "menu.history.reopenLastClosed", defaultValue: "Reopen Last Closed")),
+                    subtitle: constant(String(localized: "menu.history.title", defaultValue: "History")),
+                    keywords: ["reopen", "closed", "recently", "history", "tab", "workspace", "window"]
+                )
             )
-        )
+        }
         contributions.append(
             CommandPaletteCommandContribution(
                 commandId: "palette.toggleSidebar",
@@ -6651,24 +6661,26 @@ struct ContentView: View {
                 keywords: ["restart", "socket", "listener", "cli", "cmux", "control"]
             )
         )
-        contributions.append(
-            CommandPaletteCommandContribution(
-                commandId: "palette.disableBrowser",
-                title: constant(String(localized: "command.disableBrowser.title", defaultValue: "Disable deppy-mux Browser")),
-                subtitle: constant(String(localized: "command.browserAvailability.subtitle", defaultValue: "Browser")),
-                keywords: ["browser", "disable", "external", "default", "open", "auth"],
-                when: { !$0.bool(CommandPaletteContextKeys.browserDisabled) }
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+            contributions.append(
+                CommandPaletteCommandContribution(
+                    commandId: "palette.disableBrowser",
+                    title: constant(String(localized: "command.disableBrowser.title", defaultValue: "Disable deppy-mux Browser")),
+                    subtitle: constant(String(localized: "command.browserAvailability.subtitle", defaultValue: "Browser")),
+                    keywords: ["browser", "disable", "external", "default", "open", "auth"],
+                    when: { !$0.bool(CommandPaletteContextKeys.browserDisabled) }
+                )
             )
-        )
-        contributions.append(
-            CommandPaletteCommandContribution(
-                commandId: "palette.enableBrowser",
-                title: constant(String(localized: "command.enableBrowser.title", defaultValue: "Enable deppy-mux Browser")),
-                subtitle: constant(String(localized: "command.browserAvailability.subtitle", defaultValue: "Browser")),
-                keywords: ["browser", "enable", "embedded", "open"],
-                when: { $0.bool(CommandPaletteContextKeys.browserDisabled) }
+            contributions.append(
+                CommandPaletteCommandContribution(
+                    commandId: "palette.enableBrowser",
+                    title: constant(String(localized: "command.enableBrowser.title", defaultValue: "Enable deppy-mux Browser")),
+                    subtitle: constant(String(localized: "command.browserAvailability.subtitle", defaultValue: "Browser")),
+                    keywords: ["browser", "enable", "embedded", "open"],
+                    when: { $0.bool(CommandPaletteContextKeys.browserDisabled) }
+                )
             )
-        )
+        }
         contributions.append(contentsOf: Self.commandPaletteSettingsToggleCommandContributions())
 
         contributions.append(
@@ -7153,7 +7165,8 @@ struct ContentView: View {
             )
         )
 
-        for target in TerminalDirectoryOpenTarget.commandPaletteShortcutTargets {
+        for target in TerminalDirectoryOpenTarget.commandPaletteShortcutTargets
+            where target != .vscodeInline || DeppyLiteFeaturePolicy.internalBrowserEnabled {
             contributions.append(
                 CommandPaletteCommandContribution(
                     commandId: target.commandPaletteCommandId,
@@ -7166,30 +7179,32 @@ struct ContentView: View {
                 )
             )
         }
-        contributions.append(
-            CommandPaletteCommandContribution(
-                commandId: "palette.vscodeServeWebStop",
-                title: constant(String(localized: "command.vscodeServeWebStop.title", defaultValue: "Stop VS Code Inline Server")),
-                subtitle: terminalPanelSubtitle,
-                keywords: ["vscode", "inline", "serve-web", "stop", "server"],
-                when: { context in
-                    context.bool(CommandPaletteContextKeys.panelIsTerminal)
-                        && context.bool(CommandPaletteContextKeys.terminalOpenTargetAvailable(.vscodeInline))
-                }
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+            contributions.append(
+                CommandPaletteCommandContribution(
+                    commandId: "palette.vscodeServeWebStop",
+                    title: constant(String(localized: "command.vscodeServeWebStop.title", defaultValue: "Stop VS Code Inline Server")),
+                    subtitle: terminalPanelSubtitle,
+                    keywords: ["vscode", "inline", "serve-web", "stop", "server"],
+                    when: { context in
+                        context.bool(CommandPaletteContextKeys.panelIsTerminal)
+                            && context.bool(CommandPaletteContextKeys.terminalOpenTargetAvailable(.vscodeInline))
+                    }
+                )
             )
-        )
-        contributions.append(
-            CommandPaletteCommandContribution(
-                commandId: "palette.vscodeServeWebRestart",
-                title: constant(String(localized: "command.vscodeServeWebRestart.title", defaultValue: "Restart VS Code Inline Server")),
-                subtitle: terminalPanelSubtitle,
-                keywords: ["vscode", "inline", "serve-web", "restart", "server"],
-                when: { context in
-                    context.bool(CommandPaletteContextKeys.panelIsTerminal)
-                        && context.bool(CommandPaletteContextKeys.terminalOpenTargetAvailable(.vscodeInline))
-                }
+            contributions.append(
+                CommandPaletteCommandContribution(
+                    commandId: "palette.vscodeServeWebRestart",
+                    title: constant(String(localized: "command.vscodeServeWebRestart.title", defaultValue: "Restart VS Code Inline Server")),
+                    subtitle: terminalPanelSubtitle,
+                    keywords: ["vscode", "inline", "serve-web", "restart", "server"],
+                    when: { context in
+                        context.bool(CommandPaletteContextKeys.panelIsTerminal)
+                            && context.bool(CommandPaletteContextKeys.terminalOpenTargetAvailable(.vscodeInline))
+                    }
+                )
             )
-        )
+        }
         contributions.append(
             CommandPaletteCommandContribution(
                 commandId: "palette.findInDirectory",
@@ -7461,6 +7476,11 @@ struct ContentView: View {
             )
         }
 
+        if DeppyLiteFeaturePolicy.isEnabled {
+            contributions.removeAll {
+                DeppyLiteFeaturePolicy.hidesCommandPaletteCommand($0.commandId)
+            }
+        }
         return contributions
     }
 
@@ -7568,14 +7588,16 @@ struct ContentView: View {
                 debugSource: "palette.newWorkspace"
             )
         }
-        registry.register(commandId: "palette.newBrowserWorkspace") {
-            // Let command-palette dismissal complete first so omnibar focus
-            // is not blocked by the palette visibility guard.
-            DispatchQueue.main.async {
-                _ = AppDelegate.shared?.performNewBrowserWorkspaceAction(
-                    tabManager: tabManager,
-                    debugSource: "palette.newBrowserWorkspace"
-                )
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+            registry.register(commandId: "palette.newBrowserWorkspace") {
+                // Let command-palette dismissal complete first so omnibar focus
+                // is not blocked by the palette visibility guard.
+                DispatchQueue.main.async {
+                    _ = AppDelegate.shared?.performNewBrowserWorkspaceAction(
+                        tabManager: tabManager,
+                        debugSource: "palette.newBrowserWorkspace"
+                    )
+                }
             }
         }
         registry.register(commandId: "palette.openFolder") {
@@ -7592,9 +7614,11 @@ struct ContentView: View {
                 }
             }
         }
-        registry.register(commandId: "palette.openFolderInVSCodeInline") {
-            DispatchQueue.main.async {
-                AppDelegate.shared?.showOpenFolderInInlineVSCodePanel(tabManager: tabManager)
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+            registry.register(commandId: "palette.openFolderInVSCodeInline") {
+                DispatchQueue.main.async {
+                    AppDelegate.shared?.showOpenFolderInInlineVSCodePanel(tabManager: tabManager)
+                }
             }
         }
         registry.register(commandId: "palette.reopenPreviousSession") {
@@ -7617,14 +7641,16 @@ struct ContentView: View {
                 tabManager.newSurface()
             }
         }
-        registry.register(commandId: "palette.newBrowserTab") {
-            if executeConfiguredAction(id: CmuxSurfaceTabBarBuiltInAction.newBrowser.configID) {
-                return
-            }
-            // Let command-palette dismissal complete first so omnibar focus
-            // is not blocked by the palette visibility guard.
-            DispatchQueue.main.async {
-                _ = AppDelegate.shared?.openBrowserAndFocusAddressBar()
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+            registry.register(commandId: "palette.newBrowserTab") {
+                if executeConfiguredAction(id: CmuxSurfaceTabBarBuiltInAction.newBrowser.configID) {
+                    return
+                }
+                // Let command-palette dismissal complete first so omnibar focus
+                // is not blocked by the palette visibility guard.
+                DispatchQueue.main.async {
+                    _ = AppDelegate.shared?.openBrowserAndFocusAddressBar()
+                }
             }
         }
         registry.register(commandId: "palette.closeTab") {
@@ -7651,11 +7677,13 @@ struct ContentView: View {
             }
             window.toggleFullScreen(nil)
         }
-        registry.register(commandId: "palette.reopenClosedBrowserTab") {
-            if let appDelegate = AppDelegate.shared {
-                _ = appDelegate.reopenMostRecentlyClosedItem(preferredTabManager: tabManager)
-            } else {
-                _ = tabManager.reopenMostRecentlyClosedItem()
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+            registry.register(commandId: "palette.reopenClosedBrowserTab") {
+                if let appDelegate = AppDelegate.shared {
+                    _ = appDelegate.reopenMostRecentlyClosedItem(preferredTabManager: tabManager)
+                } else {
+                    _ = tabManager.reopenMostRecentlyClosedItem()
+                }
             }
         }
         registry.register(commandId: "palette.toggleSidebar") {
@@ -7754,11 +7782,13 @@ struct ContentView: View {
         registry.register(commandId: "palette.restartSocketListener") {
             AppDelegate.shared?.restartSocketListener(nil)
         }
-        registry.register(commandId: "palette.disableBrowser") {
-            BrowserAvailabilitySettings.setDisabled(true)
-        }
-        registry.register(commandId: "palette.enableBrowser") {
-            BrowserAvailabilitySettings.setDisabled(false)
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+            registry.register(commandId: "palette.disableBrowser") {
+                BrowserAvailabilitySettings.setDisabled(true)
+            }
+            registry.register(commandId: "palette.enableBrowser") {
+                BrowserAvailabilitySettings.setDisabled(false)
+            }
         }
         registerSettingsToggleCommandHandlers(&registry)
 
@@ -7997,30 +8027,35 @@ struct ContentView: View {
                 preferredWindow: NSApp.keyWindow ?? NSApp.mainWindow
             )
         }
-        registry.register(commandId: "palette.browserSplitRight") {
-            _ = tabManager.createBrowserSplit(direction: .right)
-        }
-        registry.register(commandId: "palette.browserSplitDown") {
-            _ = tabManager.createBrowserSplit(direction: .down)
-        }
-        registry.register(commandId: "palette.browserDuplicateRight") {
-            let url = tabManager.focusedBrowserPanel?.preferredURLStringForOmnibar().flatMap(URL.init(string:))
-            _ = tabManager.createBrowserSplit(direction: .right, url: url)
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+            registry.register(commandId: "palette.browserSplitRight") {
+                _ = tabManager.createBrowserSplit(direction: .right)
+            }
+            registry.register(commandId: "palette.browserSplitDown") {
+                _ = tabManager.createBrowserSplit(direction: .down)
+            }
+            registry.register(commandId: "palette.browserDuplicateRight") {
+                let url = tabManager.focusedBrowserPanel?.preferredURLStringForOmnibar().flatMap(URL.init(string:))
+                _ = tabManager.createBrowserSplit(direction: .right, url: url)
+            }
         }
 
-        for target in TerminalDirectoryOpenTarget.commandPaletteShortcutTargets {
+        for target in TerminalDirectoryOpenTarget.commandPaletteShortcutTargets
+            where target != .vscodeInline || DeppyLiteFeaturePolicy.internalBrowserEnabled {
             registry.register(commandId: target.commandPaletteCommandId) {
                 if !openFocusedDirectory(in: target) {
                     NSSound.beep()
                 }
             }
         }
-        registry.register(commandId: "palette.vscodeServeWebStop") {
-            stopInlineVSCodeServeWeb()
-        }
-        registry.register(commandId: "palette.vscodeServeWebRestart") {
-            if !restartInlineVSCodeServeWeb() {
-                NSSound.beep()
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+            registry.register(commandId: "palette.vscodeServeWebStop") {
+                stopInlineVSCodeServeWeb()
+            }
+            registry.register(commandId: "palette.vscodeServeWebRestart") {
+                if !restartInlineVSCodeServeWeb() {
+                    NSSound.beep()
+                }
             }
         }
         registry.register(commandId: "palette.terminalFind") {
@@ -9468,6 +9503,9 @@ struct ContentView: View {
     }
 
     private func restartInlineVSCodeServeWeb() -> Bool {
+        guard DeppyLiteFeaturePolicy.internalBrowserEnabled else {
+            return false
+        }
         guard let vscodeApplicationURL = TerminalDirectoryOpenTarget.vscodeInline.applicationURL() else {
             return false
         }
@@ -9641,6 +9679,7 @@ enum CmuxExtensionSidebarSelection {
     /// the same suite and key the store persists to, so the catalog stays the
     /// single definition of the key, decode, and default.
     static var isEnabled: Bool {
+        guard DeppyLiteFeaturePolicy.extensionSidebarProvidersEnabled else { return false }
         // Read the single beta-features section, not the whole `SettingCatalog`.
         // Constructing the full catalog allocates ~20 sub-sections (including
         // `AutomationCatalogSection`/`SecretFileKey`) just to reach one flag;
@@ -9651,7 +9690,8 @@ enum CmuxExtensionSidebarSelection {
     }
 
     static var providers: [any CmuxSidebarProvider] {
-        SidebarExamples.providers
+        guard !DeppyLiteFeaturePolicy.isEnabled else { return [] }
+        return SidebarExamples.providers
     }
 
     // MARK: - Custom sidebars (beta)
@@ -9663,6 +9703,7 @@ enum CmuxExtensionSidebarSelection {
     /// Synchronous read of the experimental custom-sidebars flag, mirroring
     /// ``isEnabled`` for the AppKit/static paths (the picker menu).
     static var customSidebarsEnabled: Bool {
+        guard DeppyLiteFeaturePolicy.customSidebarProvidersEnabled else { return false }
         // See ``isEnabled``: read only the beta-features section so a body-path
         // access does not allocate the entire `SettingCatalog` (issue #5970).
         let key = BetaFeaturesCatalogSection().customSidebars
@@ -9682,6 +9723,7 @@ enum CmuxExtensionSidebarSelection {
     /// sidebars directory (`.swift` preferred when both exist), titled by the
     /// file's base name.
     static var customSidebarDescriptors: [CmuxSidebarProviderDescriptor] {
+        guard DeppyLiteFeaturePolicy.customSidebarProvidersEnabled else { return [] }
         guard let entries = try? FileManager.default.contentsOfDirectory(
             at: customSidebarsDirectory,
             includingPropertiesForKeys: nil
@@ -9711,10 +9753,12 @@ enum CmuxExtensionSidebarSelection {
     /// Resolves a custom-sidebar provider id to its backing file URL
     /// (`.swift` preferred), or `nil` if neither file exists.
     static func customSidebarFileURL(forProviderId providerId: String) -> URL? {
-        customSidebarFileURL(forProviderId: providerId, sidebarsDirectory: customSidebarsDirectory)
+        guard DeppyLiteFeaturePolicy.customSidebarProvidersEnabled else { return nil }
+        return customSidebarFileURL(forProviderId: providerId, sidebarsDirectory: customSidebarsDirectory)
     }
 
     static func customSidebarFileURL(forProviderId providerId: String, sidebarsDirectory: URL) -> URL? {
+        guard DeppyLiteFeaturePolicy.customSidebarProvidersEnabled else { return nil }
         guard providerId.hasPrefix(customSidebarProviderPrefix) else { return nil }
         let name = String(providerId.dropFirst(customSidebarProviderPrefix.count))
         guard isValidCustomSidebarFileBaseName(name) else { return nil }
@@ -9736,7 +9780,8 @@ enum CmuxExtensionSidebarSelection {
     /// independently of the experimental Extensions feature, so they stay in
     /// the switcher menu regardless of the beta flag.
     static var builtInDescriptors: [CmuxSidebarProviderDescriptor] {
-        [.defaultWorkspaces] + providers.map { $0.descriptor }
+        guard !DeppyLiteFeaturePolicy.isEnabled else { return [.defaultWorkspaces] }
+        return [.defaultWorkspaces] + providers.map { $0.descriptor }
     }
 
     /// Descriptors offered in the switcher menu and command palette. The hosted
@@ -9744,6 +9789,7 @@ enum CmuxExtensionSidebarSelection {
     /// only offered while that beta is enabled; the built-in views are always
     /// offered.
     static var descriptors: [CmuxSidebarProviderDescriptor] {
+        guard !DeppyLiteFeaturePolicy.isEnabled else { return [.defaultWorkspaces] }
         var result = isEnabled ? builtInDescriptors + [hostedExtensionsDescriptor] : builtInDescriptors
         if customSidebarsEnabled { result += customSidebarDescriptors }
         return result
@@ -9753,7 +9799,8 @@ enum CmuxExtensionSidebarSelection {
     /// to register command-palette handlers so a runtime flag flip always has a
     /// handler to invoke; what is *shown* uses ``descriptors``.
     static var allDescriptors: [CmuxSidebarProviderDescriptor] {
-        builtInDescriptors + [hostedExtensionsDescriptor] + customSidebarDescriptors
+        guard !DeppyLiteFeaturePolicy.isEnabled else { return [.defaultWorkspaces] }
+        return builtInDescriptors + [hostedExtensionsDescriptor] + customSidebarDescriptors
     }
 
     static var hostedExtensionsDescriptor: CmuxSidebarProviderDescriptor {
@@ -9794,6 +9841,7 @@ enum CmuxExtensionSidebarSelection {
     /// is off, so this only needs to confirm the resolved id maps to a renderable
     /// non-default view.
     static func resolvesToDefaultSidebar(effectiveProviderId id: String) -> Bool {
+        guard !DeppyLiteFeaturePolicy.isEnabled else { return true }
         if id == defaultProviderId { return true }
         if id == hostedExtensionsProviderId { return false }
         if id.hasPrefix(customSidebarProviderPrefix) {
@@ -9807,7 +9855,8 @@ enum CmuxExtensionSidebarSelection {
     }
 
     static func provider(for providerId: String) -> (any CmuxSidebarProvider)? {
-        providers.first { $0.descriptor.id == providerId }
+        guard !DeppyLiteFeaturePolicy.isEnabled else { return nil }
+        return providers.first { $0.descriptor.id == providerId }
     }
 
     /// Resolves the persisted provider selection to the provider that is
@@ -9819,6 +9868,7 @@ enum CmuxExtensionSidebarSelection {
     /// honored, so the switcher and its active-view checkmark keep working
     /// regardless of the beta flag.
     static func effectiveProviderId(_ persistedProviderId: String, extensionsEnabled: Bool) -> String {
+        guard !DeppyLiteFeaturePolicy.isEnabled else { return defaultProviderId }
         if persistedProviderId == hostedExtensionsProviderId, !extensionsEnabled {
             return defaultProviderId
         }
@@ -12812,12 +12862,14 @@ private struct SidebarHelpMenuButton: View {
                 accessibilityIdentifier: "SidebarHelpMenuOptionKeyboardShortcuts",
                 isExternalLink: false
             )
-            helpOptionButton(
-                title: String(localized: "menu.view.importFromBrowser", defaultValue: "Import Browser Data…"),
-                action: .importBrowserData,
-                accessibilityIdentifier: "SidebarHelpMenuOptionImportBrowserData",
-                isExternalLink: false
-            )
+            if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+                helpOptionButton(
+                    title: String(localized: "menu.view.importFromBrowser", defaultValue: "Import Browser Data…"),
+                    action: .importBrowserData,
+                    accessibilityIdentifier: "SidebarHelpMenuOptionImportBrowserData",
+                    isExternalLink: false
+                )
+            }
             if docsURL != nil {
                 helpOptionButton(
                     title: String(localized: "about.docs", defaultValue: "Docs"),

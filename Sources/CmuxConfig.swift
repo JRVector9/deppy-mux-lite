@@ -1176,12 +1176,17 @@ struct CmuxSurfaceTabBarButton: Codable, Sendable, Hashable, Identifiable {
     static let splitRight = actionReference(CmuxSurfaceTabBarBuiltInAction.splitRight.configID)
     static let splitDown = actionReference(CmuxSurfaceTabBarBuiltInAction.splitDown.configID)
 
-    static let defaults: [CmuxSurfaceTabBarButton] = [
-        .newTerminal,
-        .newBrowser,
-        .splitRight,
-        .splitDown
-    ]
+    static var defaults: [CmuxSurfaceTabBarButton] {
+        var buttons: [CmuxSurfaceTabBarButton] = [
+            .newTerminal,
+            .splitRight,
+            .splitDown,
+        ]
+        if CmuxSurfaceTabBarBuiltInAction.newBrowser.isAvailableInCurrentFeaturePolicy {
+            buttons.insert(.newBrowser, at: 1)
+        }
+        return buttons
+    }
 
     static func builtIn(
         _ action: CmuxSurfaceTabBarBuiltInAction,
@@ -1363,11 +1368,19 @@ struct CmuxSurfaceTabBarButton: Codable, Sendable, Hashable, Identifiable {
                     debugDescription: "Unknown built-in surface tab bar action '\(rawBuiltin)'"
                 )
             }
+            guard builtIn.isAvailableInCurrentFeaturePolicy else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .builtin,
+                    in: container,
+                    debugDescription: "Unavailable built-in surface tab bar action '\(rawBuiltin)'"
+                )
+            }
             action = .builtIn(builtIn)
         } else if let rawAction {
             action = .actionReference(rawAction)
         } else if let explicitId,
-                  let builtIn = CmuxSurfaceTabBarBuiltInAction(configID: explicitId) {
+                  let builtIn = CmuxSurfaceTabBarBuiltInAction(configID: explicitId),
+                  builtIn.isAvailableInCurrentFeaturePolicy {
             action = .builtIn(builtIn)
         } else {
             throw DecodingError.dataCorrupted(
@@ -1407,7 +1420,8 @@ struct CmuxSurfaceTabBarButton: Codable, Sendable, Hashable, Identifiable {
             )
         }
 
-        if let builtIn = CmuxSurfaceTabBarBuiltInAction(configID: identifier) {
+        if let builtIn = CmuxSurfaceTabBarBuiltInAction(configID: identifier),
+           builtIn.isAvailableInCurrentFeaturePolicy {
             return CmuxSurfaceTabBarButton(
                 id: id,
                 title: title,
@@ -1879,10 +1893,15 @@ struct CmuxConfigIssue: Identifiable, Equatable, Sendable {
 
 @MainActor
 final class CmuxConfigStore: ObservableObject {
-    private static let defaultNewWorkspaceContextMenu: [CmuxConfigContextMenuItem] = [
-        .action(CmuxConfigContextMenuActionItem(action: CmuxSurfaceTabBarBuiltInAction.newWorkspace.configID)),
-        .action(CmuxConfigContextMenuActionItem(action: CmuxSurfaceTabBarBuiltInAction.cloudVM.configID)),
-    ]
+    private static var defaultNewWorkspaceContextMenu: [CmuxConfigContextMenuItem] {
+        var items: [CmuxConfigContextMenuItem] = [
+            .action(CmuxConfigContextMenuActionItem(action: CmuxSurfaceTabBarBuiltInAction.newWorkspace.configID)),
+        ]
+        if CmuxSurfaceTabBarBuiltInAction.cloudVM.isAvailableInCurrentFeaturePolicy {
+            items.append(.action(CmuxConfigContextMenuActionItem(action: CmuxSurfaceTabBarBuiltInAction.cloudVM.configID)))
+        }
+        return items
+    }
 
     @Published private(set) var loadedCommands: [CmuxCommandDefinition] = []
     @Published private(set) var loadedActions: [CmuxResolvedConfigAction] = []
@@ -2445,14 +2464,21 @@ final class CmuxConfigStore: ObservableObject {
         commands: [CmuxCommandDefinition],
         commandSourcePaths: [String: String]
     ) -> [CmuxResolvedConfigAction] {
+        let builtInActions = CmuxSurfaceTabBarBuiltInAction.allCases.filter {
+            $0.isAvailableInCurrentFeaturePolicy
+        }
         var registry = Dictionary(
-            uniqueKeysWithValues: CmuxSurfaceTabBarBuiltInAction.allCases.map {
+            uniqueKeysWithValues: builtInActions.map {
                 ($0.configID, CmuxResolvedConfigAction.builtIn($0))
             }
         )
 
         func apply(_ entries: [String: ActionEntry]) {
             for (id, entry) in entries {
+                if let builtIn = CmuxSurfaceTabBarBuiltInAction(configID: id),
+                   !builtIn.isAvailableInCurrentFeaturePolicy {
+                    continue
+                }
                 let registryID = CmuxSurfaceTabBarBuiltInAction(configID: id)?.configID ?? id
                 if let existing = registry[registryID] {
                     guard let resolved = existing.applying(entry.definition, sourcePath: entry.sourcePath) else { continue }
@@ -2558,7 +2584,8 @@ final class CmuxConfigStore: ObservableObject {
             )
         }
 
-        if let builtIn = CmuxSurfaceTabBarBuiltInAction(configID: identifier) {
+        if let builtIn = CmuxSurfaceTabBarBuiltInAction(configID: identifier),
+           builtIn.isAvailableInCurrentFeaturePolicy {
             return ResolvedSurfaceTabBarButtonEntry(
                 button: CmuxSurfaceTabBarButton(
                     id: button.id,
@@ -2640,14 +2667,14 @@ final class CmuxConfigStore: ObservableObject {
     }
 
     func paletteCustomActions() -> [CmuxResolvedConfigAction] {
-        let builtInIDs = Set(CmuxSurfaceTabBarBuiltInAction.allCases.map(\.configID))
+        let builtInIDs = Set(CmuxSurfaceTabBarBuiltInAction.allCases.filter(\.isAvailableInCurrentFeaturePolicy).map(\.configID))
         return loadedActions.filter { action in
             action.palette && !builtInIDs.contains(action.id)
         }
     }
 
     func shortcutActions() -> [CmuxResolvedConfigAction] {
-        let builtInIDs = Set(CmuxSurfaceTabBarBuiltInAction.allCases.map(\.configID))
+        let builtInIDs = Set(CmuxSurfaceTabBarBuiltInAction.allCases.filter(\.isAvailableInCurrentFeaturePolicy).map(\.configID))
         return loadedActions.filter { action in
             action.shortcut != nil && (builtInIDs.contains(action.id) || action.actionSourcePath != nil)
         }.sorted { lhs, rhs in

@@ -13,7 +13,9 @@ import CmuxFoundation
 import Bonsplit
 import CMUXAgentLaunch
 import CmuxSettings
+#if !DEPPY_LITE
 import CmuxBrowser
+#endif
 import CmuxCanvasUI
 import CmuxPanes
 import CmuxSidebar
@@ -186,12 +188,19 @@ extension Workspace {
         // survive an app restart) inherits it through `newTerminalSurface`.
         workspaceEnvironment = Self.sanitizedWorkspaceEnvironment(snapshot.environment ?? [:])
 
-        let panelSnapshotsById = Dictionary(uniqueKeysWithValues: snapshot.panels.map { ($0.id, $0) })
+        let restorablePanelSnapshots = snapshot.panels.filter {
+            DeppyLiteFeaturePolicy.supportedSessionPanelType($0.type)
+        }
+        let panelSnapshotsById = Dictionary(uniqueKeysWithValues: restorablePanelSnapshots.map { ($0.id, $0) })
+        let layoutForRestore = prunedSessionLayoutSnapshot(
+            snapshot.layout,
+            keeping: Set(panelSnapshotsById.keys)
+        ) ?? .pane(SessionPaneLayoutSnapshot(panelIds: [], selectedPanelId: nil))
         let leafEntries: [SessionPaneRestoreEntry] = {
             let previousValue = suppressRemoteTerminalStartupForSessionRestoreScaffold
             suppressRemoteTerminalStartupForSessionRestoreScaffold = true
             defer { suppressRemoteTerminalStartupForSessionRestoreScaffold = previousValue }
-            return restoreSessionLayout(snapshot.layout)
+            return restoreSessionLayout(layoutForRestore)
         }()
         var oldToNewPanelIds: [UUID: UUID] = [:]
 
@@ -206,7 +215,7 @@ extension Workspace {
         }
 
         pruneSurfaceMetadata(validSurfaceIds: Set(panels.keys))
-        applySessionDividerPositions(snapshotNode: snapshot.layout, liveNode: bonsplitController.treeSnapshot())
+        applySessionDividerPositions(snapshotNode: layoutForRestore, liveNode: bonsplitController.treeSnapshot())
 
         applyProcessTitle(snapshot.processTitle)
         setCustomTitle(snapshot.customTitle, source: snapshot.customTitleSource ?? .user)
@@ -363,6 +372,7 @@ extension Workspace {
         resumeBinding: SurfaceResumeBindingSnapshot?
     ) -> SessionPanelSnapshot? {
         guard let panel = panels[panelId] else { return nil }
+        guard DeppyLiteFeaturePolicy.supportedSessionPanelType(panel.panelType) else { return nil }
 
         let compatibleIndexedRestorableAgent = restorableAgent.flatMap {
             Self.restorableAgentForSessionRestore(
@@ -1183,6 +1193,7 @@ extension Workspace {
         inPane paneId: PaneID,
         snapshotWorkspaceId: UUID?
     ) -> UUID? {
+        guard DeppyLiteFeaturePolicy.supportedSessionPanelType(snapshot.type) else { return nil }
         switch snapshot.type {
         case .terminal:
             let snapshotRestorableAgent = snapshot.terminal?.agent
@@ -2020,7 +2031,9 @@ extension Workspace {
 
 /// Lifted to `CmuxBrowser.ClosedBrowserPanelRestoreSnapshot` (Workspace
 /// decomposition, Wave 3). This typealias keeps call sites byte-identical.
+#if !DEPPY_LITE
 typealias ClosedBrowserPanelRestoreSnapshot = CmuxBrowser.ClosedBrowserPanelRestoreSnapshot
+#endif
 
 /// Process-wide, event-driven cache of `RestorableAgentSessionIndex.load()` results, used
 /// by the right-click "Fork Conversation" availability check and the close-history undo
@@ -3108,7 +3121,7 @@ final class Workspace: Identifiable, ObservableObject {
                attachDetachedSurface(initialDetachedSurface, inPane: initialPaneId, focus: false) != nil {
                 initialTabId = surfaceIdFromPanelId(initialDetachedSurface.panelId)
             }
-        } else if initialSurface == .browser {
+        } else if initialSurface == .browser && DeppyLiteFeaturePolicy.internalBrowserEnabled {
             // Create the initial browser panel in its default new-tab state.
             // Mirrors the minimal terminal branch below plus the browser panel
             // wiring `attachDetachedSurface` performs for reattached panels.
@@ -7765,6 +7778,12 @@ final class Workspace: Identifiable, ObservableObject {
         bypassRemoteProxy: Bool = false,
         initialDividerPosition: CGFloat? = nil
     ) -> BrowserPanel? {
+        guard DeppyLiteFeaturePolicy.internalBrowserEnabled else {
+            if let url {
+                _ = NSWorkspace.shared.open(url)
+            }
+            return nil
+        }
         // No local browser surfaces in a remote tmux mirror workspace (it is a
         // 1:1 view of a tmux session). See ``newBrowserSurface(inPane:)``.
         if isRemoteTmuxMirror { return nil }
@@ -7879,6 +7898,12 @@ final class Workspace: Identifiable, ObservableObject {
         transparentBackground: Bool = false,
         bypassRemoteProxy: Bool = false
     ) -> BrowserPanel? {
+        guard DeppyLiteFeaturePolicy.internalBrowserEnabled else {
+            if let externalURL = url ?? initialRequest?.url {
+                _ = NSWorkspace.shared.open(externalURL)
+            }
+            return nil
+        }
         // A remote tmux mirror workspace is a 1:1 view of a tmux session (which
         // has no browser concept). A local browser tab here would be an orphan
         // that the mirror's rebuild() never reconciles, breaking the 1:1
@@ -7981,6 +8006,7 @@ final class Workspace: Identifiable, ObservableObject {
         title: String,
         focus: Bool = true
     ) -> CMUXSidebarExtensionBrowserPanel? {
+        guard DeppyLiteFeaturePolicy.canCreatePanel(.extensionBrowser) else { return nil }
         let shouldFocusNewTab = focus || bonsplitController.focusedPaneId == paneId
         let extensionBrowserPanel = CMUXSidebarExtensionBrowserPanel(title: title)
         panels[extensionBrowserPanel.id] = extensionBrowserPanel
@@ -8060,6 +8086,7 @@ final class Workspace: Identifiable, ObservableObject {
         focus: Bool = true,
         fontSize: Double? = nil
     ) -> MarkdownPanel? {
+        guard DeppyLiteFeaturePolicy.canCreatePanel(.markdown) else { return nil }
         guard let sourceTabId = surfaceIdFromPanelId(panelId) else { return nil }
         var sourcePaneId: PaneID?
         for paneId in bonsplitController.allPaneIds {
@@ -8123,6 +8150,7 @@ final class Workspace: Identifiable, ObservableObject {
         focus: Bool? = nil,
         targetIndex: Int? = nil
     ) -> MarkdownPanel? {
+        guard DeppyLiteFeaturePolicy.canCreatePanel(.markdown) else { return nil }
         let shouldFocusNewTab = focus ?? (bonsplitController.focusedPaneId == paneId)
         let previousFocusedPanelId = focusedPanelId
         let previousHostedView = focusedTerminalPanel?.hostedView
@@ -8173,6 +8201,7 @@ final class Workspace: Identifiable, ObservableObject {
         focus: Bool? = nil,
         targetIndex: Int? = nil
     ) -> ProjectPanel? {
+        guard DeppyLiteFeaturePolicy.canCreatePanel(.project) else { return nil }
         guard !projectPath.isEmpty else { return nil }
         let url = URL(fileURLWithPath: (projectPath as NSString).expandingTildeInPath).standardizedFileURL
         let shouldFocusNewTab = focus ?? (bonsplitController.focusedPaneId == paneId)
@@ -8245,6 +8274,7 @@ final class Workspace: Identifiable, ObservableObject {
         insertFirst: Bool,
         filePath: String
     ) -> MarkdownPanel? {
+        guard DeppyLiteFeaturePolicy.canCreatePanel(.markdown) else { return nil }
         let markdownPanel = MarkdownPanel(workspaceId: id, filePath: filePath)
         panels[markdownPanel.id] = markdownPanel
         panelTitles[markdownPanel.id] = markdownPanel.displayTitle
@@ -8333,6 +8363,7 @@ final class Workspace: Identifiable, ObservableObject {
         focus: Bool? = nil,
         targetIndex: Int? = nil
     ) -> FilePreviewPanel? {
+        guard DeppyLiteFeaturePolicy.canCreatePanel(.filePreview) else { return nil }
         let shouldFocusNewTab = focus ?? (bonsplitController.focusedPaneId == paneId)
         let previousFocusedPanelId = focusedPanelId
         let previousHostedView = focusedTerminalPanel?.hostedView
@@ -8404,6 +8435,7 @@ final class Workspace: Identifiable, ObservableObject {
         focus: Bool? = nil,
         targetIndex: Int? = nil
     ) -> RightSidebarToolPanel? {
+        guard DeppyLiteFeaturePolicy.canCreatePanel(.rightSidebarTool) else { return nil }
         guard mode.canOpenAsPane else { return nil }
         let shouldFocusNewTab = focus ?? (bonsplitController.focusedPaneId == paneId)
         let previousFocusedPanelId = focusedPanelId
@@ -8455,6 +8487,7 @@ final class Workspace: Identifiable, ObservableObject {
         focus: Bool? = nil,
         targetIndex: Int? = nil
     ) -> AgentSessionPanel? {
+        guard DeppyLiteFeaturePolicy.canCreatePanel(.agentSession) else { return nil }
         let shouldFocusNewTab = focus ?? (bonsplitController.focusedPaneId == paneId)
         let previousFocusedPanelId = focusedPanelId
         let previousHostedView = focusedTerminalPanel?.hostedView
@@ -8523,6 +8556,7 @@ final class Workspace: Identifiable, ObservableObject {
         insertFirst: Bool,
         filePath: String
     ) -> FilePreviewPanel? {
+        guard DeppyLiteFeaturePolicy.canCreatePanel(.filePreview) else { return nil }
         let filePreviewPanel = FilePreviewPanel(workspaceId: id, filePath: filePath)
         panels[filePreviewPanel.id] = filePreviewPanel
         panelTitles[filePreviewPanel.id] = filePreviewPanel.displayTitle

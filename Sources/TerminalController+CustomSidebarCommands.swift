@@ -6,6 +6,9 @@ import Foundation
 
 extension TerminalController {
     nonisolated func v2CustomSidebarValidate(params: [String: Any]) -> V2CallResult {
+        guard DeppyLiteFeaturePolicy.customSidebarProvidersEnabled else {
+            return .err(code: "method_not_found", message: "Unknown method", data: nil)
+        }
         let name = v2CustomSidebarName(params: params)
         if let name, name.isEmpty {
             return .err(
@@ -19,6 +22,9 @@ extension TerminalController {
     }
 
     nonisolated func v2CustomSidebarReload(params: [String: Any]) -> V2CallResult {
+        guard DeppyLiteFeaturePolicy.customSidebarProvidersEnabled else {
+            return .err(code: "method_not_found", message: "Unknown method", data: nil)
+        }
         let name = v2CustomSidebarName(params: params)
         if let name, name.isEmpty {
             return .err(
@@ -46,6 +52,9 @@ extension TerminalController {
     }
 
     nonisolated func v2CustomSidebarSelect(params: [String: Any]) -> V2CallResult {
+        guard DeppyLiteFeaturePolicy.customSidebarProvidersEnabled else {
+            return .err(code: "method_not_found", message: "Unknown method", data: nil)
+        }
         guard let name = v2CustomSidebarName(params: params), !name.isEmpty else {
             return .err(
                 code: "invalid_params",
@@ -81,6 +90,9 @@ extension TerminalController {
     }
 
     nonisolated func v2CustomSidebarOpen(params: [String: Any]) -> V2CallResult {
+        guard DeppyLiteFeaturePolicy.customSidebarProvidersEnabled else {
+            return .err(code: "method_not_found", message: "Unknown method", data: nil)
+        }
         guard let name = v2CustomSidebarName(params: params), !name.isEmpty else {
             return .err(
                 code: "invalid_params",

@@ -12,6 +12,7 @@ public struct KeyboardShortcutsSection: View {
     private let catalog: SettingCatalog
     private let errorLog: SettingsErrorLog
     private let hostActions: SettingsHostActions
+    private let featureAvailability: SettingsFeatureAvailability
     @State private var bindings: [String: StoredShortcut] = [:]
     /// Parsed `shortcuts.when` overrides keyed by action id. Conflict detection
     /// evaluates each action's effective clause (override, or its built-in
@@ -45,12 +46,14 @@ public struct KeyboardShortcutsSection: View {
         jsonStore: JSONConfigStore,
         catalog: SettingCatalog,
         errorLog: SettingsErrorLog,
-        hostActions: SettingsHostActions
+        hostActions: SettingsHostActions,
+        featureAvailability: SettingsFeatureAvailability = .all
     ) {
         self.jsonStore = jsonStore
         self.catalog = catalog
         self.errorLog = errorLog
         self.hostActions = hostActions
+        self.featureAvailability = featureAvailability
     }
 
     public var body: some View {
@@ -74,7 +77,7 @@ public struct KeyboardShortcutsSection: View {
                 // the enclosing card is), so a LazyVStack here defers them
                 // until the section scrolls into view without affecting any
                 // scroll/highlight target.
-                let actions = ShortcutAction.settingsVisibleActions
+                let actions = visibleShortcutActions
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(actions.enumerated()), id: \.element) { index, action in
                         actionRow(action)
@@ -94,6 +97,10 @@ public struct KeyboardShortcutsSection: View {
         .task { await streamBindings() }
         .task { await streamWhenOverrides() }
         .onDisappear { streamTask?.cancel() }
+    }
+
+    private var visibleShortcutActions: [ShortcutAction] {
+        featureAvailability.visibleShortcutActions(from: ShortcutAction.settingsVisibleActions)
     }
 
     @ViewBuilder
@@ -355,7 +362,7 @@ public struct KeyboardShortcutsSection: View {
 
     private func detectConflict(for action: ShortcutAction, stroke: StoredShortcut) -> ShortcutAction? {
         let proposedClause = effectiveWhenClause(for: action)
-        for other in ShortcutAction.allCases where other != action {
+        for other in featureAvailability.visibleShortcutActions(from: ShortcutAction.allCases) where other != action {
             // Two bindings on the same keystroke only collide when some focus
             // state activates both effective `when` clauses AND router priority
             // cannot decide the overlap. Context-disjoint clauses coexist.

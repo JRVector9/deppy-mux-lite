@@ -1,7 +1,9 @@
 import AppKit
 import CmuxAppKitSupportUI
 import CmuxAuthRuntime
+#if !DEPPY_LITE
 import CmuxBrowser
+#endif
 import CmuxCommandPalette
 import CmuxPanes
 import CmuxControlSocket
@@ -11,15 +13,21 @@ import CmuxTerminalCore
 import CmuxTerminal
 import CmuxSettings
 import CmuxSettingsUI
+#if !DEPPY_LITE
 import CmuxUpdater
+#endif
 import CmuxWorkspaces
+#if !DEPPY_LITE
 import CmuxUpdaterUI
+#endif
 import SwiftUI
 import Bonsplit
 import CMUXAgentLaunch
 import CoreServices
 import UserNotifications
+#if !DEPPY_LITE
 import Sentry
+#endif
 import WebKit
 import Combine
 import ObjectiveC.runtime
@@ -1274,7 +1282,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         )
         AppIconLaunchState.markDidFinishLaunching()
         AppearanceSettingsUserDefaultsObserver.shared.startObserving()
-        BrowserSystemProxyWatcher.shared.startObserving()
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+            BrowserSystemProxyWatcher.shared.startObserving()
+        }
         if isRunningUnderXCTest {
             NSApp.setActivationPolicy(.regular)
         } else {
@@ -1294,23 +1304,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         claimAuthCallbackURLSchemes()
         StartupBreadcrumbLog.append("appDelegate.didFinish.authSchemes.claimed")
 
-        // Install the Feed (workstream) store. Separate from the transport
-        // wiring: the store is a plain singleton here, and the socket
-        // `feed.*` V2 verbs in `TerminalController` push into it directly
-        // via `FeedCoordinator`.
-        FeedCoordinator.shared.install(
-            store: WorkstreamStore(
-                transport: NullWorkstreamTransport(),
-                persistence: WorkstreamPersistence(fileURL: WorkstreamPersistence.defaultFileURL()),
-                titleProvider: Self.feedWorkstreamTitle(for:)
+        if DeppyLiteFeaturePolicy.feedEnabled {
+            // Install the Feed (workstream) store. Separate from the transport
+            // wiring: the store is a plain singleton here, and the socket
+            // `feed.*` V2 verbs in `TerminalController` push into it directly
+            // via `FeedCoordinator`.
+            FeedCoordinator.shared.install(
+                store: WorkstreamStore(
+                    transport: NullWorkstreamTransport(),
+                    persistence: WorkstreamPersistence(fileURL: WorkstreamPersistence.defaultFileURL()),
+                    titleProvider: Self.feedWorkstreamTitle(for:)
+                )
             )
-        )
-        StartupBreadcrumbLog.append("appDelegate.didFinish.feedStore.installed")
-        Task { @MainActor in
-            await FeedCoordinator.shared.store?.start()
+            StartupBreadcrumbLog.append("appDelegate.didFinish.feedStore.installed")
+            Task { @MainActor in
+                await FeedCoordinator.shared.store?.start()
 #if DEBUG
-            setupFeedSidebarUITestIfNeeded()
+                setupFeedSidebarUITestIfNeeded()
 #endif
+            }
         }
 
         DistributedNotificationCenter.default().addObserver(
@@ -1326,18 +1338,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             name: .reactGrabDidCopySelection,
             object: nil
         )
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleFeedRequestFocus(_:)),
-            name: .feedRequestFocus,
-            object: nil
-        )
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleFeedRequestSendText(_:)),
-            name: .feedRequestSendText,
-            object: nil
-        )
+        if DeppyLiteFeaturePolicy.feedEnabled {
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(handleFeedRequestFocus(_:)),
+                name: .feedRequestFocus,
+                object: nil
+            )
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(handleFeedRequestSendText(_:)),
+                name: .feedRequestSendText,
+                object: nil
+            )
+        }
 
 #if DEBUG
         // UI tests run on a shared VM user profile, so persisted shortcuts can drift and make
@@ -1357,6 +1371,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
 #endif
 
+        #if !DEPPY_LITE
         if telemetryEnabled {
             // Pre-warm locale before Sentry to avoid a startup data race.
             // Locale initialization (os.locale.ensureLocale / NSLocale._preferredLanguages)
@@ -1406,12 +1421,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             }
             StartupBreadcrumbLog.append("appDelegate.didFinish.sentry.complete")
         }
+        #endif
 
+        #if !DEPPY_LITE
         if telemetryEnabled && !isRunningUnderXCTest {
             StartupBreadcrumbLog.append("appDelegate.didFinish.posthog.begin")
             PostHogAnalytics.shared.startIfNeeded()
             StartupBreadcrumbLog.append("appDelegate.didFinish.posthog.complete")
         }
+        #endif
 
         let forceDuplicateLaunchObserver = env["CMUX_UI_TEST_ENABLE_DUPLICATE_LAUNCH_OBSERVER"] == "1"
 
@@ -2093,8 +2111,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         guardrail.paneProvider = { [weak self] in
             self?.paneMemoryGuardrailDescriptors() ?? []
         }
-        guardrail.onSystemMemoryPressure = { [weak self] in
-            self?.discardHiddenBrowserWebViewsForSystemMemoryPressure()
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled {
+            guardrail.onSystemMemoryPressure = { [weak self] in
+                self?.discardHiddenBrowserWebViewsForSystemMemoryPressure()
+            }
+        } else {
+            guardrail.onSystemMemoryPressure = {}
         }
         guardrail.start()
     }
@@ -7447,6 +7469,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         debugSource: String = "cloudVM",
         onCompletion: ((CloudVMActionLauncher.Completion) -> Void)? = nil
     ) -> Bool {
+        guard DeppyLiteFeaturePolicy.cloudVMEnabled else {
+            NSSound.beep()
+            return false
+        }
         let context = preferredTabManager.flatMap { mainWindowContext(for: $0) }
             ?? preferredWindow.flatMap { contextForMainWindow($0) }
             ?? preferredMainWindowContextForWorkspaceCreation(event: nil, debugSource: debugSource)
@@ -7677,6 +7703,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         _ directoryURL: URL,
         tabManager preferredTabManager: TabManager? = nil
     ) -> Bool {
+        guard DeppyLiteFeaturePolicy.internalBrowserEnabled else {
+            return false
+        }
         guard let vscodeApplicationURL = TerminalDirectoryOpenTarget.vscodeInline.applicationURL() else {
             return false
         }
@@ -7716,6 +7745,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
 
     func showOpenFolderInInlineVSCodePanel(tabManager preferredTabManager: TabManager? = nil) {
+        guard DeppyLiteFeaturePolicy.internalBrowserEnabled else {
+            NSSound.beep()
+            return
+        }
         guard TerminalDirectoryOpenTarget.vscodeInline.isAvailable() else {
             NSSound.beep()
             return
@@ -8049,8 +8082,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             bringToFront(window)
         }
 
+        let resolvedInitialSurface = DeppyLiteFeaturePolicy.resolvedInitialSurface(initialSurface)
         let workspace: Workspace
-        if initialSurface == .browser {
+        if resolvedInitialSurface == .browser {
             workspace = context.tabManager.addWorkspace(initialSurface: .browser, select: true)
         } else if workingDirectory != nil || initialTerminalInput != nil {
             workspace = context.tabManager.addWorkspace(
@@ -8814,6 +8848,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
                 self?.jumpToLatestUnread()
             },
             onOpenTaskManager: {
+                guard DeppyLiteFeaturePolicy.taskManagerEnabled else { return }
                 TaskManagerWindowController.shared.show()
             },
             onToggleSleepyMode: {
@@ -8988,6 +9023,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
 
     func openTaskManagerWindow() {
+        guard DeppyLiteFeaturePolicy.taskManagerEnabled else { return }
         TaskManagerWindowController.shared.show()
     }
 
@@ -10157,7 +10193,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
 
     @objc func triggerSentryTestCrash(_ sender: Any?) {
+        #if !DEPPY_LITE
         SentrySDK.crash()
+        #endif
     }
 #endif
 
@@ -13233,7 +13271,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             return true
         }
 
-        if matchConfiguredShortcut(event: event, action: .newBrowserWorkspace) {
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled,
+           matchConfiguredShortcut(event: event, action: .newBrowserWorkspace) {
 #if DEBUG
             cmuxDebugLog("shortcut.action name=newBrowserWorkspace \(debugShortcutRouteSnapshot(event: event))")
 #endif
@@ -13264,7 +13303,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             return true
         }
 
-        if matchConfiguredShortcut(event: event, action: .openDiffViewer) {
+        if DeppyLiteFeaturePolicy.previewPanelsEnabled,
+           matchConfiguredShortcut(event: event, action: .openDiffViewer) {
             // Shares the command palette's diff-open path; targets the event window's
             // focused workspace and beeps if it can't be opened (matching the palette).
             let manager = activeTabManagerForCommands(preferredWindow: mainWindowForShortcutEvent(event))
@@ -13685,7 +13725,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             return true
         }
 
-        if matchConfiguredShortcut(event: event, action: .splitBrowserRight) {
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled,
+           matchConfiguredShortcut(event: event, action: .splitBrowserRight) {
 #if DEBUG
             cmuxDebugLog("shortcut.action name=splitBrowserRight \(debugShortcutRouteSnapshot(event: event))")
 #endif
@@ -13693,7 +13734,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             return true
         }
 
-        if matchConfiguredShortcut(event: event, action: .splitBrowserDown) {
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled,
+           matchConfiguredShortcut(event: event, action: .splitBrowserDown) {
 #if DEBUG
             cmuxDebugLog("shortcut.action name=splitBrowserDown \(debugShortcutRouteSnapshot(event: event))")
 #endif
@@ -13718,12 +13760,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
 
         // Open browser: Cmd+Shift+L
-        if matchConfiguredShortcut(event: event, action: .openBrowser) {
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled,
+           matchConfiguredShortcut(event: event, action: .openBrowser) {
             _ = openBrowserAndFocusAddressBar(insertAtEnd: true)
             return true
         }
 
-        if matchConfiguredShortcut(event: event, action: .focusBrowserAddressBar) {
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled,
+           matchConfiguredShortcut(event: event, action: .focusBrowserAddressBar) {
             if let focusedPanel = tabManager?.focusedBrowserPanel {
                 focusBrowserAddressBar(in: focusedPanel)
                 return true
@@ -13755,7 +13799,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             return true
         }
 
-        if matchConfiguredShortcut(event: event, action: .toggleBrowserFocusMode) {
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled,
+           matchConfiguredShortcut(event: event, action: .toggleBrowserFocusMode) {
             // Reached only when focus mode is off (the active-focus-mode bypass
             // returns earlier), so this enters focus mode for the focused browser.
             // Exit stays double-Escape, which is forwarded to the page first.
@@ -13767,7 +13812,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             return true
         }
 
-        if matchConfiguredShortcut(event: event, action: .browserBack) {
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled,
+           matchConfiguredShortcut(event: event, action: .browserBack) {
             guard let focusedBrowserPanel = shortcutEventBrowserPanel(event) else {
                 return false
             }
@@ -13775,7 +13821,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             return true
         }
 
-        if matchConfiguredShortcut(event: event, action: .browserForward) {
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled,
+           matchConfiguredShortcut(event: event, action: .browserForward) {
             guard let focusedBrowserPanel = shortcutEventBrowserPanel(event) else {
                 return false
             }
@@ -13783,7 +13830,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             return true
         }
 
-        if matchConfiguredShortcut(event: event, action: .browserReload) {
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled,
+           matchConfiguredShortcut(event: event, action: .browserReload) {
             guard let focusedBrowserPanel = shortcutEventBrowserPanel(event) else {
                 return false
             }
@@ -13791,7 +13839,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             return true
         }
 
-        if matchConfiguredShortcut(event: event, action: .browserHardReload) {
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled,
+           matchConfiguredShortcut(event: event, action: .browserHardReload) {
             guard let focusedBrowserPanel = shortcutEventBrowserPanel(event) else {
                 return false
             }
@@ -13802,7 +13851,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         // Safari defaults:
         // - Option+Command+I => Show/Toggle Web Inspector
         // - Option+Command+C => Show JavaScript Console
-        if matchConfiguredShortcut(event: event, action: .toggleBrowserDeveloperTools) {
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled,
+           matchConfiguredShortcut(event: event, action: .toggleBrowserDeveloperTools) {
 #if DEBUG
             logDeveloperToolsShortcutSnapshot(phase: "toggle.pre", event: event)
 #endif
@@ -13817,7 +13867,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             return true
         }
 
-        if matchConfiguredShortcut(event: event, action: .showBrowserJavaScriptConsole) {
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled,
+           matchConfiguredShortcut(event: event, action: .showBrowserJavaScriptConsole) {
 #if DEBUG
             logDeveloperToolsShortcutSnapshot(phase: "console.pre", event: event)
 #endif
@@ -13832,33 +13883,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             return true
         }
 
-        if matchConfiguredShortcut(event: event, action: .toggleReactGrab) {
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled,
+           matchConfiguredShortcut(event: event, action: .toggleReactGrab) {
             let didHandle = tabManager?.toggleReactGrabFromCurrentFocus() ?? false
             if !didHandle { NSSound.beep() }
             return true
         }
 
-        if matchConfiguredShortcut(event: event, action: .browserZoomIn) {
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled,
+           matchConfiguredShortcut(event: event, action: .browserZoomIn) {
             return shortcutEventBrowserPanel(event)?.zoomIn() ?? false
         }
 
-        if matchConfiguredShortcut(event: event, action: .browserZoomOut) {
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled,
+           matchConfiguredShortcut(event: event, action: .browserZoomOut) {
             return shortcutEventBrowserPanel(event)?.zoomOut() ?? false
         }
 
-        if matchConfiguredShortcut(event: event, action: .browserZoomReset) {
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled,
+           matchConfiguredShortcut(event: event, action: .browserZoomReset) {
             return shortcutEventBrowserPanel(event)?.resetZoom() ?? false
         }
 
-        if matchConfiguredShortcut(event: event, action: .markdownZoomIn) {
+        if DeppyLiteFeaturePolicy.previewPanelsEnabled,
+           matchConfiguredShortcut(event: event, action: .markdownZoomIn) {
             return shortcutEventMarkdownPanel(event)?.zoomIn() ?? false
         }
 
-        if matchConfiguredShortcut(event: event, action: .markdownZoomOut) {
+        if DeppyLiteFeaturePolicy.previewPanelsEnabled,
+           matchConfiguredShortcut(event: event, action: .markdownZoomOut) {
             return shortcutEventMarkdownPanel(event)?.zoomOut() ?? false
         }
 
-        if matchConfiguredShortcut(event: event, action: .markdownZoomReset) {
+        if DeppyLiteFeaturePolicy.previewPanelsEnabled,
+           matchConfiguredShortcut(event: event, action: .markdownZoomReset) {
             return shortcutEventMarkdownPanel(event)?.resetZoom() ?? false
         }
 
@@ -13906,7 +13964,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             return true
         }
 
-        if matchConfiguredShortcut(event: event, action: .reopenClosedBrowserPanel) {
+        if DeppyLiteFeaturePolicy.internalBrowserEnabled,
+           matchConfiguredShortcut(event: event, action: .reopenClosedBrowserPanel) {
             let routedManager = preferredMainWindowContextForShortcutRouting(event: event)?.tabManager ?? tabManager
             _ = reopenMostRecentlyClosedItem(preferredTabManager: routedManager)
             return true
@@ -15175,6 +15234,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
                 onExecuted?()
                 return true
             case .newBrowser:
+                guard DeppyLiteFeaturePolicy.internalBrowserEnabled else {
+                    return false
+                }
                 let previousTabManager = tabManager
                 tabManager = context.tabManager
                 defer { tabManager = previousTabManager }

@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import Darwin
 import CmuxTerminal
 import Foundation
@@ -128,3 +129,4 @@ func sentryRefreshMemoryContext(reason: String) async {
         }
     }
 }
+#endif

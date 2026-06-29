@@ -46,6 +46,17 @@ final class SessionPersistenceTests: XCTestCase {
 
         let workspace = Workspace()
         let paneId = try XCTUnwrap(workspace.bonsplitController.allPaneIds.first)
+        if !DeppyLiteFeaturePolicy.previewPanelsEnabled {
+            XCTAssertNil(
+                workspace.newMarkdownSurface(
+                    inPane: paneId,
+                    filePath: markdownURL.path,
+                    focus: true
+                )
+            )
+            XCTAssertFalse(workspace.sessionSnapshot(includeScrollback: false).panels.contains { $0.type == .markdown })
+            return
+        }
         let panel = try XCTUnwrap(
             workspace.newMarkdownSurface(
                 inPane: paneId,

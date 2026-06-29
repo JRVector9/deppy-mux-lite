@@ -602,9 +602,10 @@ enum BrowserLinkOpenSettings {
 enum BrowserAvailabilitySettings {
     static let disabledKey = "browserDisabledOverride"
     static let didChangeNotification = Notification.Name("cmux.browserAvailabilityDidChange")
-    static let defaultDisabled = false
+    static let defaultDisabled = DeppyLiteFeaturePolicy.isEnabled
 
     static func isDisabled(defaults: UserDefaults = .standard) -> Bool {
+        guard DeppyLiteFeaturePolicy.internalBrowserEnabled else { return true }
         // No synchronize() on read: it forces a blocking prefs-plist reload on a path hit from link-open/pane-create; UserDefaults stays coherent in-process and via cfprefsd.
         if defaults.object(forKey: disabledKey) == nil {
             return defaultDisabled
@@ -618,7 +619,8 @@ enum BrowserAvailabilitySettings {
 
     static func setDisabled(_ disabled: Bool, defaults: UserDefaults = .standard) {
         // `set` already persists; `synchronize()` is a deprecated no-op-style fsync.
-        defaults.set(disabled, forKey: disabledKey)
+        let resolvedDisabled = DeppyLiteFeaturePolicy.internalBrowserEnabled ? disabled : true
+        defaults.set(resolvedDisabled, forKey: disabledKey)
         NotificationCenter.default.post(name: didChangeNotification, object: nil)
     }
 }

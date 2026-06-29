@@ -195,6 +195,7 @@ final class MenuBarExtraController: NSObject, NSMenuDelegate {
 
         stateHintItem.title = snapshot.stateHintTitle
         showMainWindowItem.isHidden = !MenuBarOnlySettings.shouldShowMainWindowMenuItem()
+        taskManagerItem.isHidden = !DeppyLiteFeaturePolicy.taskManagerEnabled
         sleepyModeItem.state = SleepyModeController.shared.isActive ? .on : .off
 
         applyShortcut(KeyboardShortcutSettings.menuShortcut(for: .globalSearch), to: globalSearchItem)

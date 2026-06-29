@@ -220,6 +220,15 @@ final class MarkdownPanelTests: XCTestCase {
             "focus": false
         ])
 
+        if !DeppyLiteFeaturePolicy.previewPanelsEnabled {
+            guard case .err(let code, _, _) = result else {
+                XCTFail("Expected file.open to be unavailable in deppy-lite, got \(result)")
+                return
+            }
+            XCTAssertEqual(code, "method_not_found")
+            return
+        }
+
         guard case .ok(let rawPayload) = result,
               let payload = rawPayload as? [String: Any],
               let openedPanelIdString = payload["surface_id"] as? String,
@@ -275,12 +284,17 @@ final class MarkdownPanelTests: XCTestCase {
         return
 #endif
 
-        XCTAssertTrue(
-            appDelegate.openFilePreviewInPreferredMainWindow(
-                filePath: fileURL.path,
-                debugSource: "unit-test"
-            )
+        let didOpen = appDelegate.openFilePreviewInPreferredMainWindow(
+            filePath: fileURL.path,
+            debugSource: "unit-test"
         )
+        if !DeppyLiteFeaturePolicy.previewPanelsEnabled {
+            XCTAssertFalse(didOpen)
+            XCTAssertTrue(workspace.panels.values.compactMap { $0 as? MarkdownPanel }.isEmpty)
+            XCTAssertTrue(workspace.panels.values.compactMap { $0 as? FilePreviewPanel }.isEmpty)
+            return
+        }
+        XCTAssertTrue(didOpen)
 
         let markdownPanels = workspace.panels.values.compactMap { $0 as? MarkdownPanel }
         XCTAssertEqual(markdownPanels.count, 1)

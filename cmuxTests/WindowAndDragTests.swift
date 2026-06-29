@@ -3476,6 +3476,14 @@ final class FilePreviewPanelTextSavingTests: XCTestCase {
         defer { workspace.teardownAllPanels() }
 
         let sourcePane = try XCTUnwrap(workspace.bonsplitController.allPaneIds.first)
+        if !DeppyLiteFeaturePolicy.previewPanelsEnabled {
+            XCTAssertNil(workspace.newFilePreviewSurface(
+                inPane: sourcePane,
+                filePath: sourceURL.path,
+                focus: true
+            ))
+            return
+        }
         let sourcePanel = try XCTUnwrap(workspace.newFilePreviewSurface(
             inPane: sourcePane,
             filePath: sourceURL.path,
@@ -3514,6 +3522,14 @@ final class FilePreviewPanelTextSavingTests: XCTestCase {
         defer { workspace.teardownAllPanels() }
 
         let sourcePane = try XCTUnwrap(workspace.bonsplitController.allPaneIds.first)
+        if !DeppyLiteFeaturePolicy.previewPanelsEnabled {
+            XCTAssertNil(workspace.newFilePreviewSurface(
+                inPane: sourcePane,
+                filePath: sourceURL.path,
+                focus: true
+            ))
+            return
+        }
         let sourcePanel = try XCTUnwrap(workspace.newFilePreviewSurface(
             inPane: sourcePane,
             filePath: sourceURL.path,

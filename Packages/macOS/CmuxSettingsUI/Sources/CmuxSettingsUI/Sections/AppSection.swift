@@ -19,6 +19,7 @@ import SwiftUI
 public struct AppSection: View {
     private let catalog: SettingCatalog
     private let hostActions: SettingsHostActions
+    private let featureAvailability: SettingsFeatureAvailability
 
     // Every bound value-model lives here as view state, constructed once
     // and persisted across renders so the @Observable change tracking
@@ -66,10 +67,12 @@ public struct AppSection: View {
     public init(
         defaultsStore: UserDefaultsSettingsStore,
         catalog: SettingCatalog,
-        hostActions: SettingsHostActions
+        hostActions: SettingsHostActions,
+        featureAvailability: SettingsFeatureAvailability = .all
     ) {
         self.catalog = catalog
         self.hostActions = hostActions
+        self.featureAvailability = featureAvailability
         _language = State(initialValue: DefaultsValueModel(store: defaultsStore, key: catalog.app.language))
         _appearance = State(initialValue: DefaultsValueModel(store: defaultsStore, key: catalog.app.appearance))
         _appIcon = State(initialValue: DefaultsValueModel(store: defaultsStore, key: catalog.app.appIcon))
@@ -110,6 +113,18 @@ public struct AppSection: View {
 
     private static let columnWidth: CGFloat = 196
     private static let notificationSoundControlWidth: CGFloat = 280
+
+    private var supportedFilePreviewSettingsVisible: Bool {
+        featureAvailability.isSettingEntryVisible(section: .app, id: "supported-file-previews")
+    }
+
+    private var markdownViewerSettingsVisible: Bool {
+        featureAvailability.isSettingEntryVisible(section: .app, id: "markdown-viewer")
+    }
+
+    private var fileEditorSettingsVisible: Bool {
+        featureAvailability.isSettingEntryVisible(section: .app, id: "file-editor-word-wrap")
+    }
 
     /// Languages legacy `AppLanguage` exposes (cmuxApp.swift line
     /// 4338). The shared `CmuxSettings.AppLanguage` adds `.vi` for a
@@ -301,17 +316,19 @@ public struct AppSection: View {
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 200)
             }
-            SettingsCardDivider()
+            if supportedFilePreviewSettingsVisible {
+                SettingsCardDivider()
 
-            // Open Supported Files in cmux
-            SettingsCardRow(
-                configurationReview: .json("app.openSupportedFilesInCmux"),
-                String(localized: "settings.app.openSupportedFilesInCmux", defaultValue: "Open Supported Files in deppy-mux"),
-                subtitle: String(localized: "settings.app.openSupportedFilesInCmux.subtitle", defaultValue: "Cmd-clicking readable files opens text, code, PDFs, images, audio, video, and Quick Look previews in deppy-mux.")
-            ) {
-                Toggle("", isOn: Binding(get: { openSupported.current }, set: { openSupported.set($0) }))
-                    .labelsHidden()
-                    .controlSize(.small)
+                // Open Supported Files in cmux
+                SettingsCardRow(
+                    configurationReview: .json("app.openSupportedFilesInCmux"),
+                    String(localized: "settings.app.openSupportedFilesInCmux", defaultValue: "Open Supported Files in deppy-mux"),
+                    subtitle: String(localized: "settings.app.openSupportedFilesInCmux.subtitle", defaultValue: "Cmd-clicking readable files opens text, code, PDFs, images, audio, video, and Quick Look previews in deppy-mux.")
+                ) {
+                    Toggle("", isOn: Binding(get: { openSupported.current }, set: { openSupported.set($0) }))
+                        .labelsHidden()
+                        .controlSize(.small)
+                }
             }
             SettingsCardDivider()
 
@@ -344,64 +361,66 @@ public struct AppSection: View {
             }
             SettingsCardDivider()
 
-            // Open Markdown in cmux Viewer
-            SettingsCardRow(
-                configurationReview: .json("app.openMarkdownInCmuxViewer"),
-                String(localized: "settings.app.openMarkdownInCmuxViewer", defaultValue: "Open Markdown in deppy-mux Viewer"),
-                subtitle: String(localized: "settings.app.openMarkdownInCmuxViewer.subtitle", defaultValue: "When supported file routing is on, Cmd-clicking Markdown files opens the rendered deppy-mux markdown viewer instead of the generic file preview.")
-            ) {
-                Toggle("", isOn: Binding(get: { openMarkdown.current }, set: { openMarkdown.set($0) }))
-                    .labelsHidden()
+            if markdownViewerSettingsVisible {
+                // Open Markdown in cmux Viewer
+                SettingsCardRow(
+                    configurationReview: .json("app.openMarkdownInCmuxViewer"),
+                    String(localized: "settings.app.openMarkdownInCmuxViewer", defaultValue: "Open Markdown in deppy-mux Viewer"),
+                    subtitle: String(localized: "settings.app.openMarkdownInCmuxViewer.subtitle", defaultValue: "When supported file routing is on, Cmd-clicking Markdown files opens the rendered deppy-mux markdown viewer instead of the generic file preview.")
+                ) {
+                    Toggle("", isOn: Binding(get: { openMarkdown.current }, set: { openMarkdown.set($0) }))
+                        .labelsHidden()
+                        .controlSize(.small)
+                }
+                SettingsCardDivider()
+
+                // Markdown Viewer Font Size
+                SettingsCardRow(
+                    configurationReview: .json("markdown.fontSize"),
+                    String(localized: "settings.app.markdownFontSize", defaultValue: "Markdown Viewer Font Size"),
+                    subtitle: String(localized: "settings.app.markdownFontSize.subtitle", defaultValue: "Default body font size, in points, for newly opened markdown viewers. Zoom a viewer live with Cmd-+ / Cmd-- / Cmd-0."),
+                    controlWidth: Self.columnWidth
+                ) {
+                    Stepper(
+                        value: Binding(get: { markdownFontSize.current }, set: { markdownFontSize.set($0) }),
+                        in: 8...96
+                    ) {
+                        Text(verbatim: "\(markdownFontSize.current)")
+                            .monospacedDigit()
+                            .frame(width: 28, alignment: .trailing)
+                    }
                     .controlSize(.small)
-            }
-            SettingsCardDivider()
-
-            // Markdown Viewer Font Size
-            SettingsCardRow(
-                configurationReview: .json("markdown.fontSize"),
-                String(localized: "settings.app.markdownFontSize", defaultValue: "Markdown Viewer Font Size"),
-                subtitle: String(localized: "settings.app.markdownFontSize.subtitle", defaultValue: "Default body font size, in points, for newly opened markdown viewers. Zoom a viewer live with Cmd-+ / Cmd-- / Cmd-0."),
-                controlWidth: Self.columnWidth
-            ) {
-                Stepper(
-                    value: Binding(get: { markdownFontSize.current }, set: { markdownFontSize.set($0) }),
-                    in: 8...96
-                ) {
-                    Text(verbatim: "\(markdownFontSize.current)")
-                        .monospacedDigit()
-                        .frame(width: 28, alignment: .trailing)
+                    .accessibilityIdentifier("SettingsMarkdownFontSizeStepper")
+                    .accessibilityLabel(
+                        String(localized: "settings.app.markdownFontSize", defaultValue: "Markdown Viewer Font Size")
+                    )
                 }
-                .controlSize(.small)
-                .accessibilityIdentifier("SettingsMarkdownFontSizeStepper")
-                .accessibilityLabel(
-                    String(localized: "settings.app.markdownFontSize", defaultValue: "Markdown Viewer Font Size")
-                )
-            }
-            SettingsCardDivider()
+                SettingsCardDivider()
 
-            // Markdown Viewer Max Width
-            SettingsCardRow(
-                configurationReview: .json("markdown.maxWidth"),
-                String(localized: "settings.app.markdownMaxWidth", defaultValue: "Markdown Viewer Max Width"),
-                subtitle: String(localized: "settings.app.markdownMaxWidth.subtitle", defaultValue: "Default maximum reading column width, in CSS pixels, for newly opened markdown viewers."),
-                controlWidth: Self.columnWidth
-            ) {
-                Stepper(
-                    value: Binding(get: { markdownMaxWidth.current }, set: { markdownMaxWidth.set($0) }),
-                    in: 320...2400,
-                    step: 20
+                // Markdown Viewer Max Width
+                SettingsCardRow(
+                    configurationReview: .json("markdown.maxWidth"),
+                    String(localized: "settings.app.markdownMaxWidth", defaultValue: "Markdown Viewer Max Width"),
+                    subtitle: String(localized: "settings.app.markdownMaxWidth.subtitle", defaultValue: "Default maximum reading column width, in CSS pixels, for newly opened markdown viewers."),
+                    controlWidth: Self.columnWidth
                 ) {
-                    Text(verbatim: "\(markdownMaxWidth.current)")
-                        .monospacedDigit()
-                        .frame(width: 44, alignment: .trailing)
+                    Stepper(
+                        value: Binding(get: { markdownMaxWidth.current }, set: { markdownMaxWidth.set($0) }),
+                        in: 320...2400,
+                        step: 20
+                    ) {
+                        Text(verbatim: "\(markdownMaxWidth.current)")
+                            .monospacedDigit()
+                            .frame(width: 44, alignment: .trailing)
+                    }
+                    .controlSize(.small)
+                    .accessibilityIdentifier("SettingsMarkdownMaxWidthStepper")
+                    .accessibilityLabel(
+                        String(localized: "settings.app.markdownMaxWidth", defaultValue: "Markdown Viewer Max Width")
+                    )
                 }
-                .controlSize(.small)
-                .accessibilityIdentifier("SettingsMarkdownMaxWidthStepper")
-                .accessibilityLabel(
-                    String(localized: "settings.app.markdownMaxWidth", defaultValue: "Markdown Viewer Max Width")
-                )
+                SettingsCardDivider()
             }
-            SettingsCardDivider()
 
             // Canvas Pane Gap
             SettingsCardRow(
@@ -440,34 +459,38 @@ public struct AppSection: View {
             }
             SettingsCardDivider()
 
-            // Markdown Viewer Font Family
-            SettingsCardRow(
-                configurationReview: .json("markdown.fontFamily"),
-                String(localized: "settings.app.markdownFontFamily", defaultValue: "Markdown Viewer Font"),
-                subtitle: String(localized: "settings.app.markdownFontFamily.subtitle", defaultValue: "Default body font family for newly opened markdown viewers. Leave empty for the system markdown font stack.")
-            ) {
-                TextField(
-                    String(localized: "settings.app.markdownFontFamily.placeholder", defaultValue: "System"),
-                    text: Binding(get: { markdownFontFamily.current }, set: { markdownFontFamily.set($0) })
-                )
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 200)
-                .accessibilityIdentifier("SettingsMarkdownFontFamilyTextField")
+            if markdownViewerSettingsVisible {
+                // Markdown Viewer Font Family
+                SettingsCardRow(
+                    configurationReview: .json("markdown.fontFamily"),
+                    String(localized: "settings.app.markdownFontFamily", defaultValue: "Markdown Viewer Font"),
+                    subtitle: String(localized: "settings.app.markdownFontFamily.subtitle", defaultValue: "Default body font family for newly opened markdown viewers. Leave empty for the system markdown font stack.")
+                ) {
+                    TextField(
+                        String(localized: "settings.app.markdownFontFamily.placeholder", defaultValue: "System"),
+                        text: Binding(get: { markdownFontFamily.current }, set: { markdownFontFamily.set($0) })
+                    )
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 200)
+                    .accessibilityIdentifier("SettingsMarkdownFontFamilyTextField")
+                }
+                SettingsCardDivider()
             }
-            SettingsCardDivider()
 
-            // File Editor Word Wrap
-            SettingsCardRow(
-                configurationReview: .json("fileEditor.wordWrap"),
-                String(localized: "settings.app.fileEditorWordWrap", defaultValue: "File Editor Word Wrap"),
-                subtitle: String(localized: "settings.app.fileEditorWordWrap.subtitle", defaultValue: "Wrap long lines at the editor's right edge instead of scrolling horizontally. Applies to the plain-text file editor.")
-            ) {
-                Toggle("", isOn: Binding(get: { fileEditorWordWrap.current }, set: { fileEditorWordWrap.set($0) }))
-                    .labelsHidden()
-                    .controlSize(.small)
-                    .accessibilityIdentifier("SettingsFileEditorWordWrapToggle")
+            if fileEditorSettingsVisible {
+                // File Editor Word Wrap
+                SettingsCardRow(
+                    configurationReview: .json("fileEditor.wordWrap"),
+                    String(localized: "settings.app.fileEditorWordWrap", defaultValue: "File Editor Word Wrap"),
+                    subtitle: String(localized: "settings.app.fileEditorWordWrap.subtitle", defaultValue: "Wrap long lines at the editor's right edge instead of scrolling horizontally. Applies to the plain-text file editor.")
+                ) {
+                    Toggle("", isOn: Binding(get: { fileEditorWordWrap.current }, set: { fileEditorWordWrap.set($0) }))
+                        .labelsHidden()
+                        .controlSize(.small)
+                        .accessibilityIdentifier("SettingsFileEditorWordWrapToggle")
+                }
+                SettingsCardDivider()
             }
-            SettingsCardDivider()
 
             // iMessage Mode
             SettingsCardRow(

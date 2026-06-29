@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import CmuxFoundation
 import Sentry
 
@@ -263,3 +264,4 @@ struct SentryEventScrubber {
         }
     }
 }
+#endif

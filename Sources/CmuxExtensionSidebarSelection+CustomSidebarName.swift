@@ -20,10 +20,12 @@ extension CmuxExtensionSidebarSelection {
     #endif
 
     static func customSidebarFileURL(forName name: String) -> URL? {
-        customSidebarFileURL(forName: name, sidebarsDirectory: customSidebarsDirectory)
+        guard DeppyLiteFeaturePolicy.customSidebarProvidersEnabled else { return nil }
+        return customSidebarFileURL(forName: name, sidebarsDirectory: customSidebarsDirectory)
     }
 
     static func customSidebarFileURL(forName name: String, sidebarsDirectory: URL) -> URL? {
+        guard DeppyLiteFeaturePolicy.customSidebarProvidersEnabled else { return nil }
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         return customSidebarFileURL(
             forProviderId: customSidebarProviderPrefix + trimmed,
