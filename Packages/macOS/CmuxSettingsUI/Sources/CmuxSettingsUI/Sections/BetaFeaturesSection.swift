@@ -48,8 +48,10 @@ public struct BetaFeaturesSection: View {
                     SettingsCardDivider()
                     customSidebarsRow
                 }
-                SettingsCardDivider()
-                remoteTmuxRow
+                if featureAvailability.isSettingEntryVisible(section: .betaFeatures, id: "remoteTmux") {
+                    SettingsCardDivider()
+                    remoteTmuxRow
+                }
             }
         }
         .task { startObservingSettings() }

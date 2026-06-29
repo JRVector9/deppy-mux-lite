@@ -302,6 +302,15 @@ struct cmuxApp: App {
             hideSetting(.betaFeatures, "extensions")
         }
 
+        if !DeppyLiteFeaturePolicy.cloudVMEnabled {
+            hideSetting(.betaFeatures, "remoteTmux")
+        }
+
+        if !DeppyLiteFeaturePolicy.paneMemoryPollingEnabled || !DeppyLiteFeaturePolicy.resourceDiagnosticsEnabled {
+            hideSetting(.terminal, "memory-guardrail")
+            hideSetting(.terminal, "memory-guardrail-threshold")
+        }
+
         return SettingsFeatureAvailability(
             hiddenSections: hiddenSections,
             hiddenSettingEntries: hiddenSettingEntries,

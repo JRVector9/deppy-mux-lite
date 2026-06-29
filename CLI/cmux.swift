@@ -3146,6 +3146,12 @@ struct CMUXCLI {
             return
         }
 
+        #if DEPPY_LITE
+        if let unsupportedMessage = deppyLiteUnsupportedCommandMessage(command: command, commandArgs: commandArgs) {
+            throw CLIError(message: unsupportedMessage, exitCode: 64)
+        }
+        #endif
+
         // Check for --help/-h on subcommands before resolving sockets,
         // so help text is available even when cmux is not running.
         let preSeparatorArgs = commandArgs.firstIndex(of: "--").map { commandArgs[..<$0] } ?? commandArgs[...]
@@ -34053,15 +34059,20 @@ export default function cmuxPiSessionExtension(pi: ExtensionAPI) {
     private func versionSummary() -> String {
         let info = resolvedVersionInfo()
         let commit = info["CMUXCommit"].flatMap { normalizedCommitHash($0) }
+        #if DEPPY_LITE
+        let executableName = "deppy-cli"
+        #else
+        let executableName = "cmux"
+        #endif
         let baseSummary: String
         if let version = info["CFBundleShortVersionString"], let build = info["CFBundleVersion"] {
-            baseSummary = "cmux \(version) (\(build))"
+            baseSummary = "\(executableName) \(version) (\(build))"
         } else if let version = info["CFBundleShortVersionString"] {
-            baseSummary = "cmux \(version)"
+            baseSummary = "\(executableName) \(version)"
         } else if let build = info["CFBundleVersion"] {
-            baseSummary = "cmux build \(build)"
+            baseSummary = "\(executableName) build \(build)"
         } else {
-            baseSummary = "cmux version unknown"
+            baseSummary = "\(executableName) version unknown"
         }
         guard let commit else { return baseSummary }
         return "\(baseSummary) [\(commit)]"
@@ -34407,7 +34418,85 @@ export default function cmuxPiSessionExtension(pi: ExtensionAPI) {
         return URL(fileURLWithPath: expanded).standardizedFileURL
     }
 
+    #if DEPPY_LITE
+    private static let deppyLiteUnsupportedCommands: Set<String> = [
+        "__diff-viewer-branch",
+        "__diff-viewer-refs",
+        "browser",
+        "browser-back",
+        "browser-forward",
+        "browser-reload",
+        "browser-status",
+        "cloud",
+        "diff",
+        "diff-viewer-server",
+        "disable-browser",
+        "enable-browser",
+        "feed",
+        "feed-hook",
+        "focus-webview",
+        "get-url",
+        "is-webview-focused",
+        "markdown",
+        "memory",
+        "navigate",
+        "open-browser",
+        "remote",
+        "remote-daemon-status",
+        "remotes",
+        "sidebar",
+        "top",
+        "vm",
+        "vm-pty-attach",
+        "vm-pty-connect",
+        "vm-ssh-attach",
+    ]
+
+    private func deppyLiteUnsupportedCommandMessage(command: String, commandArgs: [String]) -> String? {
+        let normalized = command.lowercased()
+        if Self.deppyLiteUnsupportedCommands.contains(normalized) {
+            return deppyLiteUnsupportedFeatureMessage(command: command)
+        }
+
+        if normalized == "hooks",
+           commandArgs.first?.lowercased() == "feed" {
+            return deppyLiteUnsupportedFeatureMessage(command: "hooks feed")
+        }
+
+        if normalized == "right-sidebar",
+           commandArgs.contains(where: { $0.lowercased() == "feed" }) {
+            return deppyLiteUnsupportedFeatureMessage(command: "right-sidebar feed")
+        }
+
+        if normalized == "new-pane" || normalized == "new-surface" {
+            let loweredArgs = commandArgs.map { $0.lowercased() }
+            if loweredArgs.contains("browser") || loweredArgs.contains("--type=browser") {
+                return deppyLiteUnsupportedFeatureMessage(command: "\(command) --type browser")
+            }
+        }
+
+        if normalized == "docs",
+           let topic = commandArgs.first?.lowercased(),
+           topic == "browser" || topic == "sidebars" {
+            return deppyLiteUnsupportedFeatureMessage(command: "docs \(topic)")
+        }
+
+        return nil
+    }
+
+    private func deppyLiteUnsupportedFeatureMessage(command: String) -> String {
+        let format = String(
+            localized: "cli.deppyLite.unsupportedFeature",
+            defaultValue: "deppy-mux-lite does not include '%@'. Browser, preview/diff/markdown, feed, cloud/remote, custom sidebar, and top/memory diagnostics are removed from the lite build."
+        )
+        return String(format: format, command)
+    }
+    #endif
+
     private func usage() -> String {
+        #if DEPPY_LITE
+        return liteUsage()
+        #else
         return """
         cmux - control cmux via Unix socket
 
@@ -34612,7 +34701,41 @@ export default function cmuxPiSessionExtension(pi: ExtensionAPI) {
           CMUX_SOCKET_PATH    Override the Unix socket path. Without this, the CLI defaults
                               to ~/.local/state/cmux/cmux.sock and auto-discovers tagged/debug sockets.
         """
+        #endif
     }
+
+    #if DEPPY_LITE
+    private func liteUsage() -> String {
+        return String(localized: "cli.deppyLite.usage", defaultValue: """
+        deppy-cli - control deppy-mux-lite via Unix socket
+
+        Usage:
+          deppy-cli <path>                Open a directory in a new workspace
+          deppy-cli [global-options] <command> [options]
+          cmux [global-options] <command> [options]   Compatibility shim inside the lite app bundle
+
+        Lite Scope:
+          Local terminal mux, windows, workspaces, panes, surfaces/tabs, notifications,
+          minimum settings/config access, agent hooks, and session restore.
+
+        Common Commands:
+          open <path-or-url>...
+          list-workspaces | new-workspace | rename-workspace | close-workspace
+          list-panes | new-split | focus-pane
+          list-pane-surfaces | new-surface | close-surface | rename-tab
+          read-screen | send | send-key
+          notify | list-notifications | jump-to-unread
+          restore-session
+          settings | config | shortcuts | reload-config
+          hooks setup|uninstall [--agent <name>]
+          help | version | ping | capabilities
+
+        Removed from lite:
+          browser, markdown preview, diff viewer, feed, cloud/remote VM,
+          custom sidebar providers, top, and memory diagnostics.
+        """)
+    }
+    #endif
 
 }
 

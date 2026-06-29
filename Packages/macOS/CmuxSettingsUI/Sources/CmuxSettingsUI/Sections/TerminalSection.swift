@@ -11,6 +11,7 @@ public struct TerminalSection: View {
     private let jsonStore: JSONConfigStore
     private let catalog: SettingCatalog
     private let hostActions: SettingsHostActions
+    private let featureAvailability: SettingsFeatureAvailability
 
     @State private var surfaceTabBarFont: SettingsFontSize
     @State private var fontSaveFailed = false
@@ -33,11 +34,13 @@ public struct TerminalSection: View {
         defaultsStore: UserDefaultsSettingsStore,
         jsonStore: JSONConfigStore,
         catalog: SettingCatalog,
-        hostActions: SettingsHostActions
+        hostActions: SettingsHostActions,
+        featureAvailability: SettingsFeatureAvailability = .all
     ) {
         self.jsonStore = jsonStore
         self.catalog = catalog
         self.hostActions = hostActions
+        self.featureAvailability = featureAvailability
         _surfaceTabBarFont = State(initialValue: hostActions.surfaceTabBarFontSize())
         _scrollSpeed = State(initialValue: DefaultsValueModel(store: defaultsStore, key: catalog.terminal.scrollSpeed))
         _scrollBar = State(initialValue: DefaultsValueModel(store: defaultsStore, key: catalog.terminal.showScrollBar))
@@ -327,36 +330,40 @@ public struct TerminalSection: View {
                 )
                 .accessibilityIdentifier("SettingsTerminalRendererRealizationMaxWarmStepper")
             }
-            SettingsCardDivider()
-            SettingsCardRow(
-                configurationReview: .settingsOnly,
-                searchAnchorID: "setting:terminal:memory-guardrail",
-                String(localized: "settings.terminal.memoryGuardrail", defaultValue: "Runaway Memory Guardrail"),
-                subtitle: memGuardrailEnabled.current
-                    ? String(localized: "settings.terminal.memoryGuardrail.subtitleOn", defaultValue: "deppy-mux warns you with a badge and a banner when one pane's process tree uses too much memory, so a single leak can't crash the whole app.")
-                    : String(localized: "settings.terminal.memoryGuardrail.subtitleOff", defaultValue: "No warning is shown when a pane's process tree grows large. A leaking process can OOM-suspend the entire app.")
-            ) {
-                Toggle("", isOn: Binding(get: { memGuardrailEnabled.current }, set: { memGuardrailEnabled.set($0) }))
-                    .labelsHidden()
-                    .controlSize(.small)
-                    .accessibilityIdentifier("SettingsTerminalMemoryGuardrailToggle")
+            if featureAvailability.isSettingEntryVisible(section: .terminal, id: "memory-guardrail") {
+                SettingsCardDivider()
+                SettingsCardRow(
+                    configurationReview: .settingsOnly,
+                    searchAnchorID: "setting:terminal:memory-guardrail",
+                    String(localized: "settings.terminal.memoryGuardrail", defaultValue: "Runaway Memory Guardrail"),
+                    subtitle: memGuardrailEnabled.current
+                        ? String(localized: "settings.terminal.memoryGuardrail.subtitleOn", defaultValue: "deppy-mux warns you with a badge and a banner when one pane's process tree uses too much memory, so a single leak can't crash the whole app.")
+                        : String(localized: "settings.terminal.memoryGuardrail.subtitleOff", defaultValue: "No warning is shown when a pane's process tree grows large. A leaking process can OOM-suspend the entire app.")
+                ) {
+                    Toggle("", isOn: Binding(get: { memGuardrailEnabled.current }, set: { memGuardrailEnabled.set($0) }))
+                        .labelsHidden()
+                        .controlSize(.small)
+                        .accessibilityIdentifier("SettingsTerminalMemoryGuardrailToggle")
+                }
             }
-            SettingsCardDivider()
-            SettingsCardRow(
-                configurationReview: .settingsOnly,
-                searchAnchorID: "setting:terminal:memory-guardrail-threshold",
-                String(localized: "settings.terminal.memoryGuardrail.threshold", defaultValue: "Memory Warning Threshold (GB)"),
-                subtitle: String(localized: "settings.terminal.memoryGuardrail.threshold.subtitle", defaultValue: "A pane is flagged once its combined process-tree memory crosses this many gigabytes."),
-                controlWidth: 120
-            ) {
-                Stepper(
-                    "\(Int(memGuardrailThresholdGB.current))",
-                    value: Binding(get: { memGuardrailThresholdGB.current }, set: { memGuardrailThresholdGB.set($0) }),
-                    in: 1...256,
-                    step: 1
-                )
-                .disabled(!memGuardrailEnabled.current)
-                .accessibilityIdentifier("SettingsTerminalMemoryGuardrailThresholdStepper")
+            if featureAvailability.isSettingEntryVisible(section: .terminal, id: "memory-guardrail-threshold") {
+                SettingsCardDivider()
+                SettingsCardRow(
+                    configurationReview: .settingsOnly,
+                    searchAnchorID: "setting:terminal:memory-guardrail-threshold",
+                    String(localized: "settings.terminal.memoryGuardrail.threshold", defaultValue: "Memory Warning Threshold (GB)"),
+                    subtitle: String(localized: "settings.terminal.memoryGuardrail.threshold.subtitle", defaultValue: "A pane is flagged once its combined process-tree memory crosses this many gigabytes."),
+                    controlWidth: 120
+                ) {
+                    Stepper(
+                        "\(Int(memGuardrailThresholdGB.current))",
+                        value: Binding(get: { memGuardrailThresholdGB.current }, set: { memGuardrailThresholdGB.set($0) }),
+                        in: 1...256,
+                        step: 1
+                    )
+                    .disabled(!memGuardrailEnabled.current)
+                    .accessibilityIdentifier("SettingsTerminalMemoryGuardrailThresholdStepper")
+                }
             }
         }
     }
