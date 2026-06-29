@@ -281,7 +281,7 @@ describe("mobile web access relay", () => {
 
   test("validates the narrow public relay method allowlist", () => {
     expect(isWebAccessRelayMethod("terminal.input")).toBe(true);
-    expect(isWebAccessRelayMethod("terminal.paste_image")).toBe(false);
+    expect(isWebAccessRelayMethod("terminal.paste_image")).toBe(true);
     expect(isWebAccessRelayMethod("mobile.terminal.replay")).toBe(true);
     expect(isWebAccessRelayMethod("mobile.terminal.viewport")).toBe(true);
     expect(isWebAccessRelayMethod("not.allowed")).toBe(false);

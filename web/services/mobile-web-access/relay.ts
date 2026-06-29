@@ -91,6 +91,7 @@ const webAccessRelayMethods = [
   "mobile.terminal.viewport",
   "terminal.input",
   "terminal.paste",
+  "terminal.paste_image",
 ] as const satisfies readonly MobileRpcMethod[];
 const webAccessRelayMethodSet = new Set<string>(webAccessRelayMethods);
 

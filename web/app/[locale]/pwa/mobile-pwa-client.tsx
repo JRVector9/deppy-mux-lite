@@ -62,7 +62,7 @@ export function MobilePwaClient({ authEnabled, copy, signInHref }: MobilePwaClie
       cancelled = true;
       globalThis.clearInterval(interval);
     };
-  }, []);
+  }, [authEnabled]);
 
   async function refreshNow() {
     setStatus("loading");
@@ -77,92 +77,82 @@ export function MobilePwaClient({ authEnabled, copy, signInHref }: MobilePwaClie
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <section className="mx-auto flex min-h-svh w-full max-w-4xl flex-col gap-4 px-3 py-3 sm:gap-5 sm:px-6 sm:py-5 lg:px-8">
-        <header className="flex flex-col gap-3 border-b border-border pb-3 sm:flex-row sm:items-end sm:justify-between sm:pb-4">
-          <div className="min-w-0 max-w-3xl">
-            <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">
-              {copy.title}
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-              {copy.subtitle}
-            </p>
+    <main className="flex h-svh min-h-0 flex-col overflow-hidden bg-[#050505] text-[#f2f2f2]">
+      <section className="flex min-h-0 flex-1 flex-col px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-[max(14px,env(safe-area-inset-top))]">
+        <header className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-0.5">
+          <div className="min-w-0">
+            <h1 className="truncate text-lg font-semibold tracking-normal">{copy.title}</h1>
+            <div className="mt-0.5 truncate text-xs text-[#a8a8a8]">{statusLabel(copy, status)}</div>
           </div>
-          <div className="flex shrink-0 items-center gap-2 text-sm">
+          <span className="inline-flex min-h-7 items-center gap-1.5 rounded-full border border-[#2a2a2a] bg-[#0d0d0d] px-2.5 text-xs text-[#a8a8a8]">
             <span
-              className={`h-2.5 w-2.5 rounded-full ${
+              className={
                 status === "ready" && sessions.some((session) => session.connected)
-                  ? "bg-emerald-500"
-                  : status === "error" || status === "unauthorized"
-                    ? "bg-amber-500"
-                    : "bg-muted"
-              }`}
+                  ? "h-1.5 w-1.5 rounded-full bg-emerald-400"
+                  : status === "loading"
+                    ? "h-1.5 w-1.5 rounded-full bg-[#707070]"
+                    : "h-1.5 w-1.5 rounded-full bg-amber-400"
+              }
             />
-            <span>{statusLabel(copy, status)}</span>
-          </div>
+            {sessions.length} {copy.webAccessSessions}
+          </span>
         </header>
 
-        <section>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-xs font-medium uppercase tracking-normal text-muted">
-              {copy.webAccessSessions}
-            </h2>
-            {status === "error" ? (
-              <button
-                className="rounded border border-border px-3 py-2 text-sm hover:bg-code-bg"
-                onClick={() => void refreshNow()}
-                type="button"
-              >
-                {copy.retry}
-              </button>
-            ) : null}
-          </div>
+        {status === "unauthorized" ? (
+          <a
+            className="mt-4 rounded-xl bg-[#f5f5f5] px-3 py-3 text-center text-sm font-semibold text-[#080808]"
+            href={signInHref}
+          >
+            {copy.signIn}
+          </a>
+        ) : null}
 
-          {status === "unauthorized" ? (
-            <a
-              className="block rounded bg-foreground px-3 py-2 text-center text-sm font-medium text-background"
-              href={signInHref}
-            >
-              {copy.signIn}
-            </a>
-          ) : null}
+        {status === "error" ? (
+          <button
+            className="mt-4 rounded-xl border border-[#2a2a2a] bg-[#101010] px-3 py-3 text-sm font-semibold"
+            onClick={() => void refreshNow()}
+            type="button"
+          >
+            {copy.retry}
+          </button>
+        ) : null}
 
+        <div className="mt-3 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pb-1">
           {status !== "unauthorized" && sessions.length === 0 ? (
-            <div className="rounded border border-border bg-code-bg p-4 text-sm text-muted">
+            <div className="rounded-xl border border-[#2a2a2a] bg-[#101010] p-4 text-sm text-[#a8a8a8]">
               {status === "loading" ? copy.loadingDevices : copy.noWebAccessSessions}
             </div>
           ) : null}
 
-          <div className="grid gap-3">
-            {sessions.map((session) => (
-              <a
-                className="rounded border border-border bg-code-bg p-3 transition-colors hover:border-foreground sm:p-4"
-                href={session.publicPath}
-                key={session.slug}
-              >
-                <span className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <span className="min-w-0">
-                    <span className="block truncate font-medium">
-                      {session.displayName ?? session.deviceId ?? session.slug}
-                    </span>
-                    <span className="mt-1 block truncate font-mono text-xs text-muted">
-                      {session.slug}
-                    </span>
-                  </span>
-                  <span className="w-fit rounded border border-border px-2 py-1 text-xs">
+          {sessions.map((session) => (
+            <a
+              className="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-xl border border-[#2a2a2a] bg-gradient-to-b from-[#151515] to-[#101010] p-3 text-left active:translate-y-px"
+              href={session.publicPath}
+              key={session.slug}
+            >
+              <span className="min-w-0">
+                <span className="block truncate text-base font-semibold tracking-normal">
+                  {session.displayName ?? session.deviceId ?? session.slug}
+                </span>
+                <span className="mt-1 block truncate font-mono text-xs text-[#a8a8a8]">
+                  {session.slug}
+                </span>
+                <span className="mt-2 flex flex-wrap gap-1.5">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[#333] px-2 py-1 text-[11px] leading-none text-[#dcdcdc]">
+                    <span className={session.connected ? "h-1.5 w-1.5 rounded-full bg-emerald-400" : "h-1.5 w-1.5 rounded-full bg-amber-400"} />
                     {session.connected ? copy.connected : copy.loadingDevices}
                   </span>
-                </span>
-                <span className="mt-3 flex flex-col gap-2 text-xs text-muted sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                  <span className="truncate">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[#333] px-2 py-1 text-[11px] leading-none text-[#dcdcdc]">
                     {copy.expires}: {formatDate(session.expiresAt)}
                   </span>
-                  <span className="font-medium text-foreground">{copy.open}</span>
                 </span>
-              </a>
-            ))}
-          </div>
-        </section>
+              </span>
+              <span className="self-start rounded-full bg-[#f5f5f5] px-2 py-1 text-xs font-bold text-[#080808]">
+                {copy.open}
+              </span>
+            </a>
+          ))}
+        </div>
       </section>
     </main>
   );
