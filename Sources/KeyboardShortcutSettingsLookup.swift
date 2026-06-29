@@ -80,7 +80,7 @@ extension KeyboardShortcutSettings {
 
     static func settingsFileManagedSubtitle(for action: Action) -> String? {
         guard isManagedBySettingsFile(action) else { return nil }
-        return String(localized: "settings.shortcuts.managedByFile", defaultValue: "Managed in dodomux.json")
+        return String(localized: "settings.shortcuts.managedByFile", defaultValue: "Managed in deppy-mux.json")
     }
 
 }

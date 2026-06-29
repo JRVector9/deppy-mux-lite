@@ -97,7 +97,7 @@ fi
 
 # --- bundle id (matches ios/scripts/reload.sh sanitize_tag) ------------------
 slug="$(cmux_attach__slug "$TAG")"
-BUNDLE_ID="dev.dodomux.ios.$slug"
+BUNDLE_ID="dev.deppy-mux.ios.$slug"
 
 # --- attach ticket ----------------------------------------------------------
 # ATTACH_URL stays empty unless attach was explicitly requested, so a stale

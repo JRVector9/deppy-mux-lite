@@ -1,17 +1,17 @@
-# dodomux
+# deppy-mux
 
-`dodomux` is a fork of [`cmux`](https://github.com/manaflow-ai/cmux) focused on making your local terminal workspaces accessible from a mobile web browser.
+`deppy-mux` is a fork of [`cmux`](https://github.com/manaflow-ai/cmux) focused on making your local terminal workspaces accessible from a mobile web browser.
 
-The goal is simple: run dodomux on your personal Mac, keep your terminal sessions and workspaces there, and open a browser URL from your phone to view and control those terminals without installing a separate iPhone app.
+The goal is simple: run deppy-mux on your personal Mac, keep your terminal sessions and workspaces there, and open a browser URL from your phone to view and control those terminals without installing a separate iPhone app.
 
-## What dodomux adds
+## What deppy-mux adds
 
-- **Mobile web access**: open dodomux from a mobile browser as a PWA-style web app.
+- **Mobile web access**: open deppy-mux from a mobile browser as a PWA-style web app.
 - **No iOS app required**: the phone connects through the browser while the Mac app keeps owning the real terminal sessions.
-- **Workspace visibility**: active dodomux workspaces are exposed to the web UI so you can select the session you want to control.
+- **Workspace visibility**: active deppy-mux workspaces are exposed to the web UI so you can select the session you want to control.
 - **Terminal streaming**: terminal render-grid output is streamed to the web client, including color/style information from the active terminal screen.
-- **Terminal input from the web**: text entered in the mobile web UI is sent back to the selected dodomux terminal target.
-- **Tailscale-first local access**: the intended personal setup is a Mac running dodomux plus a Tailscale address you can open from your own devices.
+- **Terminal input from the web**: text entered in the mobile web UI is sent back to the selected deppy-mux terminal target.
+- **Tailscale-first local access**: the intended personal setup is a Mac running deppy-mux plus a Tailscale address you can open from your own devices.
 - **cmux compatibility**: the project stays close to upstream cmux internals so existing terminal, workspace, Ghostty, browser, and agent workflows can continue to work.
 
 ## How it works
@@ -21,11 +21,11 @@ Phone browser / PWA
         |
         | Tailscale or local web URL
         v
-dodomux web server
+deppy-mux web server
         |
         | relay / mobile RPC
         v
-dodomux macOS app
+deppy-mux macOS app
         |
         v
 Local terminal workspaces
@@ -33,7 +33,7 @@ Local terminal workspaces
 
 The macOS app remains the source of truth for terminals and workspaces. The web UI is a remote control surface for those sessions: it displays the active terminal screen and sends input back to the selected terminal.
 
-This means your shell, agent sessions, files, credentials, and local tools stay on your own machine. The phone only needs browser access to the dodomux web endpoint.
+This means your shell, agent sessions, files, credentials, and local tools stay on your own machine. The phone only needs browser access to the deppy-mux web endpoint.
 
 ## Current status
 
@@ -41,9 +41,9 @@ This repository is currently in a beta/development state.
 
 Implemented in this beta:
 
-- `dodomux-beta` macOS app naming for the beta build.
-- PWA manifest naming for `dodomux-beta`.
-- Web Access and PWA pages branded for dodomux.
+- `deppy-mux-beta` macOS app naming for the beta build.
+- PWA manifest naming for `deppy-mux-beta`.
+- Web Access and PWA pages branded for deppy-mux.
 - Mobile RPC/web access session plumbing.
 - Terminal render-grid replay in the web terminal.
 - Color/style preservation for streamed terminal output.
@@ -62,8 +62,8 @@ Still being hardened:
 Clone the repository:
 
 ```bash
-git clone https://github.com/JRVector9/dodomux.git
-cd dodomux
+git clone https://github.com/JRVector9/deppy-mux.git
+cd deppy-mux
 ```
 
 Initialize the project:
@@ -81,7 +81,7 @@ Build the beta macOS app:
 The script prints the generated `.app` path. For the current beta branch it should look like:
 
 ```text
-~/Library/Developer/Xcode/DerivedData/cmux-connect-pwa-web/Build/Products/Debug/dodomux-beta.app
+~/Library/Developer/Xcode/DerivedData/cmux-connect-pwa-web/Build/Products/Debug/deppy-mux-beta.app
 ```
 
 Run the web server:
@@ -103,9 +103,9 @@ For phone access, use your Mac's Tailscale address instead of `localhost` once t
 
 The intended user flow is:
 
-1. Install dodomux on your personal Mac.
-2. Start the dodomux desktop app.
-3. Start or enable the dodomux web endpoint.
+1. Install deppy-mux on your personal Mac.
+2. Start the deppy-mux desktop app.
+3. Start or enable the deppy-mux web endpoint.
 4. Open the generated/Tailscale URL from your phone.
 5. Select a workspace.
 6. View the same terminal screen from the browser.
@@ -115,13 +115,13 @@ The long-term target is for this to feel like installing a personal terminal gat
 
 ## Relationship to cmux
 
-dodomux is a fork of cmux, a native macOS terminal/workspace app powered by Ghostty/libghostty. Upstream cmux provides the core app architecture: workspaces, tabs, split panes, Ghostty rendering, browser surfaces, notifications, CLI/socket automation, and agent-focused terminal workflows.
+deppy-mux is a fork of cmux, a native macOS terminal/workspace app powered by Ghostty/libghostty. Upstream cmux provides the core app architecture: workspaces, tabs, split panes, Ghostty rendering, browser surfaces, notifications, CLI/socket automation, and agent-focused terminal workflows.
 
-dodomux keeps those foundations and adds a mobile-web connection layer so the same local terminal environment can be accessed from a browser.
+deppy-mux keeps those foundations and adds a mobile-web connection layer so the same local terminal environment can be accessed from a browser.
 
 ## Security model
 
-dodomux is designed around personal-device access, not a public unauthenticated terminal.
+deppy-mux is designed around personal-device access, not a public unauthenticated terminal.
 
 Recommended assumptions:
 

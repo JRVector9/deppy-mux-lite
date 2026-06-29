@@ -397,7 +397,7 @@ public struct SidebarSection: View {
 
             SettingsCardRow(
                 configurationReview: .json("sidebar.openPullRequestLinksInCmuxBrowser"),
-                String(localized: "settings.app.openSidebarPRLinks", defaultValue: "Open Sidebar PR Links in dodomux Browser"),
+                String(localized: "settings.app.openSidebarPRLinks", defaultValue: "Open Sidebar PR Links in deppy-mux Browser"),
                 subtitle: prLinksSubtitle(prVisible: showPR.current, prClickable: prClickable.current, openInCmux: prLinks.current)
             ) {
                 Toggle("", isOn: Binding(get: { prLinks.current }, set: { prLinks.set($0) }))
@@ -409,9 +409,9 @@ public struct SidebarSection: View {
 
             SettingsCardRow(
                 configurationReview: .json("sidebar.openPortLinksInCmuxBrowser"),
-                String(localized: "settings.app.openSidebarPortLinks", defaultValue: "Open Sidebar Port Links in dodomux Browser"),
+                String(localized: "settings.app.openSidebarPortLinks", defaultValue: "Open Sidebar Port Links in deppy-mux Browser"),
                 subtitle: portLinks.current
-                    ? String(localized: "settings.app.openSidebarPortLinks.subtitleOn", defaultValue: "Port clicks open inside dodomux browser.")
+                    ? String(localized: "settings.app.openSidebarPortLinks.subtitleOn", defaultValue: "Port clicks open inside deppy-mux browser.")
                     : String(localized: "settings.app.openSidebarPortLinks.subtitleOff", defaultValue: "Port clicks open in your default browser.")
             ) {
                 Toggle("", isOn: Binding(get: { portLinks.current }, set: { portLinks.set($0) }))
@@ -490,7 +490,7 @@ public struct SidebarSection: View {
             return String(localized: "settings.app.openSidebarPRLinks.subtitleDisabled", defaultValue: "Enable sidebar PR clickability to choose where PR links open.")
         }
         return openInCmux
-            ? String(localized: "settings.app.openSidebarPRLinks.subtitleOn", defaultValue: "Clicks open inside dodomux browser.")
+            ? String(localized: "settings.app.openSidebarPRLinks.subtitleOn", defaultValue: "Clicks open inside deppy-mux browser.")
             : String(localized: "settings.app.openSidebarPRLinks.subtitleOff", defaultValue: "Clicks open in your default browser.")
     }
 }

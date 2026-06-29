@@ -203,7 +203,7 @@ enum CommandPaletteSettingsToggleCommands {
                 title: {
                     String(
                         localized: "settings.app.openSupportedFilesInCmux",
-                        defaultValue: "Open Supported Files in dodomux"
+                        defaultValue: "Open Supported Files in deppy-mux"
                     )
                 },
                 sectionTitle: app,
@@ -238,7 +238,7 @@ enum CommandPaletteSettingsToggleCommands {
                 title: {
                     String(
                         localized: "settings.app.openMarkdownInCmuxViewer",
-                        defaultValue: "Open Markdown in dodomux Viewer"
+                        defaultValue: "Open Markdown in deppy-mux Viewer"
                     )
                 },
                 sectionTitle: app,
@@ -642,7 +642,7 @@ enum CommandPaletteSettingsToggleCommands {
                 title: {
                     String(
                         localized: "settings.app.openSidebarPRLinks",
-                        defaultValue: "Open Sidebar PR Links in dodomux Browser"
+                        defaultValue: "Open Sidebar PR Links in deppy-mux Browser"
                     )
                 },
                 sectionTitle: sidebar,
@@ -657,7 +657,7 @@ enum CommandPaletteSettingsToggleCommands {
                 title: {
                     String(
                         localized: "settings.app.openSidebarPortLinks",
-                        defaultValue: "Open Sidebar Port Links in dodomux Browser"
+                        defaultValue: "Open Sidebar Port Links in deppy-mux Browser"
                     )
                 },
                 sectionTitle: sidebar,
@@ -832,7 +832,7 @@ enum CommandPaletteSettingsToggleCommands {
                 title: {
                     String(
                         localized: "settings.browser.openTerminalLinks",
-                        defaultValue: "Open Terminal Links in dodomux Browser"
+                        defaultValue: "Open Terminal Links in deppy-mux Browser"
                     )
                 },
                 sectionTitle: browser,

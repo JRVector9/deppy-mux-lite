@@ -46,7 +46,7 @@ struct OnboardingPage: Sendable {
             ),
             body: L10n.string(
                 "mobile.onboarding.whatBody",
-                defaultValue: "dodomux runs your terminals and AI coding agents on your Mac. This app lets you watch them, type, and get notified when an agent needs you, right from your phone."
+                defaultValue: "deppy-mux runs your terminals and AI coding agents on your Mac. This app lets you watch them, type, and get notified when an agent needs you, right from your phone."
             )
         )
     }
@@ -90,7 +90,7 @@ struct OnboardingPage: Sendable {
                 ),
                 L10n.string(
                     "mobile.onboarding.tailscaleStep3",
-                    defaultValue: "Keep both signed in to the same dodomux account too. Pairing checks that they match."
+                    defaultValue: "Keep both signed in to the same deppy-mux account too. Pairing checks that they match."
                 ),
             ],
             links: [
@@ -122,7 +122,7 @@ struct OnboardingPage: Sendable {
             ),
             body: L10n.string(
                 "mobile.onboarding.pairBody",
-                defaultValue: "Make sure dodomux on your Mac is signed in to the same account, then scan the pairing QR code it shows (or enter its address by hand). You only do this once per Mac."
+                defaultValue: "Make sure deppy-mux on your Mac is signed in to the same account, then scan the pairing QR code it shows (or enter its address by hand). You only do this once per Mac."
             )
         )
     }

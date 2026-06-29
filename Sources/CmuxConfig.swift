@@ -1574,7 +1574,7 @@ struct CmuxResolvedConfigAction: Identifiable, Sendable, Hashable {
         return CmuxResolvedConfigAction(
             id: builtIn.configID,
             title: title,
-            subtitle: String(localized: "command.cmuxConfig.builtInSubtitle", defaultValue: "dodomux"),
+            subtitle: String(localized: "command.cmuxConfig.builtInSubtitle", defaultValue: "deppy-mux"),
             keywords: keywords,
             palette: true,
             shortcut: nil,
@@ -2481,7 +2481,7 @@ final class CmuxConfigStore: ObservableObject {
                     defaultValue: "Custom: \(sanitizeConfigText(command.name))"
                 ),
                 subtitle: command.description.map { sanitizeConfigText($0) }
-                    ?? String(localized: "command.cmuxConfig.subtitle", defaultValue: "dodomux.json"),
+                    ?? String(localized: "command.cmuxConfig.subtitle", defaultValue: "deppy-mux.json"),
                 keywords: command.keywords ?? [],
                 palette: true,
                 shortcut: nil,
@@ -2723,7 +2723,7 @@ final class CmuxConfigStore: ObservableObject {
                 id: command.command.id,
                 title: command.command.name,
                 subtitle: command.command.description
-                    ?? String(localized: "command.cmuxConfig.subtitle", defaultValue: "dodomux.json"),
+                    ?? String(localized: "command.cmuxConfig.subtitle", defaultValue: "deppy-mux.json"),
                 keywords: command.command.keywords ?? [],
                 palette: false,
                 shortcut: nil,

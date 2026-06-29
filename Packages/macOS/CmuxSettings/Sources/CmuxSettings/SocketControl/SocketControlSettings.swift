@@ -18,10 +18,10 @@ public struct SocketControlSettings {
     public static let socketPasswordEnvKey = "CMUX_SOCKET_PASSWORD"
     /// Environment key carrying the dev build's launch tag.
     public static let launchTagEnvKey = "CMUX_TAG"
-    /// Base bundle identifier shared by all dodomux debug builds.
-    public static let baseDebugBundleIdentifier = "com.dodomux.app.debug"
+    /// Base bundle identifier shared by all deppy-mux debug builds.
+    public static let baseDebugBundleIdentifier = "com.deppy-mux.app.debug"
     static let legacyBaseDebugBundleIdentifier = "com.cmuxterm.app.debug"
-    static let stableReleaseBundleIdentifier = "com.dodomux.app"
+    static let stableReleaseBundleIdentifier = "com.deppy-mux.app"
     static let legacyStableReleaseBundleIdentifier = "com.cmuxterm.app"
     private static let stableSocketFileName = "cmux.sock"
     /// Legacy stable socket path used before the Application Support location.
@@ -412,7 +412,7 @@ public struct SocketControlSettings {
         isBareDebugLikeBundleIdentifier(bundleIdentifier) || isTaggedDevBuild(bundleIdentifier: bundleIdentifier)
     }
 
-    /// Whether the bundle identifier is a tagged DEV build (`com.dodomux.app.debug.<tag>`).
+    /// Whether the bundle identifier is a tagged DEV build (`com.deppy-mux.app.debug.<tag>`).
     public static func isTaggedDevBuild(bundleIdentifier: String? = Bundle.main.bundleIdentifier) -> Bool {
         guard let bundleIdentifier = normalizedBundleIdentifier(bundleIdentifier) else { return false }
         return debugBundleBases.contains { bundleIdentifier.hasPrefix("\($0).") }
@@ -431,7 +431,7 @@ public struct SocketControlSettings {
     }
 
     private static var stagingBundleBases: [String] {
-        ["com.dodomux.app.staging", "com.cmuxterm.app.staging"]
+        ["com.deppy-mux.app.staging", "com.cmuxterm.app.staging"]
     }
 
     private static func isBareDebugLikeBundleIdentifier(_ bundleIdentifier: String?) -> Bool {

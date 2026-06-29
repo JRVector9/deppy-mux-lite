@@ -6,9 +6,9 @@
 // ==========================================
 // Project Identity
 // ==========================================
-PRODUCT_NAME = dodomux
-PRODUCT_DISPLAY_NAME = dodomux
-PRODUCT_BUNDLE_IDENTIFIER = dev.dodomux.ios
+PRODUCT_NAME = deppy-mux
+PRODUCT_DISPLAY_NAME = deppy-mux
+PRODUCT_BUNDLE_IDENTIFIER = dev.deppy-mux.ios
 // User-visible version (CFBundleShortVersionString). Semver X.Y.Z, bumped on
 // release with ios/scripts/bump-ios-version.sh. Keep this human-meaningful and
 // tellable; CFBundleVersion (CURRENT_PROJECT_VERSION) is the monotonic build id
@@ -48,7 +48,7 @@ GENERATE_INFOPLIST_FILE = NO
 INFOPLIST_FILE = Config/Info.plist
 INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationLandscapeRight UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationPortrait
 INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationLandscapeRight UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown
-INFOPLIST_KEY_NSCameraUsageDescription = Scan dodomux pairing QR codes from your Mac terminal.
+INFOPLIST_KEY_NSCameraUsageDescription = Scan deppy-mux pairing QR codes from your Mac terminal.
 
 // ==========================================
 // Entitlements

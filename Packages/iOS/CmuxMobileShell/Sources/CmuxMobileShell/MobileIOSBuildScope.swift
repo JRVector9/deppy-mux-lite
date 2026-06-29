@@ -20,7 +20,7 @@ public struct MobileIOSBuildScope: Sendable, Equatable {
         infoDictionary: [String: Any]? = Bundle.main.infoDictionary,
         bundleIdentifier: String? = Bundle.main.bundleIdentifier
     ) -> MobileIOSBuildScope? {
-        for prefix in ["dev.cmux.ios.", "dev.dodomux.ios."] {
+        for prefix in ["dev.cmux.ios.", "dev.deppy-mux.ios."] {
             if let bundleIdentifier,
                bundleIdentifier.hasPrefix(prefix),
                let scope = MobileIOSBuildScope(String(bundleIdentifier.dropFirst(prefix.count))) {

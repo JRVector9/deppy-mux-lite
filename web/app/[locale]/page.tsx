@@ -64,13 +64,13 @@ function HomeContent() {
           <BrandLogoLink className="shrink-0">
             <img
               src="/logo.png"
-              alt="dodomux icon"
+              alt="deppy-mux icon"
               width={48}
               height={48}
               className="rounded-xl"
             />
           </BrandLogoLink>
-          <h1 className="text-2xl font-semibold tracking-tight">dodomux</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">deppy-mux</h1>
         </div>
 
         {/* Tagline */}

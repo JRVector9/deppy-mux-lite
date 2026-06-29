@@ -191,7 +191,7 @@ struct WorkspaceListView: View {
                         descriptionOverride: initialConnectionTimedOut
                             ? L10n.string(
                                 "mobile.loading.timeout.message",
-                                defaultValue: "dodomux could not finish restoring this session. Check that the Mac app is running, then retry or add this Mac again."
+                                defaultValue: "deppy-mux could not finish restoring this session. Check that the Mac app is running, then retry or add this Mac again."
                             )
                             : nil,
                         retry: initialConnectionTimedOut ? retryInitialConnection : nil,

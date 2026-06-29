@@ -135,7 +135,7 @@ extension TerminalController {
         alert.informativeText = String(
             format: String(
                 localized: "surfaceResumeApproval.proposal.message",
-                defaultValue: "A process wants dodomux to keep this resume command for the current terminal:\n\n%@\n\nWorking directory: %@"
+                defaultValue: "A process wants deppy-mux to keep this resume command for the current terminal:\n\n%@\n\nWorking directory: %@"
             ),
             binding.command,
             cwd

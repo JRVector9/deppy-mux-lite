@@ -1,5 +1,5 @@
 {
-  "name": "dodomux-presence-worker",
+  "name": "deppy-mux-presence-worker",
   "private": true,
   "type": "module",
   "scripts": {

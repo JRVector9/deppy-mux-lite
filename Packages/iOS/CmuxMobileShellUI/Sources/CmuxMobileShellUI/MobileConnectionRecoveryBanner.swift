@@ -23,7 +23,7 @@ struct MobileConnectionRecoveryBanner: View {
                 authBanner(
                     text: connectionError ?? L10n.string(
                         "mobile.recovery.accountMismatch",
-                        defaultValue: "This Mac is signed in to a different dodomux account. Sign out and sign back in with that account."
+                        defaultValue: "This Mac is signed in to a different deppy-mux account. Sign out and sign back in with that account."
                     )
                 )
             } else if connectionRecoveryFailed {

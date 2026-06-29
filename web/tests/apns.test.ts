@@ -157,7 +157,7 @@ describe("apns response", () => {
 });
 
 describe("apns route policy", () => {
-  test("allows cmux and dodomux bundle IDs and derives the APNs environment", () => {
+  test("allows cmux and deppy-mux bundle IDs and derives the APNs environment", () => {
     expect(normalizeApnsBundle("com.cmuxterm.app")).toEqual({
       bundleId: "com.cmuxterm.app",
       environment: "production",
@@ -166,40 +166,40 @@ describe("apns route policy", () => {
       bundleId: "dev.cmux.app.beta",
       environment: "production",
     });
-    expect(normalizeApnsBundle("com.dodomux.app")).toEqual({
-      bundleId: "com.dodomux.app",
+    expect(normalizeApnsBundle("com.deppy-mux.app")).toEqual({
+      bundleId: "com.deppy-mux.app",
       environment: "production",
     });
-    expect(normalizeApnsBundle("com.dodomux.app.debug")).toEqual({
-      bundleId: "com.dodomux.app.debug",
+    expect(normalizeApnsBundle("com.deppy-mux.app.debug")).toEqual({
+      bundleId: "com.deppy-mux.app.debug",
       environment: "production",
     });
-    expect(normalizeApnsBundle("dev.dodomux.app.beta")).toEqual({
-      bundleId: "dev.dodomux.app.beta",
+    expect(normalizeApnsBundle("dev.deppy-mux.app.beta")).toEqual({
+      bundleId: "dev.deppy-mux.app.beta",
       environment: "production",
     });
     expect(normalizeApnsBundle("dev.cmux.ios")).toEqual({
       bundleId: "dev.cmux.ios",
       environment: "sandbox",
     });
-    expect(normalizeApnsBundle("dev.dodomux.ios")).toEqual({
-      bundleId: "dev.dodomux.ios",
+    expect(normalizeApnsBundle("dev.deppy-mux.ios")).toEqual({
+      bundleId: "dev.deppy-mux.ios",
       environment: "sandbox",
     });
     expect(normalizeApnsBundle("dev.cmux.ios.push1")).toEqual({
       bundleId: "dev.cmux.ios.push1",
       environment: "sandbox",
     });
-    expect(normalizeApnsBundle("dev.dodomux.ios.push1")).toEqual({
-      bundleId: "dev.dodomux.ios.push1",
+    expect(normalizeApnsBundle("dev.deppy-mux.ios.push1")).toEqual({
+      bundleId: "dev.deppy-mux.ios.push1",
       environment: "sandbox",
     });
 
     expect(normalizeApnsBundle("com.example.app")).toBeNull();
     expect(normalizeApnsBundle("dev.cmux.ios.bad_topic")).toBeNull();
-    expect(normalizeApnsBundle("dev.dodomux.ios.bad_topic")).toBeNull();
+    expect(normalizeApnsBundle("dev.deppy-mux.ios.bad_topic")).toBeNull();
     expect(normalizeApnsBundle("dev.cmux.ios.-bad")).toBeNull();
-    expect(normalizeApnsBundle("dev.dodomux.ios.-bad")).toBeNull();
+    expect(normalizeApnsBundle("dev.deppy-mux.ios.-bad")).toBeNull();
   });
 
   test("bounds and trims push payloads before sending to APNs", () => {

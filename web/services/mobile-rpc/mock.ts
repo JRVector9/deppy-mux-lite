@@ -41,13 +41,13 @@ export class MockMobileRpcTransport implements MobileRpcTransport {
             {
               id: "workspace:demo",
               title: "cmux-web",
-              currentDirectory: "~/Projects/dodomux",
+              currentDirectory: "~/Projects/deppy-mux",
               isSelected: true,
               terminals: [
                 {
                   id: "surface:web-demo",
                   title: "Terminal",
-                  currentDirectory: "~/Projects/dodomux",
+                  currentDirectory: "~/Projects/deppy-mux",
                   isReady: true,
                   isFocused: true,
                 },

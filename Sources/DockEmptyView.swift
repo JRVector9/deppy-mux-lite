@@ -14,7 +14,7 @@ struct DockEmptyView: View {
                 .cmuxFont(size: 13, weight: .semibold)
             Text(String(
                 localized: "dock.empty.subtitle",
-                defaultValue: "Add controls to .dodomux/dock.json."
+                defaultValue: "Add controls to .deppy-mux/dock.json."
             ))
             .cmuxFont(size: 12)
             .foregroundStyle(.secondary)

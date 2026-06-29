@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_NAME="dodomux-beta"
-BUNDLE_ID="com.dodomux.app.debug"
-BASE_APP_NAME="dodomux-beta"
+APP_NAME="deppy-mux-beta"
+BUNDLE_ID="com.deppy-mux.app.debug"
+BASE_APP_NAME="deppy-mux-beta"
 DERIVED_DATA=""
 NAME_SET=0
 BUNDLE_SET=0
@@ -75,7 +75,7 @@ if [[ -n "\$SOCKET_ARG" ]]; then
     TAG="\${SOCKET_NAME#cmux-debug-}"
     TAG="\${TAG%.sock}"
     if [[ "\$TAG" =~ ^[A-Za-z0-9_-]+$ ]]; then
-      TAG_CLI="\$HOME/Library/Developer/Xcode/DerivedData/cmux-\$TAG/Build/Products/Debug/dodomux-beta.app/Contents/Resources/bin/cmux"
+      TAG_CLI="\$HOME/Library/Developer/Xcode/DerivedData/cmux-\$TAG/Build/Products/Debug/deppy-mux-beta.app/Contents/Resources/bin/cmux"
       if [[ -x "\$TAG_CLI" ]] && [[ "\$TAG_CLI" != "\$0" ]]; then
         exec "\$TAG_CLI" "\$@"
       fi
@@ -162,16 +162,16 @@ write_last_socket_path() {
   local slug=""
 
   case "$bundle_id" in
-    com.dodomux.app)
+    com.deppy-mux.app)
       marker_name="last-socket-path"
       tmp_marker="/tmp/cmux-last-socket-path"
       ;;
-    com.dodomux.app.nightly)
+    com.deppy-mux.app.nightly)
       marker_name="nightly-last-socket-path"
       tmp_marker="/tmp/cmux-nightly-last-socket-path"
       ;;
-    com.dodomux.app.nightly.*)
-      slug="$(sanitize_path "${bundle_id#com.dodomux.app.nightly.}")"
+    com.deppy-mux.app.nightly.*)
+      slug="$(sanitize_path "${bundle_id#com.deppy-mux.app.nightly.}")"
       if [[ -n "$slug" ]]; then
         marker_name="nightly-${slug}-last-socket-path"
         tmp_marker="/tmp/cmux-nightly-${slug}-last-socket-path"
@@ -180,12 +180,12 @@ write_last_socket_path() {
         tmp_marker="/tmp/cmux-nightly-last-socket-path"
       fi
       ;;
-    com.dodomux.app.staging)
+    com.deppy-mux.app.staging)
       marker_name="staging-last-socket-path"
       tmp_marker="/tmp/cmux-staging-last-socket-path"
       ;;
-    com.dodomux.app.staging.*)
-      slug="$(sanitize_path "${bundle_id#com.dodomux.app.staging.}")"
+    com.deppy-mux.app.staging.*)
+      slug="$(sanitize_path "${bundle_id#com.deppy-mux.app.staging.}")"
       if [[ -n "$slug" ]]; then
         marker_name="staging-${slug}-last-socket-path"
         tmp_marker="/tmp/cmux-staging-${slug}-last-socket-path"
@@ -194,15 +194,15 @@ write_last_socket_path() {
         tmp_marker="/tmp/cmux-staging-last-socket-path"
       fi
       ;;
-    com.dodomux.app.debug)
+    com.deppy-mux.app.debug)
       slug="${TAG_SLUG:-}"
       if [[ -n "$slug" ]]; then
         marker_name="dev-${slug}-last-socket-path"
         tmp_marker="/tmp/cmux-dev-${slug}-last-socket-path"
       fi
       ;;
-    com.dodomux.app.debug.*)
-      slug="$(sanitize_path "${bundle_id#com.dodomux.app.debug.}")"
+    com.deppy-mux.app.debug.*)
+      slug="$(sanitize_path "${bundle_id#com.deppy-mux.app.debug.}")"
       if [[ -n "$slug" ]]; then
         marker_name="dev-${slug}-last-socket-path"
         tmp_marker="/tmp/cmux-dev-${slug}-last-socket-path"
@@ -425,14 +425,14 @@ print_tag_cleanup_reminder() {
     done
     echo "Cleanup stale tags only:"
     for tag in "${stale_tags[@]}"; do
-      echo "  pkill -f \"dodomux-beta.app/Contents/MacOS/dodomux-beta\""
+      echo "  pkill -f \"deppy-mux-beta.app/Contents/MacOS/deppy-mux-beta\""
       echo "  rm -rf \"$(tagged_derived_data_path "$tag")\" \"/tmp/cmux-${tag}\" \"/tmp/cmux-debug-${tag}.sock\""
       echo "  rm -f \"/tmp/cmux-debug-${tag}.log\""
       echo "  rm -f \"$HOME/Library/Application Support/cmux/cmuxd-dev-${tag}.sock\""
     done
   fi
   echo "After you verify current tag, cleanup command:"
-  echo "  pkill -f \"dodomux-beta.app/Contents/MacOS/dodomux-beta\""
+  echo "  pkill -f \"deppy-mux-beta.app/Contents/MacOS/deppy-mux-beta\""
   echo "  rm -rf \"$(tagged_derived_data_path "$current_slug")\" \"/tmp/cmux-${current_slug}\" \"/tmp/cmux-debug-${current_slug}.sock\""
   echo "  rm -f \"/tmp/cmux-debug-${current_slug}.log\""
   echo "  rm -f \"$HOME/Library/Application Support/cmux/cmuxd-dev-${current_slug}.sock\""
@@ -513,10 +513,10 @@ if [[ -n "$TAG" ]]; then
     exit 1
   fi
   if [[ "$NAME_SET" -eq 0 ]]; then
-    APP_NAME="dodomux-beta"
+    APP_NAME="deppy-mux-beta"
   fi
   if [[ "$BUNDLE_SET" -eq 0 ]]; then
-    BUNDLE_ID="com.dodomux.app.debug.${TAG_ID}"
+    BUNDLE_ID="com.deppy-mux.app.debug.${TAG_ID}"
   fi
   if [[ "$DERIVED_SET" -eq 0 ]]; then
     DERIVED_DATA="$(tagged_derived_data_path "$TAG_SLUG")"

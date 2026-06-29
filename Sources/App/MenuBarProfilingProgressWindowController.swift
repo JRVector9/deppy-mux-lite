@@ -57,7 +57,7 @@ final class MenuBarProfilingProgressWindowController: NSWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = String(localized: "statusMenu.profiling.title", defaultValue: "Profiling dodomux")
+        window.title = String(localized: "statusMenu.profiling.title", defaultValue: "Profiling deppy-mux")
         window.isReleasedWhenClosed = false
         super.init(window: window)
         window.delegate = self
@@ -131,7 +131,7 @@ final class MenuBarProfilingProgressWindowController: NSWindowController {
     private func buildInterface() {
         guard let contentView = window?.contentView else { return }
 
-        titleLabel.stringValue = String(localized: "statusMenu.profiling.reviewTitle", defaultValue: "Send a dodomux profile")
+        titleLabel.stringValue = String(localized: "statusMenu.profiling.reviewTitle", defaultValue: "Send a deppy-mux profile")
         titleLabel.font = .systemFont(ofSize: 20, weight: .semibold)
         titleLabel.lineBreakMode = .byTruncatingTail
 
@@ -143,7 +143,7 @@ final class MenuBarProfilingProgressWindowController: NSWindowController {
 
         permissionLabel.stringValue = String(
             localized: "statusMenu.profiling.permissionExplanation",
-            defaultValue: "macOS may ask for administrator permission because Instruments samples the running dodomux process."
+            defaultValue: "macOS may ask for administrator permission because Instruments samples the running deppy-mux process."
         )
         permissionLabel.font = .systemFont(ofSize: 12)
         permissionLabel.textColor = .secondaryLabelColor

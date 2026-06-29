@@ -7,13 +7,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scan dodomux pairing QR codes from your Mac terminal."
+            "value": "Scan deppy-mux pairing QR codes from your Mac terminal."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mac のターミナルに表示された dodomux のペアリング QR コードをスキャンします。"
+            "value": "Mac のターミナルに表示された deppy-mux のペアリング QR コードをスキャンします。"
           }
         }
       }
@@ -24,13 +24,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connect to your Mac on the local network for dodomux mobile pairing and terminal sync."
+            "value": "Connect to your Mac on the local network for deppy-mux mobile pairing and terminal sync."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "dodomux モバイルのペアリングとターミナル同期のため、ローカルネットワーク上の Mac に接続します。"
+            "value": "deppy-mux モバイルのペアリングとターミナル同期のため、ローカルネットワーク上の Mac に接続します。"
           }
         }
       }

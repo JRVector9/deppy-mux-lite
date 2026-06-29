@@ -5077,7 +5077,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.64.17;
 				ONLY_ACTIVE_ARCH = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = com.dodomux.appuitests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.deppy-mux.appuitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TEST_TARGET_NAME = cmux;
@@ -5151,7 +5151,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon-Debug";
 				CMUX_AUTH_CALLBACK_SCHEME = "cmux-dev";
-				CMUX_SIDEBAR_EXTENSION_POINT_ID = com.dodomux.app.cmux.sidebar;
+				CMUX_SIDEBAR_EXTENSION_POINT_ID = com.deppy-mux.app.cmux.sidebar;
 				CODE_SIGN_ENTITLEMENTS = "";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -5178,8 +5178,8 @@
 					"-framework",
 					Carbon,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.dodomux.app.debug;
-				PRODUCT_NAME = "dodomux-beta";
+				PRODUCT_BUNDLE_IDENTIFIER = com.deppy-mux.app.debug;
+				PRODUCT_NAME = "deppy-mux-beta";
 				OTHER_SWIFT_FLAGS = (
 					"-Xllvm",
 					"-global-isel=0",
@@ -5197,7 +5197,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CMUX_AUTH_CALLBACK_SCHEME = cmux;
-				CMUX_SIDEBAR_EXTENSION_POINT_ID = com.dodomux.app.cmux.sidebar;
+				CMUX_SIDEBAR_EXTENSION_POINT_ID = com.deppy-mux.app.cmux.sidebar;
 				CODE_SIGN_ENTITLEMENTS = Resources/cmux.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -5225,8 +5225,8 @@
 					"-framework",
 					Carbon,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.dodomux.app;
-				PRODUCT_NAME = "dodomux-beta";
+				PRODUCT_BUNDLE_IDENTIFIER = com.deppy-mux.app;
+				PRODUCT_NAME = "deppy-mux-beta";
 				SPARKLE_PUBLIC_KEY = "avjcgKibf1FTvhIjLBxhd+0HSpsXU4D0IGlVk8cgqRc=";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "cmux-Bridging-Header.h";
@@ -5282,7 +5282,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.64.17;
 				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.dodomux.appuitests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.deppy-mux.appuitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_VERSION = 5.0;
@@ -5299,13 +5299,13 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "dodomux Dock Tile Plugin";
+				INFOPLIST_KEY_CFBundleDisplayName = "deppy-mux Dock Tile Plugin";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSPrincipalClass = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.64.17;
-				PRODUCT_BUNDLE_IDENTIFIER = com.dodomux.app.docktileplugin.debug;
+				PRODUCT_BUNDLE_IDENTIFIER = com.deppy-mux.app.docktileplugin.debug;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -5324,13 +5324,13 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "dodomux Dock Tile Plugin";
+				INFOPLIST_KEY_CFBundleDisplayName = "deppy-mux Dock Tile Plugin";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSPrincipalClass = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.64.17;
-				PRODUCT_BUNDLE_IDENTIFIER = com.dodomux.app.docktileplugin;
+				PRODUCT_BUNDLE_IDENTIFIER = com.deppy-mux.app.docktileplugin;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -5349,11 +5349,11 @@
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.64.17;
 				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.dodomux.apptests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.deppy-mux.apptests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/dodomux-beta.app/Contents/MacOS/dodomux-beta";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/deppy-mux-beta.app/Contents/MacOS/deppy-mux-beta";
 				TEST_TARGET_NAME = cmux;
 			};
 			name = Debug;
@@ -5368,7 +5368,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 0.64.17;
 				ONLY_ACTIVE_ARCH = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = com.dodomux.apptests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.deppy-mux.apptests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/cmux.app/Contents/MacOS/cmux";

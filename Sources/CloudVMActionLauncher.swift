@@ -41,12 +41,12 @@ final class CloudVMActionLauncher {
             presentStartFailure(
                 summary: String(
                     localized: "command.cloudVM.failed.missingCLI",
-                    defaultValue: "The bundled dodomux CLI is missing from this app build."
+                    defaultValue: "The bundled deppy-mux CLI is missing from this app build."
                 ),
                 output: "",
                 action: String(
                     localized: "command.cloudVM.failed.action.missingCLI",
-                    defaultValue: "Install or reload a fresh dodomux build, then try Start Cloud VM again. You can also run `dodomux vm new` in a terminal to see the full error."
+                    defaultValue: "Install or reload a fresh deppy-mux build, then try Start Cloud VM again. You can also run `deppy-mux vm new` in a terminal to see the full error."
                 ),
                 preferredWindow: preferredWindow
             )
@@ -85,14 +85,14 @@ final class CloudVMActionLauncher {
                 guard terminationStatus != 0, !Self.shared.isShuttingDown else { return }
                 let format = String(
                     localized: "command.cloudVM.failed.exit",
-                    defaultValue: "dodomux vm new exited with status %d."
+                    defaultValue: "deppy-mux vm new exited with status %d."
                 )
                 Self.shared.presentStartFailure(
                     summary: String(format: format, Int(terminationStatus)),
                     output: output,
                     action: String(
                         localized: "command.cloudVM.failed.action.exit",
-                        defaultValue: "Open a terminal and run `dodomux auth status`, `dodomux vm ls`, then `dodomux vm new`. If you hit the active VM limit, delete one with `dodomux vm rm <id>` and retry."
+                        defaultValue: "Open a terminal and run `deppy-mux auth status`, `deppy-mux vm ls`, then `deppy-mux vm new`. If you hit the active VM limit, delete one with `deppy-mux vm rm <id>` and retry."
                     ),
                     preferredWindow: launchWindow
                 )
@@ -111,12 +111,12 @@ final class CloudVMActionLauncher {
             presentStartFailure(
                 summary: String(
                     localized: "command.cloudVM.failed.launch",
-                    defaultValue: "dodomux vm new could not be launched."
+                    defaultValue: "deppy-mux vm new could not be launched."
                 ),
                 output: error.localizedDescription,
                 action: String(
                     localized: "command.cloudVM.failed.action.launch",
-                    defaultValue: "Reload dodomux so the bundled CLI is available, then try again. If it still fails, run `dodomux vm new` in a terminal and send us the output."
+                    defaultValue: "Reload deppy-mux so the bundled CLI is available, then try again. If it still fails, run `deppy-mux vm new` in a terminal and send us the output."
                 ),
                 preferredWindow: preferredWindow
             )

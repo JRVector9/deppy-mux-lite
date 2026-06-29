@@ -119,21 +119,21 @@ enum CLIForwardingLaunchRouter {
     private static func localizedMissingBundledCLIError() -> String {
         String(
             localized: "cli.forwarding.error.missingBundledCLI",
-            defaultValue: "dodomux could not run this command from the app bundle. Reinstall dodomux or run the command from a standard dodomux CLI installation."
+            defaultValue: "deppy-mux could not run this command from the app bundle. Reinstall deppy-mux or run the command from a standard deppy-mux CLI installation."
         )
     }
 
     private static func localizedArgumentAllocationError() -> String {
         String(
             localized: "cli.forwarding.error.allocateArguments",
-            defaultValue: "dodomux could not start this command. Try again, or reinstall dodomux if the problem continues."
+            defaultValue: "deppy-mux could not start this command. Try again, or reinstall deppy-mux if the problem continues."
         )
     }
 
     private static func localizedExecFailureError() -> String {
         String(
             localized: "cli.forwarding.error.execFailed",
-            defaultValue: "dodomux could not start the command-line tool from the app bundle. Reinstall dodomux or run the command from a standard dodomux CLI installation."
+            defaultValue: "deppy-mux could not start the command-line tool from the app bundle. Reinstall deppy-mux or run the command from a standard deppy-mux CLI installation."
         )
     }
 

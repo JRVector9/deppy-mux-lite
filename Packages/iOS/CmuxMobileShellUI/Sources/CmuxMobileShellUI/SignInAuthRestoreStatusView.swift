@@ -33,7 +33,7 @@ struct SignInAuthRestoreStatusView: View {
                 Text(authRestoreTimedOut
                     ? L10n.string(
                         "mobile.signIn.restoreTimeoutMessage",
-                        defaultValue: "dodomux could not finish checking your saved session. Check your connection, then retry."
+                        defaultValue: "deppy-mux could not finish checking your saved session. Check your connection, then retry."
                     )
                     : L10n.string(
                         "mobile.signIn.restoringMessage",

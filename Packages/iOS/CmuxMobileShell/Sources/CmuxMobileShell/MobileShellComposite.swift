@@ -5091,7 +5091,7 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
         let macVersion = Self.mobileShellNormalizedNonEmpty(ticket.macAppVersion)
         let format = L10n.string(
             "mobile.pairing.versionWarningFormat",
-            defaultValue: "This iPhone is running dodomux %@, but the Mac is running dodomux %@. Pairing across different compatibility levels can break terminal input, workspace sync, or notifications. Continue only if you trust this Mac and accept that some features may fail."
+            defaultValue: "This iPhone is running deppy-mux %@, but the Mac is running deppy-mux %@. Pairing across different compatibility levels can break terminal input, workspace sync, or notifications. Continue only if you trust this Mac and accept that some features may fail."
         )
         return String(
             format: format,

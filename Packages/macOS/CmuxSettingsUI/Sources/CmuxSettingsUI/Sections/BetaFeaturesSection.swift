@@ -112,7 +112,7 @@ public struct BetaFeaturesSection: View {
             searchAnchorID: "setting:betaFeatures:customSidebars",
             String(localized: "settings.betaFeatures.customSidebars", defaultValue: "Custom Sidebars"),
             subtitle: customSidebars.current
-                ? String(localized: "settings.betaFeatures.customSidebars.subtitleOn", defaultValue: "Lists your sidebars from ~/.config/dodomux/sidebars in the sidebar picker, rendered in an isolated helper process.")
+                ? String(localized: "settings.betaFeatures.customSidebars.subtitleOn", defaultValue: "Lists your sidebars from ~/.config/deppy-mux/sidebars in the sidebar picker, rendered in an isolated helper process.")
                 : String(localized: "settings.betaFeatures.customSidebars.subtitleOff", defaultValue: "Hides custom sidebars from the sidebar picker until you enable them here.")
         ) {
             Toggle("", isOn: Binding(get: { customSidebars.current }, set: { customSidebars.set($0) }))
@@ -129,7 +129,7 @@ public struct BetaFeaturesSection: View {
             searchAnchorID: "setting:betaFeatures:remoteTmux",
             String(localized: "settings.betaFeatures.remoteTmux", defaultValue: "Remote tmux"),
             subtitle: remoteTmux.current
-                ? String(localized: "settings.betaFeatures.remoteTmux.subtitleOn", defaultValue: "Mirrors a remote host's tmux sessions in the sidebar over ssh tmux -CC; sessions become workspaces and windows become tabs. Quitting dodomux leaves the remote tmux server running.")
+                ? String(localized: "settings.betaFeatures.remoteTmux.subtitleOn", defaultValue: "Mirrors a remote host's tmux sessions in the sidebar over ssh tmux -CC; sessions become workspaces and windows become tabs. Quitting deppy-mux leaves the remote tmux server running.")
                 : String(localized: "settings.betaFeatures.remoteTmux.subtitleOff", defaultValue: "Hides remote tmux mirroring until you enable it here.")
         ) {
             Toggle("", isOn: Binding(get: { remoteTmux.current }, set: { remoteTmux.set($0) }))

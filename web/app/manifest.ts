@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "dodomux-beta",
-    short_name: "dodomux-beta",
-    description: "Connect to dodomux-beta workspaces and terminals from the browser.",
+    name: "deppy-mux-beta",
+    short_name: "deppy-mux-beta",
+    description: "Connect to deppy-mux-beta workspaces and terminals from the browser.",
     start_url: "/pwa",
     display: "standalone",
     background_color: "#0a0a0a",

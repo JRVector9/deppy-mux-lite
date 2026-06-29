@@ -91,7 +91,7 @@ public struct MobileSection: View {
                 }
                 SettingsCardNote(String(
                     localized: "settings.mobile.port.note",
-                    defaultValue: "Click Apply to change the port. dodomux checks the port is free first: if it's in use, the current listener keeps running untouched; if it's free, it rebinds and connected devices reconnect on the new port."
+                    defaultValue: "Click Apply to change the port. deppy-mux checks the port is free first: if it's in use, the current listener keeps running untouched; if it's free, it rebinds and connected devices reconnect on the new port."
                 ))
             }
         }
@@ -132,7 +132,7 @@ public struct MobileSection: View {
             configurationReview: .action,
             searchAnchorID: "setting:mobile:webAccess",
             String(localized: "settings.mobile.webAccess", defaultValue: "Web Access"),
-            subtitle: String(localized: "settings.mobile.webAccess.subtitle", defaultValue: "Create a browser link for accessing this Mac's dodomux terminal from another device.")
+            subtitle: String(localized: "settings.mobile.webAccess.subtitle", defaultValue: "Create a browser link for accessing this Mac's deppy-mux terminal from another device.")
         ) {
             Button(webAccess.current == nil
                 ? String(localized: "settings.mobile.webAccess.create", defaultValue: "Create Link")
@@ -184,7 +184,7 @@ public struct MobileSection: View {
         } else if webAccess.lastError == .notSignedIn {
             SettingsCardNote(String(
                 localized: "settings.mobile.webAccess.notSignedIn",
-                defaultValue: "Sign in to dodomux before creating a browser link."
+                defaultValue: "Sign in to deppy-mux before creating a browser link."
             ))
         } else if webAccess.lastError == .tailscaleUnavailable {
             SettingsCardNote(String(

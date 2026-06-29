@@ -1608,7 +1608,7 @@ extension FileExplorerContainerView: NSSearchFieldDelegate, NSTableViewDataSourc
         }
 
         let openInCmuxItem = NSMenuItem(
-            title: String(localized: "fileExplorer.contextMenu.openInCmux", defaultValue: "Open in dodomux"),
+            title: String(localized: "fileExplorer.contextMenu.openInCmux", defaultValue: "Open in deppy-mux"),
             action: #selector(contextMenuOpenSearchResultInCmux(_:)),
             keyEquivalent: ""
         )

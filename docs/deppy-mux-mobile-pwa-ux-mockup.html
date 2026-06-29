@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>deppy-mux mobile PWA UX mockup</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050505;
+      --panel: #101010;
+      --panel-2: #161616;
+      --line: #2a2a2a;
+      --text: #f2f2f2;
+      --muted: #a8a8a8;
+      --muted-2: #707070;
+      --accent: #f5f5f5;
+      --accent-text: #080808;
+      --green: #59d185;
+      --amber: #f0b84b;
+      --red: #ef6b73;
+      --blue: #77a8ff;
+      --terminal: #030303;
+      --terminal-line: #181818;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at 18% 8%, rgba(119, 168, 255, 0.14), transparent 28rem),
+        radial-gradient(circle at 80% 92%, rgba(89, 209, 133, 0.10), transparent 24rem),
+        #070707;
+      color: var(--text);
+      font-family: var(--sans);
+    }
+
+    body {
+      display: grid;
+      min-height: 100vh;
+      place-items: center;
+      padding: 20px;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      color: inherit;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .phone {
+      position: relative;
+      width: min(100%, 393px);
+      height: min(852px, calc(100vh - 40px));
+      min-height: 720px;
+      overflow: hidden;
+      border: 1px solid #303030;
+      border-radius: 34px;
+      background: var(--bg);
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      min-height: 0;
+      padding: max(14px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+      background: var(--bg);
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      padding: 0 2px;
+    }
+
+    .brand {
+      min-width: 0;
+    }
+
+    .brand-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 18px;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .brand-subtitle {
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .icon-button {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #0b0b0b;
+      color: var(--text);
+      font-weight: 650;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      width: fit-content;
+      min-height: 26px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 9px;
+      background: #0d0d0d;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted-2);
+    }
+
+    .dot.green {
+      background: var(--green);
+      box-shadow: 0 0 12px rgba(89, 209, 133, 0.55);
+    }
+
+    .dot.amber {
+      background: var(--amber);
+      box-shadow: 0 0 12px rgba(240, 184, 75, 0.45);
+    }
+
+    .workspace-list {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      padding: 12px 0 4px;
+    }
+
+    .workspace-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 13px;
+      background: linear-gradient(180deg, #151515, #101010);
+      text-align: left;
+    }
+
+    .workspace-card:active {
+      transform: translateY(1px);
+    }
+
+    .workspace-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 16px;
+      font-weight: 650;
+    }
+
+    .workspace-path {
+      margin-top: 5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .llm-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .llm {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border: 1px solid #333;
+      border-radius: 999px;
+      padding: 4px 7px;
+      color: #dcdcdc;
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    .badge-count {
+      align-self: start;
+      min-width: 28px;
+      border-radius: 999px;
+      padding: 5px 7px;
+      background: #f5f5f5;
+      color: #080808;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .terminal-shell {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      flex-direction: column;
+      border: 1px solid #1f1f1f;
+      border-radius: 10px;
+      background: var(--terminal);
+      overflow: hidden;
+    }
+
+    .terminal-head {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      border-bottom: 1px solid #1f1f1f;
+      padding: 0 8px;
+      background: #0d0d0d;
+    }
+
+    .workspace-chip {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #e7e7e7;
+      font-size: 13px;
+      font-weight: 620;
+    }
+
+    .model-chip {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .terminal {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding: 10px;
+      background:
+        linear-gradient(var(--terminal-line) 1px, transparent 1px) 0 0 / 100% 22px,
+        var(--terminal);
+      color: #e7e7e7;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.35;
+      white-space: pre;
+    }
+
+    .line-muted {
+      color: #8e8e8e;
+    }
+
+    .line-green {
+      color: #8ee6a3;
+    }
+
+    .line-blue {
+      color: #98baff;
+    }
+
+    .line-amber {
+      color: #ffd27a;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 7px;
+      height: 14px;
+      margin-left: 1px;
+      vertical-align: -2px;
+      background: #e7e7e7;
+      animation: blink 1.06s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 55% { opacity: 1; }
+      65%, 90% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    .composer-wrap {
+      position: relative;
+      border-top: 1px solid #1f1f1f;
+      background: #0a0a0a;
+      padding: 8px;
+    }
+
+    .attachment-strip {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      overflow-x: auto;
+    }
+
+    .attachment-strip.visible {
+      display: flex;
+    }
+
+    .attachment {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 6px 8px;
+      background: #151515;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .thumb {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+      background:
+        linear-gradient(135deg, rgba(119, 168, 255, 0.9), rgba(89, 209, 133, 0.8)),
+        #222;
+    }
+
+    .composer {
+      display: grid;
+      grid-template-columns: 38px 38px minmax(0, 1fr) 42px;
+      gap: 7px;
+      align-items: center;
+    }
+
+    .composer input {
+      min-width: 0;
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      outline: none;
+      background: #050505;
+      color: var(--text);
+      padding: 0 12px;
+      font-size: 16px;
+    }
+
+    .composer input:focus {
+      border-color: #5b5b5b;
+    }
+
+    .send-button {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border: 0;
+      border-radius: 12px;
+      background: var(--accent);
+      color: var(--accent-text);
+      font-weight: 800;
+    }
+
+    .toast-stack {
+      pointer-events: none;
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      top: max(12px, env(safe-area-inset-top));
+      z-index: 30;
+      display: grid;
+      gap: 8px;
+    }
+
+    .toast {
+      display: none;
+      align-items: center;
+      gap: 9px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(18, 18, 18, 0.92);
+      box-shadow: 0 14px 42px rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(14px);
+    }
+
+    .toast.visible {
+      display: flex;
+    }
+
+    .toast-title {
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .toast-body {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 20;
+      display: none;
+      max-height: 58%;
+      border-top: 1px solid var(--line);
+      border-radius: 18px 18px 0 0;
+      background: #101010;
+      box-shadow: 0 -18px 46px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+    }
+
+    .sheet.visible {
+      display: block;
+    }
+
+    .sheet-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 14px;
+    }
+
+    .sheet-title {
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .skill-list {
+      display: grid;
+      gap: 1px;
+      overflow-y: auto;
+      max-height: 320px;
+      background: var(--line);
+    }
+
+    .skill-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      border: 0;
+      padding: 12px 14px;
+      background: #101010;
+      text-align: left;
+    }
+
+    .skill-name {
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    .skill-desc {
+      margin-top: 3px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+      padding: 8px 0 0;
+      overflow-x: auto;
+    }
+
+    .quick-action {
+      flex: none;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 10px;
+      background: #101010;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .hidden-file {
+      display: none;
+    }
+
+    @media (max-width: 520px) {
+      body {
+        padding: 0;
+        background: var(--bg);
+      }
+
+      .phone {
+        width: 100vw;
+        height: 100svh;
+        min-height: 0;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="phone" aria-label="deppy-mux mobile PWA prototype">
+    <section id="entryScreen" class="screen active">
+      <div class="topbar">
+        <div class="brand">
+          <div class="brand-title">deppy-mux-beta</div>
+          <div class="brand-subtitle">Tailscale 연결됨</div>
+        </div>
+        <span class="pill"><span class="dot green"></span>3 workspaces</span>
+      </div>
+
+      <div class="workspace-list" aria-label="워크스페이스 목록">
+        <button class="workspace-card" data-open-workspace="api">
+          <span>
+            <span class="workspace-name">deppy-mux-web-access</span>
+            <span class="workspace-path">~/Projects/deppy-mux/web</span>
+            <span class="llm-row">
+              <span class="llm"><span class="dot green"></span>Claude Code</span>
+              <span class="llm"><span class="dot amber"></span>Codex</span>
+            </span>
+          </span>
+          <span class="badge-count">2</span>
+        </button>
+
+        <button class="workspace-card" data-open-workspace="core">
+          <span>
+            <span class="workspace-name">macOS app integration</span>
+            <span class="workspace-path">~/Projects/deppy-mux/Sources</span>
+            <span class="llm-row">
+              <span class="llm"><span class="dot green"></span>Claude Code</span>
+            </span>
+          </span>
+          <span class="badge-count">1</span>
+        </button>
+
+        <button class="workspace-card" data-open-workspace="docs">
+          <span>
+            <span class="workspace-name">release notes</span>
+            <span class="workspace-path">~/Projects/deppy-mux/docs</span>
+            <span class="llm-row">
+              <span class="llm"><span class="dot amber"></span>Codex</span>
+            </span>
+          </span>
+          <span class="badge-count">1</span>
+        </button>
+      </div>
+    </section>
+
+    <section id="terminalScreen" class="screen">
+      <div class="toast-stack">
+        <div id="doneToast" class="toast" role="status" aria-live="polite">
+          <span class="dot green"></span>
+          <span>
+            <span class="toast-title">작업 종료</span>
+            <span class="toast-body">Claude Code가 입력을 기다립니다</span>
+          </span>
+        </div>
+        <div id="uploadToast" class="toast" role="status" aria-live="polite">
+          <span class="dot amber"></span>
+          <span>
+            <span class="toast-title">이미지 첨부됨</span>
+            <span class="toast-body">다음 입력과 함께 전송됩니다</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="terminal-shell">
+        <div class="terminal-head">
+          <button class="icon-button" data-back aria-label="워크스페이스 목록">‹</button>
+          <div class="workspace-chip" id="workspaceTitle">deppy-mux-web-access</div>
+          <div class="model-chip">Claude Code</div>
+        </div>
+
+        <div id="terminalOutput" class="terminal" aria-label="터미널 화면">
+<span class="line-muted">$ pnpm dev:web</span>
+<span class="line-green">ready</span> started web server on http://100.82.14.21:9170
+<span class="line-blue">workspace</span> deppy-mux-web-access
+<span class="line-muted">agent</span> Claude Code connected
+
+<span class="line-amber">warning</span> 2 MCP servers need authentication
+run /mcp
+
+<span id="promptLine">› <span id="typedEcho"></span><span class="cursor"></span></span></div>
+
+        <div class="composer-wrap">
+          <div id="attachmentStrip" class="attachment-strip">
+            <div class="attachment">
+              <span class="thumb"></span>
+              <span id="attachmentName">screenshot.png</span>
+              <button class="icon-button" data-clear-attachment aria-label="첨부 제거">×</button>
+            </div>
+          </div>
+
+          <div class="composer">
+            <button class="icon-button" data-upload aria-label="이미지 업로드">+</button>
+            <button class="icon-button" data-skills aria-label="스킬 목록">/</button>
+            <input id="composerInput" autocomplete="off" placeholder="입력" />
+            <button class="send-button" data-send aria-label="전송">↵</button>
+          </div>
+          <div class="quick-actions">
+            <button class="quick-action" data-quick="/mcp">/mcp</button>
+            <button class="quick-action" data-quick="/review">/review</button>
+            <button class="quick-action" data-quick="/test">/test</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="skillSheet" class="sheet" aria-label="스킬 목록">
+        <div class="sheet-head">
+          <div class="sheet-title">/skill</div>
+          <button class="icon-button" data-close-skills aria-label="닫기">×</button>
+        </div>
+        <div class="skill-list">
+          <button class="skill-item" data-skill="/review">
+            <span>
+              <span class="skill-name">/review</span>
+              <span class="skill-desc">현재 변경사항 코드 리뷰</span>
+            </span>
+            <span class="pill">추천</span>
+          </button>
+          <button class="skill-item" data-skill="/test">
+            <span>
+              <span class="skill-name">/test</span>
+              <span class="skill-desc">관련 테스트 실행</span>
+            </span>
+          </button>
+          <button class="skill-item" data-skill="/mcp">
+            <span>
+              <span class="skill-name">/mcp</span>
+              <span class="skill-desc">인증 필요한 MCP 서버 확인</span>
+            </span>
+          </button>
+          <button class="skill-item" data-skill="/release-note">
+            <span>
+              <span class="skill-name">/release-note</span>
+              <span class="skill-desc">작업 내용을 릴리스 노트로 정리</span>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <input id="fileInput" class="hidden-file" type="file" accept="image/*" />
+    </section>
+  </main>
+
+  <script>
+    const entryScreen = document.querySelector("#entryScreen");
+    const terminalScreen = document.querySelector("#terminalScreen");
+    const skillSheet = document.querySelector("#skillSheet");
+    const input = document.querySelector("#composerInput");
+    const typedEcho = document.querySelector("#typedEcho");
+    const promptLine = document.querySelector("#promptLine");
+    const terminalOutput = document.querySelector("#terminalOutput");
+    const workspaceTitle = document.querySelector("#workspaceTitle");
+    const doneToast = document.querySelector("#doneToast");
+    const uploadToast = document.querySelector("#uploadToast");
+    const fileInput = document.querySelector("#fileInput");
+    const attachmentStrip = document.querySelector("#attachmentStrip");
+    const attachmentName = document.querySelector("#attachmentName");
+
+    const workspaceNames = {
+      api: "deppy-mux-web-access",
+      core: "macOS app integration",
+      docs: "release notes",
+    };
+
+    function showTerminal(workspaceId) {
+      workspaceTitle.textContent = workspaceNames[workspaceId] || "deppy-mux";
+      entryScreen.classList.remove("active");
+      terminalScreen.classList.add("active");
+      requestAnimationFrame(() => input.focus());
+      flashToast(doneToast, 1800);
+    }
+
+    function showEntry() {
+      terminalScreen.classList.remove("active");
+      entryScreen.classList.add("active");
+      closeSkills();
+    }
+
+    function openSkills() {
+      skillSheet.classList.add("visible");
+    }
+
+    function closeSkills() {
+      skillSheet.classList.remove("visible");
+    }
+
+    function flashToast(element, timeout) {
+      element.classList.add("visible");
+      window.clearTimeout(element._timer);
+      element._timer = window.setTimeout(() => {
+        element.classList.remove("visible");
+      }, timeout);
+    }
+
+    function appendTerminalLine(command) {
+      const line = document.createElement("span");
+      line.textContent = "\n$ " + command + "\n";
+      terminalOutput.insertBefore(line, promptLine);
+      typedEcho.textContent = "";
+      terminalOutput.scrollTop = terminalOutput.scrollHeight;
+    }
+
+    document.querySelectorAll("[data-open-workspace]").forEach((button) => {
+      button.addEventListener("click", () => showTerminal(button.dataset.openWorkspace));
+    });
+
+    document.querySelector("[data-back]").addEventListener("click", showEntry);
+    document.querySelector("[data-skills]").addEventListener("click", openSkills);
+    document.querySelector("[data-close-skills]").addEventListener("click", closeSkills);
+
+    document.querySelector("[data-upload]").addEventListener("click", () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files && fileInput.files[0];
+      attachmentName.textContent = file ? file.name : "screenshot.png";
+      attachmentStrip.classList.add("visible");
+      flashToast(uploadToast, 1800);
+    });
+
+    document.querySelector("[data-clear-attachment]").addEventListener("click", () => {
+      fileInput.value = "";
+      attachmentStrip.classList.remove("visible");
+    });
+
+    document.querySelectorAll("[data-skill]").forEach((button) => {
+      button.addEventListener("click", () => {
+        input.value = button.dataset.skill + " ";
+        typedEcho.textContent = input.value;
+        closeSkills();
+        input.focus();
+      });
+    });
+
+    document.querySelectorAll("[data-quick]").forEach((button) => {
+      button.addEventListener("click", () => {
+        input.value = button.dataset.quick + " ";
+        typedEcho.textContent = input.value;
+        input.focus();
+      });
+    });
+
+    input.addEventListener("input", () => {
+      typedEcho.textContent = input.value;
+      if (input.value === "/") {
+        openSkills();
+      }
+    });
+
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        document.querySelector("[data-send]").click();
+      }
+      if (event.key === "Escape") {
+        closeSkills();
+      }
+    });
+
+    document.querySelector("[data-send]").addEventListener("click", () => {
+      const text = input.value.trim();
+      if (!text && !attachmentStrip.classList.contains("visible")) {
+        return;
+      }
+      appendTerminalLine(text || "[image]");
+      input.value = "";
+      attachmentStrip.classList.remove("visible");
+      closeSkills();
+    });
+  </script>
+</body>
+</html>

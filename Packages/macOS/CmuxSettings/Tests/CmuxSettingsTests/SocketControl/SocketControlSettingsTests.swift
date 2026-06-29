@@ -54,11 +54,11 @@ import CmuxSettings
     }
 
     @Test func taggedDevBuildDetection() {
-        #expect(SocketControlSettings.isTaggedDevBuild(bundleIdentifier: "com.dodomux.app.debug.my-tag"))
+        #expect(SocketControlSettings.isTaggedDevBuild(bundleIdentifier: "com.deppy-mux.app.debug.my-tag"))
         #expect(SocketControlSettings.isTaggedDevBuild(bundleIdentifier: "com.cmuxterm.app.debug.my-tag"))
-        #expect(!SocketControlSettings.isTaggedDevBuild(bundleIdentifier: "com.dodomux.app.debug"))
+        #expect(!SocketControlSettings.isTaggedDevBuild(bundleIdentifier: "com.deppy-mux.app.debug"))
         #expect(!SocketControlSettings.isTaggedDevBuild(bundleIdentifier: "com.cmuxterm.app.debug"))
-        #expect(!SocketControlSettings.isTaggedDevBuild(bundleIdentifier: "com.dodomux.app"))
+        #expect(!SocketControlSettings.isTaggedDevBuild(bundleIdentifier: "com.deppy-mux.app"))
         #expect(!SocketControlSettings.isTaggedDevBuild(bundleIdentifier: "com.cmuxterm.app"))
     }
 
@@ -67,7 +67,7 @@ import CmuxSettings
         #expect(
             SocketControlSettings.shouldBlockUntaggedDebugLaunch(
                 environment: [:],
-                bundleIdentifier: "com.dodomux.app.debug",
+                bundleIdentifier: "com.deppy-mux.app.debug",
                 isDebugBuild: true
             )
         )
@@ -83,7 +83,7 @@ import CmuxSettings
         #expect(
             !SocketControlSettings.shouldBlockUntaggedDebugLaunch(
                 environment: ["CMUX_UI_TEST_RUN": "1"],
-                bundleIdentifier: "com.dodomux.app.debug",
+                bundleIdentifier: "com.deppy-mux.app.debug",
                 isDebugBuild: true
             )
         )
@@ -91,7 +91,7 @@ import CmuxSettings
         #expect(
             !SocketControlSettings.shouldBlockUntaggedDebugLaunch(
                 environment: [:],
-                bundleIdentifier: "com.dodomux.app.debug.tag",
+                bundleIdentifier: "com.deppy-mux.app.debug.tag",
                 isDebugBuild: true
             )
         )
@@ -99,7 +99,7 @@ import CmuxSettings
         #expect(
             !SocketControlSettings.shouldBlockUntaggedDebugLaunch(
                 environment: [:],
-                bundleIdentifier: "com.dodomux.app",
+                bundleIdentifier: "com.deppy-mux.app",
                 isDebugBuild: false
             )
         )
@@ -111,7 +111,7 @@ import CmuxSettings
                 "CMUX_SOCKET_PATH": "/tmp/cmux-custom.sock",
                 "CMUX_ALLOW_SOCKET_OVERRIDE": "1",
             ],
-            bundleIdentifier: "com.dodomux.app.debug.tag",
+            bundleIdentifier: "com.deppy-mux.app.debug.tag",
             isDebugBuild: true,
             currentUserID: 501,
             probeStableDefaultPathEntry: { _ in .missing }
@@ -119,10 +119,10 @@ import CmuxSettings
         #expect(path == "/tmp/cmux-custom.sock")
     }
 
-    @Test func dodomuxTaggedDebugBuildUsesTaggedSocketFallback() {
+    @Test func deppy-muxTaggedDebugBuildUsesTaggedSocketFallback() {
         let path = SocketControlSettings.socketPath(
             environment: [:],
-            bundleIdentifier: "com.dodomux.app.debug.connect.pwa.web",
+            bundleIdentifier: "com.deppy-mux.app.debug.connect.pwa.web",
             isDebugBuild: true,
             currentUserID: 501,
             probeStableDefaultPathEntry: { _ in .missing }

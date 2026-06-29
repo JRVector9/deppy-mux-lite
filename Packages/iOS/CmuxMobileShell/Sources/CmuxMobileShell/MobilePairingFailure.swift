@@ -131,12 +131,12 @@ extension MobilePairingFailureCategory {
             _ = (host, port)
             return L10n.string(
                 "mobile.pairing.appNotRunning",
-                defaultValue: "Your Mac is reachable, but dodomux isn't running there (or mobile pairing is off). Open dodomux on the Mac, then try again."
+                defaultValue: "Your Mac is reachable, but deppy-mux isn't running there (or mobile pairing is off). Open deppy-mux on the Mac, then try again."
             )
         case .localNetworkBlocked:
             return L10n.string(
                 "mobile.pairing.localNetworkPermission",
-                defaultValue: "iOS blocked the connection. Allow dodomux to use the Local Network in iOS Settings, then try again."
+                defaultValue: "iOS blocked the connection. Allow deppy-mux to use the Local Network in iOS Settings, then try again."
             )
         case let .dnsFailed(host, _):
             if let host {
@@ -173,7 +173,7 @@ extension MobilePairingFailureCategory {
         case .accountMismatch:
             return L10n.string(
                 "mobile.pairing.accountMismatch",
-                defaultValue: "This Mac is signed in to a different dodomux account. Sign out and sign back in with the account that owns this Mac."
+                defaultValue: "This Mac is signed in to a different deppy-mux account. Sign out and sign back in with the account that owns this Mac."
             )
         case let .emailMismatch(expected, actual):
             let format = if let actual, !actual.isEmpty {
@@ -204,12 +204,12 @@ extension MobilePairingFailureCategory {
         case .invalidCode:
             return L10n.string(
                 "mobile.pairing.invalidCode",
-                defaultValue: "This isn't a dodomux pairing QR. Scan the code shown in the Pair iPhone window on your Mac."
+                defaultValue: "This isn't a deppy-mux pairing QR. Scan the code shown in the Pair iPhone window on your Mac."
             )
         case .unrecognizedVersion:
             return L10n.string(
                 "mobile.pairing.unrecognizedVersion",
-                defaultValue: "This QR needs a newer version of dodomux. Update the app and try again."
+                defaultValue: "This QR needs a newer version of deppy-mux. Update the app and try again."
             )
         case .loopbackRejected:
             return L10n.string(
@@ -250,22 +250,22 @@ extension MobilePairingFailureCategory {
         case .hostUnreachable, .dnsFailed, .handshakeTimedOut:
             return L10n.string(
                 "mobile.pairing.guidance.reachability",
-                defaultValue: "Check that this phone and your Mac are on the same Wi-Fi or both running Tailscale, that the Mac is awake, and that dodomux is open on it."
+                defaultValue: "Check that this phone and your Mac are on the same Wi-Fi or both running Tailscale, that the Mac is awake, and that deppy-mux is open on it."
             )
         case .listenerNotRunning, .connectionDropped:
             return L10n.string(
                 "mobile.pairing.guidance.openMacApp",
-                defaultValue: "Open dodomux on your Mac, then scan the QR or link from it again."
+                defaultValue: "Open deppy-mux on your Mac, then scan the QR or link from it again."
             )
         case .localNetworkBlocked:
             return L10n.string(
                 "mobile.pairing.guidance.localNetwork",
-                defaultValue: "Settings > dodomux > Local Network, then try again."
+                defaultValue: "Settings > deppy-mux > Local Network, then try again."
             )
         case .accountMismatch, .emailMismatch, .authFailed:
             return L10n.string(
                 "mobile.pairing.guidance.sameAccount",
-                defaultValue: "Both devices must be signed in to the same dodomux account."
+                defaultValue: "Both devices must be signed in to the same deppy-mux account."
             )
         case .ticketExpired, .unsupportedRoute, .noSupportedRoute:
             return L10n.string(
@@ -275,7 +275,7 @@ extension MobilePairingFailureCategory {
         case .unrecognizedVersion:
             return L10n.string(
                 "mobile.pairing.guidance.updateApp",
-                defaultValue: "Update dodomux from the App Store (or TestFlight), then scan again."
+                defaultValue: "Update deppy-mux from the App Store (or TestFlight), then scan again."
             )
         case .invalidCode, .loopbackRejected, .cancelled, .unknown:
             return nil

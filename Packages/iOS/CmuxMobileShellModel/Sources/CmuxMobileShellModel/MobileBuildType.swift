@@ -3,13 +3,13 @@
 /// Derived from the same signal the push-registration `apnsEnvironment` uses:
 /// `#if DEBUG` is a development build; any Release build is a distribution
 /// build, and `beta` vs `prod` is then distinguished at runtime by the bundle
-/// identifier (the beta TestFlight bundle is `dev.dodomux.app.beta`). Both `beta`
+/// identifier (the beta TestFlight bundle is `dev.deppy-mux.app.beta`). Both `beta`
 /// and `prod` are Release configurations, so the split can never be a compile
 /// flag and must be resolved from the live bundle id.
 public enum MobileBuildType: String, Equatable, Sendable {
     /// A local DEBUG build (Xcode / `ios/scripts/reload.sh`).
     case dev
-    /// A Release build distributed for beta dogfooding (bundle id `dev.dodomux.app.beta`).
+    /// A Release build distributed for beta dogfooding (bundle id `dev.deppy-mux.app.beta`).
     case beta
     /// A Release build distributed to production (App Store).
     case prod
@@ -18,7 +18,7 @@ public enum MobileBuildType: String, Equatable, Sendable {
     ///
     /// `#if DEBUG` short-circuits to ``dev`` so a local build is never mistaken
     /// for a distribution build. In Release the bundle id decides: the beta
-    /// TestFlight bundle is `dev.dodomux.app.beta`; anything else is treated as
+    /// TestFlight bundle is `dev.deppy-mux.app.beta`; anything else is treated as
     /// ``prod``.
     ///
     /// - Parameters:
@@ -38,7 +38,7 @@ public enum MobileBuildType: String, Equatable, Sendable {
     }
 
     private static let betaBundleIdentifiers: Set<String> = [
-        "dev.dodomux.app.beta",
+        "dev.deppy-mux.app.beta",
         "dev.cmux.app.beta",
     ]
 

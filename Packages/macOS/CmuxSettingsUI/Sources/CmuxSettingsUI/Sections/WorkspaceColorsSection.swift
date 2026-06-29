@@ -111,13 +111,13 @@ public struct WorkspaceColorsSection: View {
             SettingsCardDivider()
 
             SettingsCardNote(
-                String(localized: "settings.workspaceColors.dictionaryNote", defaultValue: "Edit dodomux.json to add or remove named colors. \"Choose Custom Color...\" still adds local Custom N entries.")
+                String(localized: "settings.workspaceColors.dictionaryNote", defaultValue: "Edit deppy-mux.json to add or remove named colors. \"Choose Custom Color...\" still adds local Custom N entries.")
             )
 
             let entries = effectivePaletteEntries(overrides: paletteModel.current)
             if entries.isEmpty {
                 SettingsCardNote(
-                    String(localized: "settings.workspaceColors.emptyPalette", defaultValue: "No palette entries. Add colors in dodomux.json or use \"Choose Custom Color...\" from a workspace context menu.")
+                    String(localized: "settings.workspaceColors.emptyPalette", defaultValue: "No palette entries. Add colors in deppy-mux.json or use \"Choose Custom Color...\" from a workspace context menu.")
                 )
             } else {
                 ForEach(Array(entries.enumerated()), id: \.element.name) { index, entry in
