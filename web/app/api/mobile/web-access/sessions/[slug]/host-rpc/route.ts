@@ -2,6 +2,9 @@ import {
   claimWebAccessRpcRequests,
   completeWebAccessRpcRequest,
 } from "../../../../../../../services/mobile-web-access/relay";
+import {
+  webAccessRelayRepository,
+} from "../../../../../../../services/mobile-web-access/local";
 import { readBoundedJsonObject } from "../../../../../../../services/http/bounded-json";
 import { jsonResponse } from "../../../../../../../services/vms/routeHelpers";
 
@@ -26,11 +29,14 @@ export async function GET(
 
   const url = new URL(request.url);
   const requestedLimit = Number(url.searchParams.get("limit") ?? "25");
-  const requests = await claimWebAccessRpcRequests({
-    slug,
-    hostToken,
-    limit: Number.isFinite(requestedLimit) ? requestedLimit : 25,
-  });
+  const requests = await claimWebAccessRpcRequests(
+    {
+      slug,
+      hostToken,
+      limit: Number.isFinite(requestedLimit) ? requestedLimit : 25,
+    },
+    webAccessRelayRepository(),
+  );
   if (!requests) {
     return jsonResponse({ error: "web_access_session_not_found" }, 404);
   }
@@ -56,12 +62,15 @@ export async function POST(
     return jsonResponse({ error: "invalid_request" }, 400);
   }
 
-  const ok = await completeWebAccessRpcRequest({
-    slug,
-    hostToken,
-    requestId,
-    completion: completionFromBody(body.value),
-  });
+  const ok = await completeWebAccessRpcRequest(
+    {
+      slug,
+      hostToken,
+      requestId,
+      completion: completionFromBody(body.value),
+    },
+    webAccessRelayRepository(),
+  );
   if (!ok) {
     return jsonResponse({ error: "web_access_rpc_request_not_found" }, 404);
   }

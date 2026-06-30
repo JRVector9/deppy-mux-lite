@@ -3,6 +3,14 @@ import {
   listOwnerWebAccessSessions,
 } from "../../../../../services/mobile-web-access/sessions";
 import {
+  localWebAccessControlTokenAllowed,
+  localWebAccessEnabled,
+  webAccessSessionRepository,
+} from "../../../../../services/mobile-web-access/local";
+import {
+  webConnectResponse,
+} from "../../../../../services/mobile-web-access/response";
+import {
   resolveDeviceRegistryTeam,
 } from "../../../../../services/device-registry";
 import { readOptionalBoundedJsonObject } from "../../../../../services/http/bounded-json";
@@ -23,45 +31,53 @@ export async function GET(request: Request): Promise<Response> {
     allowCookie: true,
     includeTeams: true,
   });
-  if (!user) return unauthorized();
+  if (!user) return webConnectResponse(unauthorized());
 
   const team = resolveDeviceRegistryTeam(request, user);
   if (!team.ok) {
-    return jsonResponse({ error: team.error }, 403);
+    return webConnectJsonResponse({ error: team.error }, 403);
   }
 
-  const sessions = await listOwnerWebAccessSessions({
-    userId: user.id,
-    teamIds: uniqueTeamIds([team.teamId, user.selectedTeamId, user.billingTeamId, ...user.teamIds]),
-  });
+  const sessions = await listOwnerWebAccessSessions(
+    {
+      userId: user.id,
+      teamIds: uniqueTeamIds([team.teamId, user.selectedTeamId, user.billingTeamId, ...user.teamIds]),
+    },
+    webAccessSessionRepository(),
+  );
 
-  return jsonResponse({ sessions });
+  return webConnectJsonResponse({ sessions });
 }
 
 export async function POST(request: Request): Promise<Response> {
   const body = await readOptionalBoundedJsonObject(request, MAX_REQUEST_BYTES);
   if (!body.ok) {
-    return jsonResponse({ error: "invalid_request" }, body.status);
+    return webConnectJsonResponse({ error: "invalid_request" }, body.status);
   }
 
-  const user = await verifyRequest(request, {
+  const localOnly = localWebAccessEnabled();
+  if (localOnly && !localWebAccessCreateAllowed(request)) return webConnectResponse(unauthorized());
+  const user = localOnly ? null : await verifyRequest(request, {
     requestedTeamId: requestedVmTeamIdFromRequest(request),
     allowCookie: false,
   });
-  if (!user && !localWebAccessCreateAllowed(request)) return unauthorized();
+  if (!user && !localOnly) return webConnectResponse(unauthorized());
 
   const team = user ? resolveDeviceRegistryTeam(request, user) : null;
   if (team && !team.ok) {
-    return jsonResponse({ error: team.error }, 403);
+    return webConnectJsonResponse({ error: team.error }, 403);
   }
   const deviceId = optionalString(body.value.deviceId);
 
-  const session = await createWebAccessSession({
-    userId: user?.id ?? `local:${deviceId ?? "host"}`,
-    teamId: team?.teamId ?? "local-web-access",
-    deviceId,
-    displayName: optionalString(body.value.displayName),
-  });
+  const session = await createWebAccessSession(
+    {
+      userId: user?.id ?? `local:${deviceId ?? "host"}`,
+      teamId: team?.teamId ?? "local-web-access",
+      deviceId,
+      displayName: optionalString(body.value.displayName),
+    },
+    webAccessSessionRepository(),
+  );
   const publicUrl = publicWebAccessUrl({
     request,
     publicOrigin: optionalString(body.value.publicOrigin),
@@ -69,7 +85,7 @@ export async function POST(request: Request): Promise<Response> {
     browserToken: session.browserToken,
   });
 
-  return jsonResponse({
+  return webConnectJsonResponse({
     slug: session.slug,
     publicUrl,
     hostToken: session.hostToken,
@@ -77,10 +93,20 @@ export async function POST(request: Request): Promise<Response> {
   });
 }
 
+function webConnectJsonResponse(data: unknown, status = 200): Response {
+  return webConnectResponse(jsonResponse(data, status));
+}
+
 function localWebAccessCreateAllowed(request: Request): boolean {
+  if (!localWebAccessEnabled()) {
+    return false;
+  }
+  if (!localWebAccessControlTokenAllowed(request)) {
+    return false;
+  }
   try {
     const hostname = new URL(request.url).hostname.toLowerCase();
-    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]";
   } catch {
     return false;
   }

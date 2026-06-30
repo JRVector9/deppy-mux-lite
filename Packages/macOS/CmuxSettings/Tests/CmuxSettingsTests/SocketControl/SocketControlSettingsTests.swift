@@ -119,7 +119,7 @@ import CmuxSettings
         #expect(path == "/tmp/cmux-custom.sock")
     }
 
-    @Test func deppy-muxTaggedDebugBuildUsesTaggedSocketFallback() {
+    @Test func deppyMuxTaggedDebugBuildUsesTaggedSocketFallback() {
         let path = SocketControlSettings.socketPath(
             environment: [:],
             bundleIdentifier: "com.deppy-mux.app.debug.connect.pwa.web",

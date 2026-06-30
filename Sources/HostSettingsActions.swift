@@ -175,6 +175,29 @@ final class HostSettingsActions: SettingsHostActions {
         await MobileWebAccessClient.shared.startSession()
     }
 
+    func setMobileWebAccessServerEnabled(
+        _ enabled: Bool,
+        port: Int
+    ) async -> MobileWebAccessServerControlResult {
+        await MobileWebAccessClient.shared.setServerEnabled(enabled, port: port)
+    }
+
+    func mobileWebAccessRuntimeStatus() -> MobileWebAccessRuntimeStatus {
+        WebConnectServerController.runtimeStatus()
+    }
+
+    func mobileWebAccessRuntimeRequired() -> Bool {
+        MobileWebAccessClient.webConnectRuntimeRequired()
+    }
+
+    func installMobileWebAccessRuntime() async -> MobileWebAccessRuntimeInstallResult {
+        await WebConnectRuntimeInstaller().install()
+    }
+
+    func uninstallMobileWebAccessRuntime() -> Bool {
+        WebConnectRuntimeInstaller().uninstall()
+    }
+
     func copyMobileWebAccessURL(_ url: String) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()

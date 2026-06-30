@@ -5,6 +5,7 @@ public enum SocketPathMarkerFiles {
     public static let stableTmpPath = "/tmp/cmux-last-socket-path"
     public static let nightlyBundleIdentifier = "com.deppy-mux.app.nightly"
     public static let stagingBundleIdentifier = "com.deppy-mux.app.staging"
+    public static let liteBundleIdentifier = "com.deppy-mux.lite"
     public static let defaultBaseDebugBundleIdentifier = "com.deppy-mux.app.debug"
     static let legacyNightlyBundleIdentifier = "com.cmuxterm.app.nightly"
     static let legacyStagingBundleIdentifier = "com.cmuxterm.app.staging"
@@ -68,6 +69,14 @@ public enum SocketPathMarkerFiles {
             }
         }
 
+        if bundleId == liteBundleIdentifier {
+            return .lite(slug: nil)
+        }
+        let litePrefix = liteBundleIdentifier + "."
+        if bundleId.hasPrefix(litePrefix) {
+            return .lite(slug: bundleSuffixSlug(bundleId, prefix: litePrefix))
+        }
+
         for debugIdentifier in debugBundleIdentifiers(baseDebugBundleIdentifier) {
             if bundleId == debugIdentifier {
                 if let tag = normalized(environment["CMUX_TAG"]),
@@ -111,6 +120,11 @@ public enum SocketPathMarkerFiles {
                 return "/tmp/cmux-staging-\(slug).sock"
             }
             return stagingSocketPath
+        case .lite(let slug):
+            if let slug {
+                return "/tmp/deppy-mux-lite-\(slug).sock"
+            }
+            return "/tmp/deppy-mux-lite.sock"
         case .dev(let slug):
             if let slug {
                 return "/tmp/cmux-debug-\(slug).sock"

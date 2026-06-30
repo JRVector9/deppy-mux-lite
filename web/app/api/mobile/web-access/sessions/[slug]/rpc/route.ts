@@ -2,15 +2,17 @@ import {
   enqueueWebAccessRpcRequest,
   isWebAccessRelayMethod,
 } from "../../../../../../../services/mobile-web-access/relay";
+import {
+  webAccessRelayRepository,
+} from "../../../../../../../services/mobile-web-access/local";
 import { readBoundedJsonObject } from "../../../../../../../services/http/bounded-json";
 import { unauthorized, verifyRequest } from "../../../../../../../services/vms/auth";
 import {
   jsonResponse,
 } from "../../../../../../../services/vms/routeHelpers";
 import {
-  hostIsLoopback,
-  hostIsTailscaleAttachable,
-} from "../../../../../devices/route-classification";
+  webAccessBrowserMutationOriginAllowed,
+} from "../../../../../../../services/mobile-web-access/browser-origin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,17 +48,20 @@ export async function POST(
     return jsonResponse({ error: "invalid_method" }, 400);
   }
 
-  const queued = await enqueueWebAccessRpcRequest({
-    slug,
-    ...(browserToken
-      ? { browserToken }
-      : {
-        userId: user!.id,
-        teamIds: uniqueTeamIds([user!.id, user!.selectedTeamId, user!.billingTeamId, ...user!.teamIds]),
-      }),
-    method: body.value.method,
-    params: recordOrEmpty(body.value.params),
-  });
+  const queued = await enqueueWebAccessRpcRequest(
+    {
+      slug,
+      ...(browserToken
+        ? { browserToken }
+        : {
+          userId: user!.id,
+          teamIds: uniqueTeamIds([user!.id, user!.selectedTeamId, user!.billingTeamId, ...user!.teamIds]),
+        }),
+      method: body.value.method,
+      params: recordOrEmpty(body.value.params),
+    },
+    webAccessRelayRepository(),
+  );
   if (!queued.ok && queued.reason === "not_found") {
     return jsonResponse({ error: "web_access_session_not_found" }, 404);
   }
@@ -81,41 +86,6 @@ function recordOrEmpty(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
-}
-
-export function webAccessBrowserMutationOriginAllowed(request: Request): boolean {
-  const origin = request.headers.get("origin")?.trim();
-  const secFetchSite = request.headers.get("sec-fetch-site")?.trim().toLowerCase();
-  if (secFetchSite === "cross-site") {
-    return false;
-  }
-  if (!origin) {
-    return false;
-  }
-  try {
-    const originURL = new URL(origin);
-    const requestURL = new URL(request.url);
-    if (originURL.origin === requestURL.origin) {
-      return true;
-    }
-    return sameLocalTailnetEndpoint(originURL, requestURL);
-  } catch {
-    return false;
-  }
-}
-
-function sameLocalTailnetEndpoint(originURL: URL, requestURL: URL): boolean {
-  if (originURL.protocol !== requestURL.protocol) {
-    return false;
-  }
-  if (originURL.port !== requestURL.port) {
-    return false;
-  }
-  const originHost = originURL.hostname;
-  const requestHost = requestURL.hostname;
-  const originAllowed = hostIsLoopback(originHost) || hostIsTailscaleAttachable(originHost);
-  const requestAllowed = hostIsLoopback(requestHost) || hostIsTailscaleAttachable(requestHost);
-  return originAllowed && requestAllowed;
 }
 
 function uniqueTeamIds(values: readonly (string | null | undefined)[]): string[] {

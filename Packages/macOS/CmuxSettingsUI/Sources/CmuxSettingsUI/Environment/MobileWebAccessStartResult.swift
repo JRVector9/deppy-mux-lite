@@ -8,6 +8,10 @@ public enum MobileWebAccessStartResult: Sendable, Equatable {
     case notSignedIn
     /// Tailscale is required for browser Web Connect, but no Tailscale address is available.
     case tailscaleUnavailable
+    /// The local Web Connect runtime is not installed.
+    case runtimeMissing
+    /// The app could not start the local Web Connect server on the configured port.
+    case webServerStartFailed
     /// The local or configured Web Connect server is not reachable or does not expose the required API.
     case webEndpointUnavailable
     /// The server or network rejected the request.

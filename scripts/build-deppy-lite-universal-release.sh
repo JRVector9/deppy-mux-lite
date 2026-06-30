@@ -3,10 +3,14 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DERIVED_DATA="${DERIVED_DATA:-${HOME}/Library/Developer/Xcode/DerivedData/deppy-lite-universal-release}"
-APP_PATH="${DERIVED_DATA}/Build/Products/Release/deppy-mux-lite-universal.app"
-APP_BIN="${APP_PATH}/Contents/MacOS/deppy-mux-lite-universal"
+APP_PRODUCT_NAME="${APP_PRODUCT_NAME:-deppy-mux-lite-universal}"
+APP_BUNDLE_ID="${APP_BUNDLE_ID:-com.deppy-mux.lite.universal}"
+APP_AUTH_CALLBACK_SCHEME="${APP_AUTH_CALLBACK_SCHEME:-deppy-mux-lite-universal}"
+APP_PATH="${DERIVED_DATA}/Build/Products/Release/${APP_PRODUCT_NAME}.app"
+APP_BIN="${APP_PATH}/Contents/MacOS/${APP_PRODUCT_NAME}"
 CLI_BIN="${APP_PATH}/Contents/Resources/bin/deppy-cli"
 CMUX_SHIM="${APP_PATH}/Contents/Resources/bin/cmux"
+WEB_CONNECT_RUNTIME_DIR="${APP_PATH}/Contents/Resources/web-connect"
 
 cd "$ROOT_DIR"
 
@@ -21,6 +25,10 @@ XCODEBUILD_ARGS=(
   CODE_SIGNING_REQUIRED=NO
   'ARCHS=arm64 x86_64'
   ONLY_ACTIVE_ARCH=NO
+  DEPPY_LITE_PRODUCT_NAME="$APP_PRODUCT_NAME"
+  DEPPY_LITE_BUNDLE_IDENTIFIER="$APP_BUNDLE_ID"
+  DEPPY_LITE_AUTH_CALLBACK_SCHEME="$APP_AUTH_CALLBACK_SCHEME"
+  DEPPY_LITE_SIDEBAR_EXTENSION_POINT_ID="$APP_BUNDLE_ID.cmux.sidebar"
   DEAD_CODE_STRIPPING=YES
   COMPILER_INDEX_STORE_ENABLE=NO
 )
@@ -57,14 +65,11 @@ require_archs() {
   local binary="$1"
   local label="$2"
   shift 2
-  local info
-  info="$(lipo -info "$binary")"
-  for arch in "$@"; do
-    if [[ "$info" != *"$arch"* ]]; then
-      echo "error: $label is missing $arch slice: $info" >&2
-      exit 1
-    fi
-  done
+  if ! lipo "$binary" -verify_arch "$@"; then
+    lipo -info "$binary" >&2 || true
+    echo "error: $label is missing one or more required slices: $*" >&2
+    exit 1
+  fi
 }
 
 require_executable "$CLI_BIN" "deppy-cli"
@@ -73,6 +78,18 @@ require_executable "$CMUX_SHIM" "cmux compatibility shim"
 if [[ "${DEPPY_LITE_SKIP_STRIP:-0}" != "1" ]]; then
   strip -u -r "$APP_BIN"
   strip -u -r "$CLI_BIN"
+fi
+
+if [[ "${DEPPY_LITE_INCLUDE_WEB_CONNECT_RUNTIME:-0}" == "1" && "${DEPPY_LITE_SKIP_WEB_CONNECT_RUNTIME:-0}" != "1" ]]; then
+  "$ROOT_DIR/scripts/build-web-connect-runtime.sh" "$APP_PATH"
+else
+  rm -rf "$WEB_CONNECT_RUNTIME_DIR"
+  echo "Web Connect runtime: not bundled (set DEPPY_LITE_INCLUDE_WEB_CONNECT_RUNTIME=1 to include)"
+fi
+
+if [[ "${DEPPY_LITE_INCLUDE_WEB_CONNECT_RUNTIME:-0}" != "1" && -e "$WEB_CONNECT_RUNTIME_DIR" ]]; then
+  echo "error: Web Connect runtime unexpectedly remains in lite app bundle: $WEB_CONNECT_RUNTIME_DIR" >&2
+  exit 70
 fi
 
 echo "Release app:"

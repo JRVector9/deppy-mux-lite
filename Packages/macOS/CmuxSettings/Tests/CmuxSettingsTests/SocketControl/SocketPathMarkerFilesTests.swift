@@ -19,6 +19,14 @@ import Testing
         environment: [:]
     ) == .nightly(slug: nil))
     #expect(SocketPathMarkerFiles.variant(
+        bundleIdentifier: "com.deppy-mux.lite",
+        environment: [:]
+    ) == .lite(slug: nil))
+    #expect(SocketPathMarkerFiles.variant(
+        bundleIdentifier: "com.deppy-mux.lite.universal",
+        environment: [:]
+    ) == .lite(slug: "universal"))
+    #expect(SocketPathMarkerFiles.variant(
         bundleIdentifier: "com.deppy-mux.app.debug.agent",
         environment: [:]
     ) == .dev(slug: "agent"))
@@ -61,6 +69,18 @@ import Testing
         isDebugBuild: false,
         stableSocketPath: "/stable/cmux.sock"
     ) == "/tmp/cmux-nightly.sock")
+    #expect(SocketPathMarkerFiles.defaultSocketPath(
+        bundleIdentifier: "com.deppy-mux.lite",
+        environment: [:],
+        isDebugBuild: false,
+        stableSocketPath: "/stable/cmux.sock"
+    ) == "/tmp/deppy-mux-lite.sock")
+    #expect(SocketPathMarkerFiles.defaultSocketPath(
+        bundleIdentifier: "com.deppy-mux.lite.universal",
+        environment: [:],
+        isDebugBuild: false,
+        stableSocketPath: "/stable/cmux.sock"
+    ) == "/tmp/deppy-mux-lite-universal.sock")
     #expect(SocketPathMarkerFiles.defaultSocketPath(
         bundleIdentifier: "com.deppy-mux.app.staging.my-feature",
         environment: [:],

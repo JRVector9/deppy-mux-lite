@@ -56,7 +56,7 @@ final class MobileWebAccessSessionModel {
         case let .started(snapshot):
             current = snapshot
             lastError = nil
-        case .notSignedIn, .tailscaleUnavailable, .webEndpointUnavailable, .failed:
+        case .notSignedIn, .tailscaleUnavailable, .runtimeMissing, .webServerStartFailed, .webEndpointUnavailable, .failed:
             lastError = result
         }
     }

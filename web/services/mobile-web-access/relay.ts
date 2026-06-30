@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { and, asc, count, eq, gt, inArray, lte, sql } from "drizzle-orm";
 import { cloudDb } from "../../db/client";
 import { webAccessRpcRequests, webAccessSessions } from "../../db/schema";
+import type { WebAccessSessionRepository } from "./sessions";
 import type { MobileRpcMethod, MobileRpcParams } from "../mobile-rpc/types";
 
 export type WebAccessRelayRequest = {
@@ -245,6 +246,150 @@ export function createMemoryWebAccessRelayRepository(input: {
     },
     async findActiveHostSession(check) {
       return check.slug === input.activeSlug && check.hostTokenHash === hostTokenHash;
+    },
+    async enqueueRequest(enqueue) {
+      await this.pruneExpiredRequests(enqueue.now);
+      const active = enqueue.browserTokenHash
+        ? await this.findActiveSessionForBrowser({
+          slug: enqueue.request.slug,
+          browserTokenHash: enqueue.browserTokenHash,
+          now: enqueue.now,
+        })
+        : enqueue.userId && enqueue.teamIds
+          ? await this.findActiveSessionForRequester({
+            slug: enqueue.request.slug,
+            userId: enqueue.userId,
+            teamIds: enqueue.teamIds,
+            now: enqueue.now,
+          })
+          : false;
+      if (!active) {
+        return "not_found";
+      }
+      const openRequests = [...requests.values()].filter(
+        (request) =>
+          request.slug === enqueue.request.slug &&
+          request.status !== "done" &&
+          Date.parse(request.expiresAt) > enqueue.now.getTime(),
+      ).length;
+      if (openRequests >= enqueue.maxOpenRequests) {
+        return "queue_full";
+      }
+      requests.set(enqueue.request.id, { ...enqueue.request, status: "pending" });
+      return "inserted";
+    },
+    async claimPendingRequests(claim) {
+      const staleClaimCutoffMs = claim.now.getTime() - CLAIM_TIMEOUT_MS;
+      for (const request of requests.values()) {
+        if (
+          request.slug === claim.slug &&
+          request.status === "claimed" &&
+          Date.parse(request.expiresAt) > claim.now.getTime() &&
+          Date.parse(request.claimedAt ?? request.createdAt) <= staleClaimCutoffMs
+        ) {
+          request.status = "done";
+          request.completion = { ok: false, error: hostClaimTimeoutError };
+        }
+      }
+      const claimed: WebAccessRelayRequest[] = [];
+      for (const request of [...requests.values()].sort((lhs, rhs) =>
+        Date.parse(lhs.createdAt) - Date.parse(rhs.createdAt),
+      )) {
+        if (claimed.length >= claim.limit) {
+          break;
+        }
+        if (
+          request.slug === claim.slug &&
+          request.status === "pending" &&
+          Date.parse(request.expiresAt) > claim.now.getTime()
+        ) {
+          request.status = "claimed";
+          request.claimedAt = claim.now.toISOString();
+          claimed.push(stripStatus(request));
+        }
+      }
+      return claimed;
+    },
+    async completeRequest(complete) {
+      const request = requests.get(complete.requestId);
+      if (
+        !request ||
+        request.slug !== complete.slug ||
+        request.status === "done" ||
+        Date.parse(request.expiresAt) <= complete.now.getTime()
+      ) {
+        return false;
+      }
+      request.status = "done";
+      request.completion = complete.completion;
+      return true;
+    },
+    async findRequestStatus(input) {
+      const request = requests.get(input.requestId);
+      if (
+        !request ||
+        request.slug !== input.slug ||
+        request.statusTokenHash !== input.statusTokenHash ||
+        Date.parse(request.expiresAt) <= input.now.getTime()
+      ) {
+        return null;
+      }
+      if (
+        request.status === "claimed" &&
+        Date.parse(request.claimedAt ?? request.createdAt) <= input.now.getTime() - CLAIM_TIMEOUT_MS
+      ) {
+        request.status = "done";
+        request.completion = { ok: false, error: hostClaimTimeoutError };
+      }
+      if (request.status !== "done") {
+        return { status: request.status };
+      }
+      if (request.completion?.ok === false) {
+        return { status: "failed", error: request.completion.error };
+      }
+      return { status: "completed", result: request.completion?.result ?? null };
+    },
+  };
+}
+
+export function createMemoryWebAccessRelayRepositoryForSessions(
+  sessions: WebAccessSessionRepository,
+): WebAccessRelayRepository {
+  const requests = new Map<
+    string,
+    WebAccessRelayRequest & {
+      completion?: WebAccessRelayCompletion;
+      statusTokenHash: string;
+      status: "pending" | "claimed" | "done";
+      claimedAt?: string;
+    }
+  >();
+
+  return {
+    async pruneExpiredRequests(now) {
+      const nowMs = now.getTime();
+      for (const [id, request] of requests) {
+        if (Date.parse(request.expiresAt) <= nowMs) {
+          requests.delete(id);
+        }
+      }
+    },
+    async findActiveSessionForRequester(check) {
+      const session = await sessions.findActiveBySlug(check.slug, check.now);
+      return !!session &&
+        session.userId === check.userId &&
+        check.teamIds.includes(session.teamId);
+    },
+    async findActiveSessionForBrowser(check) {
+      return !!(await sessions.findActiveByBrowserToken({
+        slug: check.slug,
+        browserTokenHash: check.browserTokenHash,
+        now: check.now,
+      }));
+    },
+    async findActiveHostSession(check) {
+      const session = await sessions.findActiveBySlug(check.slug, check.now);
+      return !!session && session.hostTokenHash === check.hostTokenHash;
     },
     async enqueueRequest(enqueue) {
       await this.pruneExpiredRequests(enqueue.now);

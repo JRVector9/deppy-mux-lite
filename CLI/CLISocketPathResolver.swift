@@ -220,7 +220,7 @@ enum CLISocketPathResolver {
         switch variant {
         case .stable:
             return true
-        case .nightly, .staging, .dev:
+        case .nightly, .staging, .lite, .dev:
             return pathsMatch(requestedPath, defaultPath)
                 || !containsPath(stableImplicitDefaultPaths(), requestedPath)
         }
@@ -230,7 +230,7 @@ enum CLISocketPathResolver {
         switch variant {
         case .stable:
             return stableImplicitDefaultPaths()
-        case .nightly, .staging, .dev:
+        case .nightly, .staging, .lite, .dev:
             return []
         }
     }
@@ -247,7 +247,7 @@ enum CLISocketPathResolver {
             let bundleId = bundleIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             return bundleId == SocketPathMarkerFiles.defaultBaseDebugBundleIdentifier
                 && normalized(environment["CMUX_TAG"]) != nil
-        case .stable, .nightly, .staging:
+        case .stable, .nightly, .staging, .lite:
             return false
         }
     }
