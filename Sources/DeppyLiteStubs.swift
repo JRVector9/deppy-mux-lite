@@ -3661,4 +3661,32 @@ extension TerminalController: ControlBrowserPanelContext {
     func controlBrowserPanelFocusWebView(panelID: UUID) -> ControlBrowserPanelFocusWebViewResolution { .panelNotFound }
     func controlBrowserPanelIsWebViewFocused(panelID: UUID) -> ControlBrowserPanelWebViewFocusState { .panelNotFound }
 }
+
+@MainActor
+final class TaskManagerWindowController {
+    static let shared = TaskManagerWindowController()
+
+    private init() {}
+
+    func show() {}
+}
+
+struct PaneMemoryDescriptor: Sendable {}
+
+final class PaneMemoryGuardrail {
+    static let shared = PaneMemoryGuardrail()
+
+    var paneProvider: (@MainActor () -> [PaneMemoryDescriptor])?
+    var onSystemMemoryPressure: (() -> Void)?
+
+    private init() {}
+
+    func start() {}
+}
+
+extension AppDelegate {
+    func paneMemoryGuardrailDescriptors() -> [PaneMemoryDescriptor] { [] }
+
+    func discardHiddenBrowserWebViewsForSystemMemoryPressure() {}
+}
 #endif

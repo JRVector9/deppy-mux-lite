@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import CmuxFoundation
 import Observation
 import SwiftUI
@@ -479,3 +480,4 @@ struct CmuxTaskManagerRowView: View, Equatable {
         }
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import CmuxSettings
 import Foundation
 import Observation
@@ -386,3 +387,4 @@ final class PaneMemoryGuardrail {
         lastScopedScanAt = .distantPast
     }
 }
+#endif

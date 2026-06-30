@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import Foundation
 
 struct PaneMemoryGuardrailSampleBatch: Sendable {
@@ -5,3 +6,4 @@ struct PaneMemoryGuardrailSampleBatch: Sendable {
     let scopedOnlySamplesByKey: [PaneMemoryPaneKey: PaneMemorySample]
     let includesCMUXScope: Bool
 }
+#endif

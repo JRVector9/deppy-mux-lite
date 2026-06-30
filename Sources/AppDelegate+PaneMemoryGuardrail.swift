@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import Foundation
 
 extension AppDelegate {
@@ -59,3 +60,4 @@ extension AppDelegate {
         }
     }
 }
+#endif

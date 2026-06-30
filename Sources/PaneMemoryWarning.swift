@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import Foundation
 
 /// The content surfaced in the dismissible warning banner.
@@ -12,3 +13,4 @@ struct PaneMemoryWarning: Equatable, Identifiable, Sendable {
     var id: UUID { panelId }
     var key: PaneMemoryPaneKey { PaneMemoryPaneKey(workspaceId: workspaceId, panelId: panelId) }
 }
+#endif

@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import Foundation
 
 struct PaneMemoryGuardrailEngineOutput: Equatable {
@@ -13,3 +14,4 @@ struct PaneMemoryGuardrailEngineOutput: Equatable {
 
     var bannerToPresent: PaneMemoryWarning? { bannersToPresent.first }
 }
+#endif

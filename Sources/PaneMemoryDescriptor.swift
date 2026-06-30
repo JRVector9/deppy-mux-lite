@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import Foundation
 
 /// Main-actor snapshot of one live pane gathered before an off-main memory scan.
@@ -13,3 +14,4 @@ struct PaneMemoryDescriptor: Sendable {
 
     var key: PaneMemoryPaneKey { PaneMemoryPaneKey(workspaceId: workspaceId, panelId: panelId) }
 }
+#endif

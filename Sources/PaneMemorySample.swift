@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import Foundation
 
 /// Result of summing a pane's process-tree memory off the main thread.
@@ -26,3 +27,4 @@ struct PaneMemorySample: Sendable {
         )
     }
 }
+#endif

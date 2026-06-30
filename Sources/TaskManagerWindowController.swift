@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import AppKit
 import Darwin
 import Observation
@@ -360,3 +361,4 @@ final class CmuxTaskManagerModel {
         panel.triggerFlash(reason: .debug)
     }
 }
+#endif

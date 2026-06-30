@@ -1,3 +1,4 @@
+#if !DEPPY_LITE
 import Foundation
 
 /// Stateless-per-call decision core for the guardrail. Owns only the
@@ -65,3 +66,4 @@ struct PaneMemoryGuardrailEngine {
         dismissedPanes.removeAll()
     }
 }
+#endif
