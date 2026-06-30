@@ -6,6 +6,7 @@ DERIVED_DATA="${DERIVED_DATA:-${HOME}/Library/Developer/Xcode/DerivedData/deppy-
 APP_PATH="${DERIVED_DATA}/Build/Products/Release/deppy-mux-lite.app"
 APP_BIN="${APP_PATH}/Contents/MacOS/deppy-mux-lite"
 CLI_BIN="${APP_PATH}/Contents/Resources/bin/deppy-cli"
+CMUX_SHIM="${APP_PATH}/Contents/Resources/bin/cmux"
 
 cd "$ROOT_DIR"
 
@@ -42,22 +43,48 @@ if [[ ! -x "$APP_BIN" ]]; then
   exit 1
 fi
 
+require_executable() {
+  local binary="$1"
+  local label="$2"
+  if [[ ! -x "$binary" ]]; then
+    echo "error: $label not found at $binary" >&2
+    exit 1
+  fi
+}
+
+require_exact_archs() {
+  local binary="$1"
+  local label="$2"
+  shift 2
+  local expected
+  local actual
+  expected="$*"
+  actual="$(lipo -archs "$binary")"
+  if [[ "$actual" != "$expected" ]]; then
+    echo "error: $label architectures are '$actual', expected '$expected'" >&2
+    exit 1
+  fi
+}
+
+require_executable "$CLI_BIN" "deppy-cli"
+require_executable "$CMUX_SHIM" "cmux compatibility shim"
+
 if [[ "${DEPPY_LITE_SKIP_STRIP:-0}" != "1" ]]; then
   strip -u -r "$APP_BIN"
-  if [[ -x "$CLI_BIN" ]]; then
-    strip -u -r "$CLI_BIN"
-  fi
+  strip -u -r "$CLI_BIN"
 fi
 
 echo "Release app:"
 echo "  $APP_PATH"
 echo "Sizes:"
 du -sh "$APP_PATH" "$APP_BIN"
-if [[ -x "$CLI_BIN" ]]; then
-  du -sh "$CLI_BIN"
-fi
+du -sh "$CLI_BIN"
 echo "Architectures:"
 lipo -info "$APP_BIN"
-if [[ -x "$CLI_BIN" ]]; then
-  lipo -info "$CLI_BIN"
+require_exact_archs "$APP_BIN" "app binary" arm64
+lipo -info "$CLI_BIN"
+require_exact_archs "$CLI_BIN" "deppy-cli" arm64
+if [[ "${DEPPY_LITE_SKIP_SMOKE:-0}" != "1" ]]; then
+  "$CLI_BIN" --help >/dev/null
+  "$CMUX_SHIM" --help >/dev/null
 fi
