@@ -20,6 +20,7 @@ const agentSlugMoves: [from: string, to: string][] = [
 ];
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   poweredByHeader,
   allowedDevOrigins: ["100.75.156.51"],
   async redirects() {

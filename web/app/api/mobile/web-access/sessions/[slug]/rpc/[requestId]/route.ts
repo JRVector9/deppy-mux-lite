@@ -1,4 +1,5 @@
 import { getWebAccessRpcRequestStatus } from "../../../../../../../../services/mobile-web-access/relay";
+import { webAccessRelayRepository } from "../../../../../../../../services/mobile-web-access/local";
 import { jsonResponse } from "../../../../../../../../services/vms/routeHelpers";
 
 export const runtime = "nodejs";
@@ -17,11 +18,14 @@ export async function GET(
   if (!statusToken) {
     return jsonResponse({ error: "unauthorized" }, 401);
   }
-  const status = await getWebAccessRpcRequestStatus({
-    slug,
-    requestId,
-    statusToken,
-  });
+  const status = await getWebAccessRpcRequestStatus(
+    {
+      slug,
+      requestId,
+      statusToken,
+    },
+    webAccessRelayRepository(),
+  );
   if (!status) {
     return jsonResponse({ error: "web_access_rpc_request_not_found" }, 404);
   }

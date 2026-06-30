@@ -112,6 +112,21 @@ describe("after sign-in native handoff", () => {
     expect(callbackURL.searchParams.get("stack_refresh")).toBe("refresh-token");
   });
 
+  test("allows the universal lite native callback scheme", async () => {
+    handoffCookie = "handoff-nonce";
+    const nativeReturnTo = "deppy-mux-lite-universal://auth-callback?cmux_auth_state=state-lite-universal";
+
+    const response = await GET(signInRequest(nativeReturnTo, "handoff-nonce"));
+
+    expect(response.status).toBe(200);
+    const html = await response.text();
+    const callbackURL = new URL(returnHref(html));
+    expect(callbackURL.protocol).toBe("deppy-mux-lite-universal:");
+    expect(callbackURL.hostname).toBe("auth-callback");
+    expect(callbackURL.searchParams.get("cmux_auth_state")).toBe("state-lite-universal");
+    expect(callbackURL.searchParams.get("stack_refresh")).toBe("refresh-token");
+  });
+
   test("does not crash on malformed percent-encoded stack cookies", async () => {
     handoffCookie = "handoff-nonce";
     rawRefreshCookie = "%";

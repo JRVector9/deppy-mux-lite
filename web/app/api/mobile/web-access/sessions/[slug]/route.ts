@@ -2,6 +2,9 @@ import {
   getPublicWebAccessSession,
   markWebAccessHostSeen,
 } from "../../../../../../services/mobile-web-access/sessions";
+import {
+  webAccessSessionRepository,
+} from "../../../../../../services/mobile-web-access/local";
 import { jsonResponse } from "../../../../../../services/vms/routeHelpers";
 
 export const runtime = "nodejs";
@@ -16,7 +19,7 @@ export async function GET(
   { params }: SessionRouteProps,
 ): Promise<Response> {
   const { slug } = await params;
-  const session = await getPublicWebAccessSession(slug);
+  const session = await getPublicWebAccessSession(slug, new Date(), webAccessSessionRepository());
   if (!session) {
     return jsonResponse({ error: "web_access_session_not_found" }, 404);
   }
@@ -33,7 +36,7 @@ export async function POST(
     return jsonResponse({ error: "unauthorized" }, 401);
   }
   const now = new Date();
-  const ok = await markWebAccessHostSeen({ slug, hostToken, now });
+  const ok = await markWebAccessHostSeen({ slug, hostToken, now }, webAccessSessionRepository());
   if (!ok) {
     return jsonResponse({ error: "web_access_session_not_found" }, 404);
   }

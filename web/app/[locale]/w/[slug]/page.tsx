@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { isStackConfigured } from "../../../lib/stack";
 import { getPublicWebAccessSession } from "@/services/mobile-web-access/sessions";
+import { webAccessSessionRepository } from "@/services/mobile-web-access/local";
 import { WebAccessSessionClient } from "./web-access-session-client";
 
 type WebAccessPageProps = {
@@ -26,7 +27,7 @@ export default async function WebAccessPage({ params }: WebAccessPageProps) {
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "webAccess" });
   const pwaT = await getTranslations({ locale, namespace: "pwa" });
-  const session = await getPublicWebAccessSession(slug);
+  const session = await getPublicWebAccessSession(slug, new Date(), webAccessSessionRepository());
   const pagePath = locale === "en" ? `/w/${slug}` : `/${locale}/w/${slug}`;
   const signInHref = `/handler/sign-in?after_auth_return_to=${encodeURIComponent(pagePath)}`;
 

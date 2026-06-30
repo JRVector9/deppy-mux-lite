@@ -7,6 +7,7 @@ APP_PATH="${DERIVED_DATA}/Build/Products/Release/deppy-mux-lite.app"
 APP_BIN="${APP_PATH}/Contents/MacOS/deppy-mux-lite"
 CLI_BIN="${APP_PATH}/Contents/Resources/bin/deppy-cli"
 CMUX_SHIM="${APP_PATH}/Contents/Resources/bin/cmux"
+WEB_CONNECT_RUNTIME_DIR="${APP_PATH}/Contents/Resources/web-connect"
 
 cd "$ROOT_DIR"
 
@@ -72,6 +73,18 @@ require_executable "$CMUX_SHIM" "cmux compatibility shim"
 if [[ "${DEPPY_LITE_SKIP_STRIP:-0}" != "1" ]]; then
   strip -u -r "$APP_BIN"
   strip -u -r "$CLI_BIN"
+fi
+
+if [[ "${DEPPY_LITE_INCLUDE_WEB_CONNECT_RUNTIME:-0}" == "1" && "${DEPPY_LITE_SKIP_WEB_CONNECT_RUNTIME:-0}" != "1" ]]; then
+  "$ROOT_DIR/scripts/build-web-connect-runtime.sh" "$APP_PATH"
+else
+  rm -rf "$WEB_CONNECT_RUNTIME_DIR"
+  echo "Web Connect runtime: not bundled (set DEPPY_LITE_INCLUDE_WEB_CONNECT_RUNTIME=1 to include)"
+fi
+
+if [[ "${DEPPY_LITE_INCLUDE_WEB_CONNECT_RUNTIME:-0}" != "1" && -e "$WEB_CONNECT_RUNTIME_DIR" ]]; then
+  echo "error: Web Connect runtime unexpectedly remains in lite app bundle: $WEB_CONNECT_RUNTIME_DIR" >&2
+  exit 70
 fi
 
 echo "Release app:"

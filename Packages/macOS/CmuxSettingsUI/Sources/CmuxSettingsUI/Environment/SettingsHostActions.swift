@@ -76,6 +76,24 @@ public protocol SettingsHostActions: AnyObject {
     /// that keeps this Mac visible behind the public URL.
     func startMobileWebAccessSession() async -> MobileWebAccessStartResult
 
+    /// Starts or stops the local Web Connect server on the requested port.
+    ///
+    /// The host validates the port and refuses to start if another process
+    /// already owns it.
+    func setMobileWebAccessServerEnabled(_ enabled: Bool, port: Int) async -> MobileWebAccessServerControlResult
+
+    /// Returns whether the local Web Connect runtime is installed and usable.
+    func mobileWebAccessRuntimeStatus() -> MobileWebAccessRuntimeStatus
+
+    /// Returns whether the current Web Connect endpoint needs a local runtime.
+    func mobileWebAccessRuntimeRequired() -> Bool
+
+    /// Installs the local Web Connect runtime from the host's configured package source.
+    func installMobileWebAccessRuntime() async -> MobileWebAccessRuntimeInstallResult
+
+    /// Removes the user-installed local Web Connect runtime, if present.
+    func uninstallMobileWebAccessRuntime() -> Bool
+
     /// Copies a browser Web Connect URL using the host app's pasteboard bridge.
     func copyMobileWebAccessURL(_ url: String)
 
@@ -179,6 +197,22 @@ public extension SettingsHostActions {
     func currentMobileWebAccessSession() -> MobileWebAccessSessionSnapshot? { nil }
 
     func startMobileWebAccessSession() async -> MobileWebAccessStartResult { .failed }
+
+    func setMobileWebAccessServerEnabled(
+        _ enabled: Bool,
+        port: Int
+    ) async -> MobileWebAccessServerControlResult {
+        guard (1...65535).contains(port) else { return .invalidPort(port: port) }
+        return enabled ? .runtimeMissing : .stopped
+    }
+
+    func mobileWebAccessRuntimeStatus() -> MobileWebAccessRuntimeStatus { .missing }
+
+    func mobileWebAccessRuntimeRequired() -> Bool { true }
+
+    func installMobileWebAccessRuntime() async -> MobileWebAccessRuntimeInstallResult { .missingSource }
+
+    func uninstallMobileWebAccessRuntime() -> Bool { false }
 
     func copyMobileWebAccessURL(_ url: String) {}
 

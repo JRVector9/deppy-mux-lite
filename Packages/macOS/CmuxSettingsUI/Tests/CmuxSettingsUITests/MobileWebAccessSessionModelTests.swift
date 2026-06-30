@@ -69,6 +69,27 @@ import Testing
         #expect(model.isStarting == false)
     }
 
+    @Test func runtimeMissingLeavesCurrentSessionUntouched() async {
+        let existing = MobileWebAccessSessionSnapshot(
+            slug: "old",
+            publicURL: "https://cmux.test/w/old",
+            expiresAt: Date(timeIntervalSince1970: 1_200),
+            hostSeenAt: nil
+        )
+        let model = MobileWebAccessSessionModel(
+            currentSession: { existing },
+            startSession: { .runtimeMissing },
+            copyURL: { _ in }
+        )
+        model.refreshCurrentSession()
+
+        await model.start()
+
+        #expect(model.current == existing)
+        #expect(model.lastError == .runtimeMissing)
+        #expect(model.isStarting == false)
+    }
+
     @Test func webEndpointUnavailableLeavesCurrentSessionUntouched() async {
         let existing = MobileWebAccessSessionSnapshot(
             slug: "old",
@@ -87,6 +108,27 @@ import Testing
 
         #expect(model.current == existing)
         #expect(model.lastError == .webEndpointUnavailable)
+        #expect(model.isStarting == false)
+    }
+
+    @Test func webServerStartFailedLeavesCurrentSessionUntouched() async {
+        let existing = MobileWebAccessSessionSnapshot(
+            slug: "old",
+            publicURL: "https://cmux.test/w/old",
+            expiresAt: Date(timeIntervalSince1970: 1_200),
+            hostSeenAt: nil
+        )
+        let model = MobileWebAccessSessionModel(
+            currentSession: { existing },
+            startSession: { .webServerStartFailed },
+            copyURL: { _ in }
+        )
+        model.refreshCurrentSession()
+
+        await model.start()
+
+        #expect(model.current == existing)
+        #expect(model.lastError == .webServerStartFailed)
         #expect(model.isStarting == false)
     }
 

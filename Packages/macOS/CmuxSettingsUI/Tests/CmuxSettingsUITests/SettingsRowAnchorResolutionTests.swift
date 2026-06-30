@@ -138,6 +138,7 @@ struct SettingsRowAnchorResolutionTests {
         "setting:account:account",
         "setting:mobile:pairDevice",
         "setting:mobile:webAccess",
+        "setting:mobile:webConnectServer",
         "setting:mobile:iOSPairingHost",
         "setting:mobile:iOSPairingPort",
         "setting:mobile:iOSPairingDisplayName",

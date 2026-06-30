@@ -1,4 +1,5 @@
 import CmuxAuthRuntime
+import CmuxSettings
 import CmuxSettingsUI
 import Foundation
 
@@ -8,17 +9,20 @@ final class MobileWebAccessClient {
     static let shared = MobileWebAccessClient()
 
     private let session: URLSession = .shared
+    private let webConnectServer = WebConnectServerController()
     private var auth: AuthCoordinator?
     private var current: MobileWebAccessSessionSnapshot?
     private var currentHostToken: String?
     private var heartbeatTask: Task<Void, Never>?
     private var relayTask: Task<Void, Never>?
+    private var didRestorePersistedServer = false
 
     private init() {}
 
     /// Injects auth at the app composition root.
     func configure(auth: AuthCoordinator) {
         self.auth = auth
+        restorePersistedServerIfNeeded()
     }
 
     /// Returns the current in-process session, if any.
@@ -29,11 +33,29 @@ final class MobileWebAccessClient {
 
     /// Creates a session and starts the heartbeat loop that marks this Mac online.
     func startSession() async -> MobileWebAccessStartResult {
-        guard let url = Self.apiURL(path: "/api/mobile/web-access/sessions") else {
+        let baseURL = Self.webConnectBaseURL()
+        let requiresLocalServer = WebConnectServerController.canAutoStart(baseURL: baseURL)
+        guard let url = Self.apiURL(path: "/api/mobile/web-access/sessions", baseURL: baseURL) else {
             return .failed
         }
-        guard let publicOrigin = Self.tailscalePublicOrigin() else {
+        guard let publicOrigin = Self.tailscalePublicOrigin(baseURL: baseURL) else {
             return .tailscaleUnavailable
+        }
+        let serverResult = await webConnectServer.ensureStarted(baseURL: baseURL)
+        if case .runtimeMissing = serverResult {
+            if requiresLocalServer {
+                Self.setWebConnectServerEnabled(false)
+            }
+            return .runtimeMissing
+        }
+        guard case .running = serverResult else {
+            if requiresLocalServer {
+                Self.setWebConnectServerEnabled(false)
+            }
+            return .webServerStartFailed
+        }
+        if requiresLocalServer {
+            Self.setWebConnectServerEnabled(true)
         }
 
         let tokens = try? await auth?.currentTokens()
@@ -46,6 +68,12 @@ final class MobileWebAccessClient {
         }
         if let teamID = auth?.resolvedTeamID, !teamID.isEmpty {
             request.setValue(teamID, forHTTPHeaderField: "X-Cmux-Team-Id")
+        }
+        if requiresLocalServer {
+            request.setValue(
+                WebConnectServerController.localControlToken,
+                forHTTPHeaderField: WebConnectServerController.localControlTokenHeader
+            )
         }
         request.setValue("application/json", forHTTPHeaderField: "content-type")
         request.httpBody = Self.createSessionBody(publicOrigin: publicOrigin)
@@ -114,12 +142,46 @@ final class MobileWebAccessClient {
 
     private func clearSession(slug: String) {
         guard current?.slug == slug else { return }
+        clearCurrentSession()
+    }
+
+    private func clearCurrentSession() {
         current = nil
         currentHostToken = nil
         heartbeatTask?.cancel()
         heartbeatTask = nil
         relayTask?.cancel()
         relayTask = nil
+        if !Self.isWebConnectServerEnabled() {
+            webConnectServer.stop()
+        }
+    }
+
+    /// Starts or stops the local Web Connect server using a user-selected port.
+    func setServerEnabled(_ enabled: Bool, port: Int) async -> MobileWebAccessServerControlResult {
+        let baseURL = Self.webConnectBaseURL(port: port)
+        let result = await webConnectServer.setEnabled(enabled, baseURL: baseURL)
+        switch result {
+        case .running:
+            Self.setWebConnectPort(port)
+            Self.setWebConnectServerEnabled(true)
+        case .stopped:
+            Self.setWebConnectServerEnabled(false)
+            clearCurrentSession()
+        case .invalidPort, .portInUse, .runtimeMissing, .failed:
+            break
+        }
+        return result
+    }
+
+    private func restorePersistedServerIfNeeded() {
+        guard !didRestorePersistedServer else { return }
+        didRestorePersistedServer = true
+        guard Self.isWebConnectServerEnabled() else { return }
+        let port = Self.webConnectPort()
+        Task { [weak self] in
+            _ = await self?.setServerEnabled(true, port: port)
+        }
     }
 
     private func sendHeartbeat(slug: String, hostToken: String) async {
@@ -230,9 +292,17 @@ final class MobileWebAccessClient {
         webConnectBaseURL(environment: environment, liteEnabled: DeppyLiteFeaturePolicy.isEnabled)
     }
 
+    nonisolated static func webConnectRuntimeRequired(
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        liteEnabled: Bool = DeppyLiteFeaturePolicy.isEnabled
+    ) -> Bool {
+        WebConnectServerController.canAutoStart(baseURL: webConnectBaseURL(environment: environment, liteEnabled: liteEnabled))
+    }
+
     nonisolated static func webConnectBaseURL(
         environment: [String: String],
-        liteEnabled: Bool
+        liteEnabled: Bool,
+        localPort: Int? = nil
     ) -> URL {
         if let override = environmentURL("CMUX_WEB_CONNECT_API_BASE_URL", environment: environment) {
             return override
@@ -241,9 +311,42 @@ final class MobileWebAccessClient {
             return override
         }
         if liteEnabled {
-            return URL(string: "http://localhost:9170")!
+            return webConnectBaseURL(port: localPort ?? webConnectPort())
         }
         return AuthEnvironment.vmAPIBaseURL
+    }
+
+    nonisolated static func webConnectBaseURL(port: Int) -> URL {
+        URL(string: "http://localhost:\(port)")!
+    }
+
+    private nonisolated static func webConnectPort() -> Int {
+        let key = SettingCatalog().mobile.webConnectPort
+        let stored = UserDefaults.standard.object(forKey: key.userDefaultsKey) as? Int
+        let port = stored ?? key.defaultValue
+        guard (1...65535).contains(port) else {
+            return key.defaultValue
+        }
+        return port
+    }
+
+    private nonisolated static func setWebConnectPort(_ port: Int) {
+        guard (1...65535).contains(port) else { return }
+        let key = SettingCatalog().mobile.webConnectPort
+        UserDefaults.standard.set(port, forKey: key.userDefaultsKey)
+    }
+
+    private nonisolated static func isWebConnectServerEnabled() -> Bool {
+        let key = SettingCatalog().mobile.webConnectServerEnabled
+        guard UserDefaults.standard.object(forKey: key.userDefaultsKey) != nil else {
+            return key.defaultValue
+        }
+        return UserDefaults.standard.bool(forKey: key.userDefaultsKey)
+    }
+
+    private nonisolated static func setWebConnectServerEnabled(_ enabled: Bool) {
+        let key = SettingCatalog().mobile.webConnectServerEnabled
+        UserDefaults.standard.set(enabled, forKey: key.userDefaultsKey)
     }
 
     private static func createSessionBody(publicOrigin: URL) -> Data? {
@@ -257,9 +360,9 @@ final class MobileWebAccessClient {
         return try? JSONSerialization.data(withJSONObject: body, options: [])
     }
 
-    private static func tailscalePublicOrigin() -> URL? {
+    private static func tailscalePublicOrigin(baseURL: URL = webConnectBaseURL()) -> URL? {
         guard let tailscaleHost = MobileRouteResolver.tailscaleRouteHosts(resolveDNS: false).first,
-              let url = webConnectPublicOrigin(baseURL: webConnectBaseURL(), tailscaleHost: tailscaleHost)
+              let url = webConnectPublicOrigin(baseURL: baseURL, tailscaleHost: tailscaleHost)
         else {
             return nil
         }

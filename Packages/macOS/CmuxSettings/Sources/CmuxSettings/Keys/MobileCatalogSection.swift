@@ -44,6 +44,27 @@ public struct MobileCatalogSection: SettingCatalogSection {
         userDefaultsKey: "mobile.iOSPairingHost.displayName"
     )
 
+    /// Whether the local Web Connect server should stay running.
+    ///
+    /// Creating a Web Connect link turns this on automatically. Users can turn
+    /// it off from Settings to stop the bundled local server.
+    public let webConnectServerEnabled = DefaultsKey<Bool>(
+        id: "mobile.webConnect.server.enabled",
+        defaultValue: false,
+        userDefaultsKey: "mobile.webConnect.server.enabled"
+    )
+
+    /// TCP port used by the local Web Connect server.
+    ///
+    /// The default is intentionally fixed so Tailscale links and firewall rules
+    /// stay predictable. If another process owns the port, the server does not
+    /// randomize; the user chooses a different port here.
+    public let webConnectPort = DefaultsKey<Int>(
+        id: "mobile.webConnect.port",
+        defaultValue: 9_170,
+        userDefaultsKey: "mobile.webConnect.port"
+    )
+
     /// Creates the Mobile settings catalog section.
     public init() {}
 }

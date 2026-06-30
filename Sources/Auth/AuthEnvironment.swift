@@ -52,6 +52,9 @@ enum AuthEnvironment {
         if bundleIdentifier == "com.deppy-mux.lite" {
             return "deppy-mux-lite"
         }
+        if bundleIdentifier == "com.deppy-mux.lite.universal" {
+            return "deppy-mux-lite-universal"
+        }
         return "cmux"
     }
 

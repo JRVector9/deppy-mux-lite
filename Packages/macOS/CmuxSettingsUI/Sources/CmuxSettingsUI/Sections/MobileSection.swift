@@ -11,6 +11,10 @@ public struct MobileSection: View {
     @State private var iOSPairingHost: DefaultsValueModel<Bool>
     @State private var port: DefaultsValueModel<Int>
     @State private var displayName: DefaultsValueModel<String>
+    @State private var webConnectServerEnabled: DefaultsValueModel<Bool>
+    @State private var webConnectPort: DefaultsValueModel<Int>
+    @State private var webConnectRuntimeStatus: MobileWebAccessRuntimeStatus
+    @State private var webConnectRuntimeRequired: Bool
     @State private var status: MobilePairingStatusModel
     @State private var webAccess: MobileWebAccessSessionModel
 
@@ -24,6 +28,16 @@ public struct MobileSection: View {
     @State private var applyResult: MobilePairingPortApplyResult?
     /// Guards against overlapping Apply taps while a probe is in flight.
     @State private var isApplying = false
+    /// The user's in-progress Web Connect port edit, or `nil` when tracking the persisted value.
+    @State private var editedWebConnectPort: Int?
+    /// Result of the most recent Web Connect server start/stop/apply action.
+    @State private var webConnectServerResult: MobileWebAccessServerControlResult?
+    /// Guards against overlapping Web Connect server control requests.
+    @State private var isApplyingWebConnectServer = false
+    /// Result of the most recent Web Connect runtime installation request.
+    @State private var webConnectRuntimeInstallResult: MobileWebAccessRuntimeInstallResult?
+    /// Guards against overlapping Web Connect runtime installation requests.
+    @State private var isInstallingWebConnectRuntime = false
 
     /// Host bridge: opens the pairing window, applies the port (availability
     /// checked), and supplies the live pairing status and default display name.
@@ -46,6 +60,10 @@ public struct MobileSection: View {
         _iOSPairingHost = State(initialValue: DefaultsValueModel(store: defaultsStore, key: catalog.mobile.iOSPairingHost))
         _port = State(initialValue: DefaultsValueModel(store: defaultsStore, key: catalog.mobile.iOSPairingPort))
         _displayName = State(initialValue: DefaultsValueModel(store: defaultsStore, key: catalog.mobile.iOSPairingDisplayName))
+        _webConnectServerEnabled = State(initialValue: DefaultsValueModel(store: defaultsStore, key: catalog.mobile.webConnectServerEnabled))
+        _webConnectPort = State(initialValue: DefaultsValueModel(store: defaultsStore, key: catalog.mobile.webConnectPort))
+        _webConnectRuntimeStatus = State(initialValue: hostActions.mobileWebAccessRuntimeStatus())
+        _webConnectRuntimeRequired = State(initialValue: hostActions.mobileWebAccessRuntimeRequired())
         _status = State(initialValue: MobilePairingStatusModel(hostActions: hostActions))
         _webAccess = State(initialValue: MobileWebAccessSessionModel(hostActions: hostActions))
         self.hostActions = hostActions
@@ -67,6 +85,33 @@ public struct MobileSection: View {
         (1...65535).contains(draftPort)
     }
 
+    private var draftWebConnectPort: Int {
+        editedWebConnectPort ?? webConnectPort.current
+    }
+
+    private var isDraftWebConnectPortValid: Bool {
+        (1...65535).contains(draftWebConnectPort)
+    }
+
+    private var isWebConnectRuntimeAvailable: Bool {
+        guard webConnectRuntimeRequired else {
+            return true
+        }
+        switch webConnectRuntimeStatus {
+        case .installed, .bundled, .external:
+            return true
+        case .missing:
+            return false
+        }
+    }
+
+    private var canRemoveWebConnectRuntime: Bool {
+        if case .installed = webConnectRuntimeStatus {
+            return true
+        }
+        return false
+    }
+
     /// The Mobile settings section content.
     public var body: some View {
         Group {
@@ -75,6 +120,13 @@ public struct MobileSection: View {
                 pairDeviceRow
                 SettingsCardDivider()
                 webAccessRow
+                webAccessOptionsRow
+                if webConnectRuntimeRequired && (webConnectRuntimeInstallResult != nil || !isWebConnectRuntimeAvailable) {
+                    webConnectRuntimeStatusView
+                }
+                if webConnectServerResult != nil {
+                    webAccessServerStatusView
+                }
                 if webAccess.current != nil || webAccess.lastError != nil {
                     webAccessStatusView
                 }
@@ -103,9 +155,12 @@ public struct MobileSection: View {
             iOSPairingHost,
             port,
             displayName,
+            webConnectServerEnabled,
+            webConnectPort,
             status,
         ]
         models.forEach { $0.startObserving() }
+        refreshWebConnectRuntimeStatus()
         webAccess.refreshCurrentSession()
     }
 
@@ -134,16 +189,181 @@ public struct MobileSection: View {
             String(localized: "settings.mobile.webAccess", defaultValue: "Web Connect"),
             subtitle: String(localized: "settings.mobile.webAccess.subtitle", defaultValue: "Create a private Web Connect link for connecting to this Mac's deppy-mux terminal from another device.")
         ) {
-            Button(webAccess.current == nil
-                ? String(localized: "settings.mobile.webAccess.create", defaultValue: "Create Link")
-                : String(localized: "settings.mobile.webAccess.refresh", defaultValue: "Refresh Link")
-            ) {
-                Task { await webAccess.start() }
+            HStack(spacing: 8) {
+                if webConnectRuntimeRequired {
+                    webConnectRuntimeActionButton
+                }
+
+                Button(webAccess.current == nil
+                    ? String(localized: "settings.mobile.webAccess.create", defaultValue: "Create Link")
+                    : String(localized: "settings.mobile.webAccess.refresh", defaultValue: "Refresh Link")
+                ) {
+                    Task { await webAccess.start() }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(webAccess.isStarting || isInstallingWebConnectRuntime || !isWebConnectRuntimeAvailable)
+                .accessibilityIdentifier("SettingsMobileWebAccessCreateButton")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var webConnectRuntimeActionButton: some View {
+        if isWebConnectRuntimeAvailable {
+            Button(String(localized: "settings.mobile.webConnect.runtime.remove", defaultValue: "Remove Runtime")) {
+                removeWebConnectRuntime()
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .disabled(webAccess.isStarting)
-            .accessibilityIdentifier("SettingsMobileWebAccessCreateButton")
+            .disabled(!canRemoveWebConnectRuntime || isApplyingWebConnectServer || isInstallingWebConnectRuntime)
+            .accessibilityIdentifier("SettingsMobileWebConnectRuntimeRemoveButton")
+        } else {
+            Button(isInstallingWebConnectRuntime
+                ? String(localized: "settings.mobile.webConnect.runtime.installing", defaultValue: "Installing…")
+                : String(localized: "settings.mobile.webConnect.runtime.install", defaultValue: "Install Runtime")
+            ) {
+                installWebConnectRuntime()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(isInstallingWebConnectRuntime)
+            .accessibilityIdentifier("SettingsMobileWebConnectRuntimeInstallButton")
+        }
+    }
+
+    @ViewBuilder
+    private var webAccessOptionsRow: some View {
+        SettingsCardRow(
+            configurationReview: .settingsOnly,
+            searchAnchorID: "setting:mobile:webConnectServer",
+            String(localized: "settings.mobile.webConnect.server", defaultValue: "Web Connect Server"),
+            subtitle: String(localized: "settings.mobile.webConnect.server.subtitle", defaultValue: "Run the local Web Connect server. If the port is busy, choose another port here.")
+        ) {
+            HStack(spacing: 8) {
+                Toggle("", isOn: Binding(
+                    get: { webConnectServerEnabled.current },
+                    set: { enabled in
+                        Task { await applyWebConnectServer(enabled: enabled, port: draftWebConnectPort) }
+                    }
+                ))
+                .labelsHidden()
+                .controlSize(.small)
+                .disabled(
+                    isApplyingWebConnectServer ||
+                    (!webConnectServerEnabled.current && (!isDraftWebConnectPortValid || !isWebConnectRuntimeAvailable))
+                )
+                .accessibilityIdentifier("SettingsMobileWebConnectServerToggle")
+
+                TextField(
+                    "",
+                    value: Binding(get: { draftWebConnectPort }, set: { editedWebConnectPort = $0 }),
+                    format: .number.grouping(.never)
+                )
+                .textFieldStyle(.roundedBorder)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 90)
+                .onChange(of: editedWebConnectPort) { webConnectServerResult = nil }
+                .onSubmit { applyDraftWebConnectPort() }
+                .accessibilityIdentifier("SettingsMobileWebConnectPortField")
+
+                Button(String(localized: "settings.mobile.webConnect.port.apply", defaultValue: "Apply")) {
+                    applyDraftWebConnectPort()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(
+                    isApplyingWebConnectServer ||
+                    !isWebConnectRuntimeAvailable ||
+                    !isDraftWebConnectPortValid ||
+                    draftWebConnectPort == webConnectPort.current
+                )
+                .accessibilityIdentifier("SettingsMobileWebConnectPortApplyButton")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var webConnectRuntimeStatusView: some View {
+        if let message = webConnectRuntimeStatusMessage {
+            SettingsCardNote(message)
+        }
+    }
+
+    private var webConnectRuntimeStatusMessage: String? {
+        switch webConnectRuntimeInstallResult {
+        case .installed:
+            return String(
+                localized: "settings.mobile.webConnect.runtime.installed",
+                defaultValue: "Web Connect Runtime is installed."
+            )
+        case .missingSource:
+            return String(
+                localized: "settings.mobile.webConnect.runtime.missingSource",
+                defaultValue: "No Web Connect Runtime package source is configured. Download the runtime package or run the install script, then try again."
+            )
+        case .failed:
+            return String(
+                localized: "settings.mobile.webConnect.runtime.installFailed",
+                defaultValue: "Could not install Web Connect Runtime. Check your connection and try again."
+            )
+        case .removeFailed:
+            return String(
+                localized: "settings.mobile.webConnect.runtime.removeFailed",
+                defaultValue: "Could not remove Web Connect Runtime. Stop the server and try again."
+            )
+        case nil:
+            if !isWebConnectRuntimeAvailable {
+                return String(
+                    localized: "settings.mobile.webConnect.runtime.missing",
+                    defaultValue: "Web Connect Runtime is not installed. Install it to create browser links from this app."
+                )
+            }
+            return nil
+        }
+    }
+
+    @ViewBuilder
+    private var webAccessServerStatusView: some View {
+        if let message = webAccessServerStatusMessage {
+            SettingsCardNote(message)
+        }
+    }
+
+    private var webAccessServerStatusMessage: String? {
+        switch webConnectServerResult {
+        case .running(let port):
+            return String(
+                localized: "settings.mobile.webConnect.server.running",
+                defaultValue: "Web Connect server is running on port \(port)."
+            )
+        case .stopped:
+            return String(
+                localized: "settings.mobile.webConnect.server.stopped",
+                defaultValue: "Web Connect server is stopped."
+            )
+        case .invalidPort:
+            return String(
+                localized: "settings.mobile.webConnect.server.invalidPort",
+                defaultValue: "Choose a port between 1 and 65535."
+            )
+        case .portInUse(let port):
+            return String(
+                localized: "settings.mobile.webConnect.server.portInUse",
+                defaultValue: "Port \(port) is already in use. Choose another port, then apply it."
+            )
+        case .runtimeMissing:
+            return String(
+                localized: "settings.mobile.webConnect.server.runtimeMissing",
+                defaultValue: "Install Web Connect Runtime before starting the local server."
+            )
+        case .failed(let port):
+            return String(
+                localized: "settings.mobile.webConnect.server.failed",
+                defaultValue: "Could not start the Web Connect server on port \(port)."
+            )
+        case nil:
+            return nil
         }
     }
 
@@ -189,12 +409,22 @@ public struct MobileSection: View {
         } else if webAccess.lastError == .tailscaleUnavailable {
             SettingsCardNote(String(
                 localized: "settings.mobile.webAccess.tailscaleUnavailable",
-                defaultValue: "Tailscale is required for Web Connect. Turn on Tailscale on this Mac, then create the link again."
+                defaultValue: "Tailscale is required for Web Connect. Install or turn on Tailscale on this Mac, then create the link again."
+            ))
+        } else if webAccess.lastError == .runtimeMissing {
+            SettingsCardNote(String(
+                localized: "settings.mobile.webAccess.runtimeMissing",
+                defaultValue: "Install Web Connect Runtime before creating a browser link."
+            ))
+        } else if webAccess.lastError == .webServerStartFailed {
+            SettingsCardNote(String(
+                localized: "settings.mobile.webAccess.webServerStartFailed",
+                defaultValue: "Could not start the Web Connect server on the configured port. Free the port or set a different local Web Connect URL, then create the link again."
             ))
         } else if webAccess.lastError == .webEndpointUnavailable {
             SettingsCardNote(String(
                 localized: "settings.mobile.webAccess.webEndpointUnavailable",
-                defaultValue: "Could not reach the Web Connect server. Start the deppy-mux web server, then create the link again."
+                defaultValue: "Could not reach a compatible Web Connect server. Check the deppy-mux web setup, then create the link again."
             ))
         } else if webAccess.lastError == .failed {
             SettingsCardNote(String(
@@ -265,6 +495,94 @@ public struct MobileSection: View {
             if case .portInUse = result {} else { editedPort = nil }
             isApplying = false
         }
+    }
+
+    private func applyDraftWebConnectPort() {
+        let requested = draftWebConnectPort
+        guard !isApplyingWebConnectServer, isDraftWebConnectPortValid else { return }
+        if requested == webConnectPort.current {
+            Task { await applyWebConnectServer(enabled: webConnectServerEnabled.current, port: requested) }
+            return
+        }
+        if webConnectServerEnabled.current {
+            Task {
+                let result = await controlWebConnectServer(enabled: true, port: requested)
+                if case .running = result {
+                    webConnectPort.set(requested)
+                    editedWebConnectPort = nil
+                    webConnectServerEnabled.set(true)
+                } else if case .portInUse = result {
+                    webConnectServerEnabled.set(true)
+                } else {
+                    webConnectServerEnabled.set(false)
+                }
+            }
+        } else {
+            webConnectPort.set(requested)
+            editedWebConnectPort = nil
+            webConnectServerResult = .stopped
+        }
+    }
+
+    private func applyWebConnectServer(enabled: Bool, port: Int) async {
+        let result = await controlWebConnectServer(enabled: enabled, port: port)
+        switch result {
+        case .running(let port):
+            webConnectPort.set(port)
+            editedWebConnectPort = nil
+            webConnectServerEnabled.set(true)
+        case .stopped:
+            webConnectServerEnabled.set(false)
+        case .portInUse where webConnectServerEnabled.current:
+            webConnectServerEnabled.set(true)
+        case .invalidPort, .portInUse, .runtimeMissing, .failed:
+            webConnectServerEnabled.set(false)
+        }
+    }
+
+    private func refreshWebConnectRuntimeStatus() {
+        webConnectRuntimeRequired = hostActions.mobileWebAccessRuntimeRequired()
+        webConnectRuntimeStatus = hostActions.mobileWebAccessRuntimeStatus()
+    }
+
+    private func installWebConnectRuntime() {
+        guard !isInstallingWebConnectRuntime else { return }
+        isInstallingWebConnectRuntime = true
+        webConnectRuntimeInstallResult = nil
+        Task {
+            let result = await hostActions.installMobileWebAccessRuntime()
+            webConnectRuntimeInstallResult = result
+            refreshWebConnectRuntimeStatus()
+            isInstallingWebConnectRuntime = false
+        }
+    }
+
+    private func removeWebConnectRuntime() {
+        guard !isInstallingWebConnectRuntime, canRemoveWebConnectRuntime else { return }
+        isInstallingWebConnectRuntime = true
+        Task {
+            _ = await hostActions.setMobileWebAccessServerEnabled(false, port: draftWebConnectPort)
+            webConnectServerEnabled.set(false)
+            webConnectServerResult = .stopped
+            let removed = hostActions.uninstallMobileWebAccessRuntime()
+            webConnectRuntimeInstallResult = removed ? nil : .removeFailed
+            refreshWebConnectRuntimeStatus()
+            isInstallingWebConnectRuntime = false
+        }
+    }
+
+    private func controlWebConnectServer(
+        enabled: Bool,
+        port: Int
+    ) async -> MobileWebAccessServerControlResult {
+        guard !isApplyingWebConnectServer else {
+            return webConnectServerResult ?? (enabled ? .failed(port: port) : .stopped)
+        }
+        isApplyingWebConnectServer = true
+        defer { isApplyingWebConnectServer = false }
+        let result = await hostActions.setMobileWebAccessServerEnabled(enabled, port: port)
+        webConnectServerResult = result
+        return result
     }
 
     /// Status under the port row: an out-of-range hint, the most recent Apply

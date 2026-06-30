@@ -43,6 +43,13 @@ struct AuthEnvironmentTests {
                 isDebugBuild: false
             ) == "deppy-mux-lite"
         )
+        #expect(
+            AuthEnvironment.callbackScheme(
+                environment: ["CMUX_TAG": "safari-auth"],
+                bundleIdentifier: "com.deppy-mux.lite.universal",
+                isDebugBuild: false
+            ) == "deppy-mux-lite-universal"
+        )
     }
 
     @Test("sign-in URL enters native wrapper")

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { webAccessBrowserMutationOriginAllowed } from "../app/api/mobile/web-access/sessions/[slug]/rpc/route";
+import { webAccessBrowserMutationOriginAllowed } from "../services/mobile-web-access/browser-origin";
 
 function rpcRequest(
   url: string,

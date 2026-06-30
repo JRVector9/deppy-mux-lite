@@ -1,8 +1,9 @@
 /// A flavor of the cmux app, used to derive per-flavor socket and marker file paths.
 ///
-/// Stable, nightly, staging, and dev builds each run side by side with isolated control
-/// sockets so they never collide. The associated `slug` (when present) further scopes
-/// nightly/staging/dev builds that carry a tag in their bundle identifier or `CMUX_TAG`.
+/// Stable, nightly, staging, lite, and dev builds each run side by side with isolated
+/// control sockets so they never collide. The associated `slug` (when present) further
+/// scopes nightly/staging/lite/dev builds that carry a tag in their bundle identifier
+/// or `CMUX_TAG`.
 public enum SocketPathVariant: Equatable, Sendable {
     /// The shipping release build.
     case stable
@@ -10,6 +11,8 @@ public enum SocketPathVariant: Equatable, Sendable {
     case nightly(slug: String?)
     /// A staging build, optionally tag-scoped by `slug`.
     case staging(slug: String?)
+    /// A lite build, optionally scoped by `slug` such as `universal`.
+    case lite(slug: String?)
     /// A local debug/dev build, optionally tag-scoped by `slug`.
     case dev(slug: String?)
 
@@ -29,6 +32,11 @@ public enum SocketPathVariant: Equatable, Sendable {
                 return "staging-\(slug)-last-socket-path"
             }
             return "staging-last-socket-path"
+        case .lite(let slug):
+            if let slug = Self.sanitizedSlug(slug) {
+                return "lite-\(slug)-last-socket-path"
+            }
+            return "lite-last-socket-path"
         case .dev(let slug):
             if let slug = Self.sanitizedSlug(slug) {
                 return "dev-\(slug)-last-socket-path"
@@ -52,6 +60,11 @@ public enum SocketPathVariant: Equatable, Sendable {
                 return "/tmp/cmux-staging-\(slug)-last-socket-path"
             }
             return "/tmp/cmux-staging-last-socket-path"
+        case .lite(let slug):
+            if let slug = Self.sanitizedSlug(slug) {
+                return "/tmp/deppy-mux-lite-\(slug)-last-socket-path"
+            }
+            return "/tmp/deppy-mux-lite-last-socket-path"
         case .dev(let slug):
             if let slug = Self.sanitizedSlug(slug) {
                 return "/tmp/cmux-dev-\(slug)-last-socket-path"
