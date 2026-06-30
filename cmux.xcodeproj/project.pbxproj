@@ -2247,7 +2247,7 @@
 		DEBDADADADADADADAD000004 /* DebugDogfoodCredentialResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugDogfoodCredentialResolverTests.swift; sourceTree = "<group>"; };
 		A500D011A1B2C3D4E5F60718 /* DebugLogging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/DebugLogging.swift; sourceTree = "<group>"; };
 		DE11C1000000000000000001 /* deppy-cli */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "deppy-cli"; sourceTree = BUILT_PRODUCTS_DIR; };
-		9079D6D5AA9FADF35825F421 /* deppy-mux-lite.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = "deppy-mux-lite.app"; path = "deppy-mux-lite.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9079D6D5AA9FADF35825F421 /* deppy-mux-lite-universal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = "deppy-mux-lite-universal.app"; path = "deppy-mux-lite-universal.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D3D1C0DE0000000000000002 /* DeppyLiteFeaturePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeppyLiteFeaturePolicy.swift; sourceTree = "<group>"; };
 		C15B72E6B028CB9250F6A66B /* DeppyLiteStubs.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DeppyLiteStubs.swift; sourceTree = "<group>"; };
 		A5001F000000000000000002 /* DetachedFolderDragIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetachedFolderDragIcon.swift; sourceTree = "<group>"; };
@@ -3903,7 +3903,7 @@
 				D1320AA0D1320AA0D1320AA5 /* CmuxDockTilePlugin.plugin */,
 				7E7E6EF344A568AC7FEE3715 /* cmuxUITests.xctest */,
 				F1000002A1B2C3D4E5F60718 /* cmuxTests.xctest */,
-				9079D6D5AA9FADF35825F421 /* deppy-mux-lite.app */,
+				9079D6D5AA9FADF35825F421 /* deppy-mux-lite-universal.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -4357,7 +4357,7 @@
 				EFB18E3B3099DFE2ECA3C263 /* CMUXMobileCore */,
 			);
 			productName = "deppy-mux-lite";
-			productReference = 9079D6D5AA9FADF35825F421 /* deppy-mux-lite.app */;
+			productReference = 9079D6D5AA9FADF35825F421 /* deppy-mux-lite-universal.app */;
 			productType = "com.apple.product-type.application";
 		};
 		A5001050 /* cmux */ = {
@@ -6644,8 +6644,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon-Debug";
-				CMUX_AUTH_CALLBACK_SCHEME = "deppy-mux-lite";
-				CMUX_SIDEBAR_EXTENSION_POINT_ID = "com.deppy-mux.lite.cmux.sidebar";
+				CMUX_AUTH_CALLBACK_SCHEME = "deppy-mux-lite-universal";
+				CMUX_SIDEBAR_EXTENSION_POINT_ID = "com.deppy-mux.lite.universal.cmux.sidebar";
 				CODE_SIGN_ENTITLEMENTS = "";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -6961,8 +6961,8 @@
 					"-framework",
 					Carbon,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.deppy-mux.lite";
-				PRODUCT_NAME = "deppy-mux-lite";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.deppy-mux.lite.universal";
+				PRODUCT_NAME = "deppy-mux-lite-universal";
 				SPARKLE_PUBLIC_KEY = "avjcgKibf1FTvhIjLBxhd+0HSpsXU4D0IGlVk8cgqRc=";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEPPY_LITE";
 				SWIFT_EMIT_LOC_STRINGS = YES;

@@ -3,8 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DERIVED_DATA="${DERIVED_DATA:-${HOME}/Library/Developer/Xcode/DerivedData/deppy-lite-universal-release}"
-APP_PATH="${DERIVED_DATA}/Build/Products/Release/deppy-mux-lite.app"
-APP_BIN="${APP_PATH}/Contents/MacOS/deppy-mux-lite"
+APP_PATH="${DERIVED_DATA}/Build/Products/Release/deppy-mux-lite-universal.app"
+APP_BIN="${APP_PATH}/Contents/MacOS/deppy-mux-lite-universal"
 CLI_BIN="${APP_PATH}/Contents/Resources/bin/deppy-cli"
 CMUX_SHIM="${APP_PATH}/Contents/Resources/bin/cmux"
 
