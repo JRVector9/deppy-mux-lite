@@ -49,6 +49,9 @@ enum AuthEnvironment {
         if bundleIdentifier == "com.cmuxterm.app.nightly" {
             return "cmux-nightly"
         }
+        if bundleIdentifier == "com.deppy-mux.lite" {
+            return "deppy-mux-lite"
+        }
         return "cmux"
     }
 

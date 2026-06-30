@@ -53,7 +53,7 @@ final class MobileWebAccessClient {
         do {
             let (data, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse else { return .failed }
-            if http.statusCode == 401 { return tokens == nil ? .failed : .notSignedIn }
+            if http.statusCode == 401 { return .notSignedIn }
             guard (200...299).contains(http.statusCode) else { return .failed }
             guard let parsed = Self.parseCreateResponse(data) else { return .failed }
 
