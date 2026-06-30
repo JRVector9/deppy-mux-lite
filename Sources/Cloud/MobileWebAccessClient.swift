@@ -58,7 +58,7 @@ final class MobileWebAccessClient {
             Self.setWebConnectServerEnabled(true)
         }
 
-        let tokens = try? await auth?.currentTokens()
+        let tokens = requiresLocalServer ? nil : try? await auth?.currentTokens()
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.timeoutInterval = 15
@@ -66,7 +66,7 @@ final class MobileWebAccessClient {
             request.setValue("Bearer \(tokens.accessToken)", forHTTPHeaderField: "Authorization")
             request.setValue(tokens.refreshToken, forHTTPHeaderField: "X-Stack-Refresh-Token")
         }
-        if let teamID = auth?.resolvedTeamID, !teamID.isEmpty {
+        if !requiresLocalServer, let teamID = auth?.resolvedTeamID, !teamID.isEmpty {
             request.setValue(teamID, forHTTPHeaderField: "X-Cmux-Team-Id")
         }
         if requiresLocalServer {
@@ -81,7 +81,7 @@ final class MobileWebAccessClient {
         do {
             let (data, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse else { return .failed }
-            if http.statusCode == 401 { return .notSignedIn }
+            if http.statusCode == 401 { return requiresLocalServer ? .webEndpointUnavailable : .notSignedIn }
             if Self.isWebConnectEndpointUnavailableStatus(http.statusCode) { return .webEndpointUnavailable }
             guard (200...299).contains(http.statusCode) else { return .failed }
             guard let parsed = Self.parseCreateResponse(data) else { return .failed }

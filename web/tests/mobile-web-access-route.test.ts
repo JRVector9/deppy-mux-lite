@@ -6,6 +6,7 @@ process.env.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY = "test-publishable-key";
 process.env.STACK_SECRET_SERVER_KEY = "test-secret-key";
 
 const {
+  GET: listSessions,
   POST: createSession,
 } = await import("../app/api/mobile/web-access/sessions/route");
 const {
@@ -63,6 +64,58 @@ describe("mobile web access route", () => {
       expect(typeof body.hostToken).toBe("string");
       expect(typeof body.publicUrl).toBe("string");
       expect(body.publicUrl.startsWith("http://deppy-test.tailnet.test/w/")).toBe(true);
+    } finally {
+      restoreLocalOnly(previousLocalOnly);
+      restoreLocalToken(previousToken);
+    }
+  });
+
+  test("allows local-only localhost session list probe with the local token", async () => {
+    const previousLocalOnly = process.env.CMUX_WEB_CONNECT_LOCAL_ONLY;
+    const previousToken = process.env.CMUX_WEB_CONNECT_LOCAL_TOKEN;
+    process.env.CMUX_WEB_CONNECT_LOCAL_ONLY = "1";
+    process.env.CMUX_WEB_CONNECT_LOCAL_TOKEN = "test-local-token";
+    try {
+      const response = await listSessions(localSessionListRequest("http://localhost:49158", "test-local-token"));
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get(WEB_CONNECT_COMPATIBILITY_HEADER)).toBe(WEB_CONNECT_COMPATIBILITY_VALUE);
+      expect(body).toEqual({ sessions: [] });
+    } finally {
+      restoreLocalOnly(previousLocalOnly);
+      restoreLocalToken(previousToken);
+    }
+  });
+
+  test("allows local-only session list probe when the standalone server reports 0.0.0.0", async () => {
+    const previousLocalOnly = process.env.CMUX_WEB_CONNECT_LOCAL_ONLY;
+    const previousToken = process.env.CMUX_WEB_CONNECT_LOCAL_TOKEN;
+    process.env.CMUX_WEB_CONNECT_LOCAL_ONLY = "1";
+    process.env.CMUX_WEB_CONNECT_LOCAL_TOKEN = "test-local-token";
+    try {
+      const response = await listSessions(localSessionListRequest("http://0.0.0.0:49160", "test-local-token"));
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get(WEB_CONNECT_COMPATIBILITY_HEADER)).toBe(WEB_CONNECT_COMPATIBILITY_VALUE);
+      expect(body).toEqual({ sessions: [] });
+    } finally {
+      restoreLocalOnly(previousLocalOnly);
+      restoreLocalToken(previousToken);
+    }
+  });
+
+  test("rejects local-only localhost session list probe without the local token", async () => {
+    const previousLocalOnly = process.env.CMUX_WEB_CONNECT_LOCAL_ONLY;
+    const previousToken = process.env.CMUX_WEB_CONNECT_LOCAL_TOKEN;
+    process.env.CMUX_WEB_CONNECT_LOCAL_ONLY = "1";
+    process.env.CMUX_WEB_CONNECT_LOCAL_TOKEN = "test-local-token";
+    try {
+      const response = await listSessions(localSessionListRequest("http://localhost:49159"));
+
+      expect(response.status).toBe(401);
+      expect(response.headers.get(WEB_CONNECT_COMPATIBILITY_HEADER)).toBe(WEB_CONNECT_COMPATIBILITY_VALUE);
     } finally {
       restoreLocalOnly(previousLocalOnly);
       restoreLocalToken(previousToken);
@@ -221,6 +274,14 @@ function createSessionRequest(origin: string, localToken?: string, publicOrigin 
       publicOrigin,
     }),
   });
+}
+
+function localSessionListRequest(origin: string, localToken?: string): Request {
+  const headers = new Headers();
+  if (localToken) {
+    headers.set("x-deppy-web-connect-local-token", localToken);
+  }
+  return new Request(`${origin}/api/mobile/web-access/sessions`, { headers });
 }
 
 function routeParams<T extends Record<string, string>>(params: T): { params: Promise<T> } {

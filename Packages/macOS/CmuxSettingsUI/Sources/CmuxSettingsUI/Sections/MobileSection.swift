@@ -36,6 +36,8 @@ public struct MobileSection: View {
     @State private var isApplyingWebConnectServer = false
     /// Result of the most recent Web Connect runtime installation request.
     @State private var webConnectRuntimeInstallResult: MobileWebAccessRuntimeInstallResult?
+    /// Progress of the active Web Connect runtime installation request.
+    @State private var webConnectRuntimeInstallProgress: MobileWebAccessRuntimeInstallProgress?
     /// Guards against overlapping Web Connect runtime installation requests.
     @State private var isInstallingWebConnectRuntime = false
 
@@ -219,10 +221,7 @@ public struct MobileSection: View {
             .disabled(!canRemoveWebConnectRuntime || isApplyingWebConnectServer || isInstallingWebConnectRuntime)
             .accessibilityIdentifier("SettingsMobileWebConnectRuntimeRemoveButton")
         } else {
-            Button(isInstallingWebConnectRuntime
-                ? String(localized: "settings.mobile.webConnect.runtime.installing", defaultValue: "Installing…")
-                : String(localized: "settings.mobile.webConnect.runtime.install", defaultValue: "Install Runtime")
-            ) {
+            Button(webConnectRuntimeInstallButtonTitle) {
                 installWebConnectRuntime()
             }
             .buttonStyle(.bordered)
@@ -291,6 +290,9 @@ public struct MobileSection: View {
     }
 
     private var webConnectRuntimeStatusMessage: String? {
+        if isInstallingWebConnectRuntime, let message = webConnectRuntimeInstallProgressMessage {
+            return message
+        }
         switch webConnectRuntimeInstallResult {
         case .installed:
             return String(
@@ -319,6 +321,34 @@ public struct MobileSection: View {
                     defaultValue: "Web Connect Runtime is not installed. Install it to create browser links from this app."
                 )
             }
+            return nil
+        }
+    }
+
+    private var webConnectRuntimeInstallButtonTitle: String {
+        guard isInstallingWebConnectRuntime else {
+            return String(localized: "settings.mobile.webConnect.runtime.install", defaultValue: "Install Runtime")
+        }
+        return webConnectRuntimeInstallProgressMessage ??
+            String(localized: "settings.mobile.webConnect.runtime.installing", defaultValue: "Installing…")
+    }
+
+    private var webConnectRuntimeInstallProgressMessage: String? {
+        switch webConnectRuntimeInstallProgress {
+        case .preparing:
+            return String(localized: "settings.mobile.webConnect.runtime.preparing", defaultValue: "Preparing…")
+        case .downloading(let fraction):
+            guard let fraction else {
+                return String(localized: "settings.mobile.webConnect.runtime.downloading", defaultValue: "Downloading…")
+            }
+            let percent = min(100, max(0, Int((fraction * 100).rounded(.down))))
+            return String(
+                localized: "settings.mobile.webConnect.runtime.downloading.percent",
+                defaultValue: "Downloading \(percent)%"
+            )
+        case .installing:
+            return String(localized: "settings.mobile.webConnect.runtime.installing", defaultValue: "Installing…")
+        case nil:
             return nil
         }
     }
@@ -549,10 +579,14 @@ public struct MobileSection: View {
         guard !isInstallingWebConnectRuntime else { return }
         isInstallingWebConnectRuntime = true
         webConnectRuntimeInstallResult = nil
+        webConnectRuntimeInstallProgress = .preparing
         Task {
-            let result = await hostActions.installMobileWebAccessRuntime()
+            let result = await hostActions.installMobileWebAccessRuntime { progress in
+                webConnectRuntimeInstallProgress = progress
+            }
             webConnectRuntimeInstallResult = result
             refreshWebConnectRuntimeStatus()
+            webConnectRuntimeInstallProgress = nil
             isInstallingWebConnectRuntime = false
         }
     }
@@ -560,6 +594,7 @@ public struct MobileSection: View {
     private func removeWebConnectRuntime() {
         guard !isInstallingWebConnectRuntime, canRemoveWebConnectRuntime else { return }
         isInstallingWebConnectRuntime = true
+        webConnectRuntimeInstallProgress = nil
         Task {
             _ = await hostActions.setMobileWebAccessServerEnabled(false, port: draftWebConnectPort)
             webConnectServerEnabled.set(false)
@@ -567,6 +602,7 @@ public struct MobileSection: View {
             let removed = hostActions.uninstallMobileWebAccessRuntime()
             webConnectRuntimeInstallResult = removed ? nil : .removeFailed
             refreshWebConnectRuntimeStatus()
+            webConnectRuntimeInstallProgress = nil
             isInstallingWebConnectRuntime = false
         }
     }

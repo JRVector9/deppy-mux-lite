@@ -177,16 +177,30 @@ final class WebConnectServerController {
         guard let healthURL = Self.healthURL(baseURL: baseURL) else {
             return .unreachable
         }
+        let requiresLocalControl = Self.canAutoStart(baseURL: baseURL)
         var request = URLRequest(url: healthURL)
         request.httpMethod = "GET"
         request.timeoutInterval = 2
+        if requiresLocalControl {
+            request.setValue(Self.localControlToken, forHTTPHeaderField: Self.localControlTokenHeader)
+        }
 
         do {
             let (_, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse else {
                 return .incompatible
             }
-            return Self.isCompatibleWebConnectResponse(http) ? .compatible : .incompatible
+            guard Self.isCompatibleWebConnectResponse(http) else {
+                return .incompatible
+            }
+            if requiresLocalControl, !(200...299).contains(http.statusCode) {
+                // Older optional runtimes localize POST /sessions before GET
+                // /sessions. Treat their 401 as a recognizable Web Connect
+                // process; ensureStarted still reports portInUse unless this
+                // app launched the process it is probing.
+                return http.statusCode == 401 ? .compatible : .incompatible
+            }
+            return .compatible
         } catch {
             return .unreachable
         }
