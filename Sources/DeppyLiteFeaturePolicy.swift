@@ -22,6 +22,18 @@ struct DeppyLiteFeaturePolicy: Sendable {
     static var sessionRestoreEnabled: Bool { true }
     static var mobileWorkspaceObserverEnabled: Bool { !isEnabled }
 
+    private static let mobileTerminalSocketAliases: Set<String> = [
+        "terminal.create",
+        "terminal.input",
+        "terminal.paste",
+        "terminal.paste_image",
+        "terminal.replay",
+        "terminal.viewport",
+        "terminal.scroll",
+        "terminal.mouse",
+        "terminal.set_font",
+    ]
+
     static func supportedSessionPanelType(_ panelType: PanelType) -> Bool {
         guard isEnabled else { return true }
         return panelType == .terminal
@@ -62,6 +74,8 @@ struct DeppyLiteFeaturePolicy: Sendable {
             method.hasPrefix("remotes.") ||
             method.hasPrefix("workspace.remote.") ||
             method.hasPrefix("remote.tmux.") ||
+            method.hasPrefix("mobile.") ||
+            mobileTerminalSocketAliases.contains(method) ||
             method.hasPrefix("sidebar.custom.") ||
             method.hasPrefix("debug.") ||
             method == "extension.sidebar.snapshot" ||
@@ -73,7 +87,6 @@ struct DeppyLiteFeaturePolicy: Sendable {
 
     static func hidesSocketCapability(_ method: String) -> Bool {
         guard isEnabled else { return false }
-        return blocksSocketMethod(method) ||
-            method.hasPrefix("mobile.")
+        return blocksSocketMethod(method)
     }
 }
