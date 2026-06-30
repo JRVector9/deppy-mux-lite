@@ -2,7 +2,7 @@ import CmuxAuthRuntime
 import CmuxSettingsUI
 import Foundation
 
-/// Creates and keeps alive browser Web Access sessions for this Mac.
+/// Creates and keeps alive browser Web Connect sessions for this Mac.
 @MainActor
 final class MobileWebAccessClient {
     static let shared = MobileWebAccessClient()
@@ -54,6 +54,7 @@ final class MobileWebAccessClient {
             let (data, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse else { return .failed }
             if http.statusCode == 401 { return .notSignedIn }
+            if Self.isWebConnectEndpointUnavailableStatus(http.statusCode) { return .webEndpointUnavailable }
             guard (200...299).contains(http.statusCode) else { return .failed }
             guard let parsed = Self.parseCreateResponse(data) else { return .failed }
 
@@ -64,6 +65,9 @@ final class MobileWebAccessClient {
             startRelayLoop(slug: parsed.snapshot.slug, hostToken: parsed.hostToken, expiresAt: parsed.snapshot.expiresAt)
             return .started(current ?? parsed.snapshot)
         } catch {
+            if Self.isWebConnectEndpointUnavailableError(error) {
+                return .webEndpointUnavailable
+            }
             return .failed
         }
     }
@@ -79,7 +83,7 @@ final class MobileWebAccessClient {
                     return
                 }
                 await self.pollRelay(slug: slug, hostToken: hostToken)
-                // Browser Web Access is interactive terminal I/O; keep relay
+                // Browser Web Connect is interactive terminal I/O; keep relay
                 // pickup noticeably below a second while the session is active.
                 guard (try? await clock.sleep(for: .milliseconds(250))) != nil else { return }
             }
@@ -186,7 +190,7 @@ final class MobileWebAccessClient {
             }
             guard attempt < 2 else { return }
             let delay: Duration = attempt == 0 ? .milliseconds(250) : .seconds(1)
-            // Bounded, cancellable retry backoff for recording already-executed Web Access RPC completion.
+            // Bounded, cancellable retry backoff for recording already-executed Web Connect RPC completion.
             guard (try? await clock.sleep(for: delay)) != nil else { return }
         }
     }
@@ -209,11 +213,37 @@ final class MobileWebAccessClient {
     }
 
     private static func apiURL(path: String) -> URL? {
-        guard var components = URLComponents(url: AuthEnvironment.vmAPIBaseURL, resolvingAgainstBaseURL: false) else {
+        apiURL(path: path, baseURL: webConnectBaseURL())
+    }
+
+    nonisolated static func apiURL(path: String, baseURL: URL) -> URL? {
+        guard var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else {
             return nil
         }
         components.path = (components.path.hasSuffix("/") ? String(components.path.dropLast()) : components.path) + path
         return components.url
+    }
+
+    nonisolated static func webConnectBaseURL(
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> URL {
+        webConnectBaseURL(environment: environment, liteEnabled: DeppyLiteFeaturePolicy.isEnabled)
+    }
+
+    nonisolated static func webConnectBaseURL(
+        environment: [String: String],
+        liteEnabled: Bool
+    ) -> URL {
+        if let override = environmentURL("CMUX_WEB_CONNECT_API_BASE_URL", environment: environment) {
+            return override
+        }
+        if let override = environmentURL("CMUX_VM_API_BASE_URL", environment: environment) {
+            return override
+        }
+        if liteEnabled {
+            return URL(string: "http://localhost:9170")!
+        }
+        return AuthEnvironment.vmAPIBaseURL
     }
 
     private static func createSessionBody(publicOrigin: URL) -> Data? {
@@ -229,11 +259,21 @@ final class MobileWebAccessClient {
 
     private static func tailscalePublicOrigin() -> URL? {
         guard let tailscaleHost = MobileRouteResolver.tailscaleRouteHosts(resolveDNS: false).first,
-              var components = URLComponents(url: AuthEnvironment.signInWebsiteOrigin, resolvingAgainstBaseURL: false)
+              let url = webConnectPublicOrigin(baseURL: webConnectBaseURL(), tailscaleHost: tailscaleHost)
         else {
             return nil
         }
+        return url
+    }
+
+    nonisolated static func webConnectPublicOrigin(baseURL: URL, tailscaleHost: String) -> URL? {
+        guard var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else {
+            return nil
+        }
         components.host = tailscaleHost
+        components.path = ""
+        components.query = nil
+        components.fragment = nil
         return components.url
     }
 
@@ -328,6 +368,32 @@ final class MobileWebAccessClient {
         }
         formatter.formatOptions = [.withInternetDateTime]
         return formatter.date(from: raw)
+    }
+
+    private nonisolated static func environmentURL(
+        _ key: String,
+        environment: [String: String]
+    ) -> URL? {
+        guard let raw = environment[key]?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !raw.isEmpty
+        else {
+            return nil
+        }
+        return URL(string: raw)
+    }
+
+    private nonisolated static func isWebConnectEndpointUnavailableStatus(_ statusCode: Int) -> Bool {
+        statusCode == 404 || statusCode == 503
+    }
+
+    private nonisolated static func isWebConnectEndpointUnavailableError(_ error: Error) -> Bool {
+        guard let urlError = error as? URLError else { return false }
+        switch urlError.code {
+        case .cannotFindHost, .cannotConnectToHost, .networkConnectionLost, .timedOut:
+            return true
+        default:
+            return false
+        }
     }
 }
 

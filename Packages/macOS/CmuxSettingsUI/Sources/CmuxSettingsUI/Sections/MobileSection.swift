@@ -131,8 +131,8 @@ public struct MobileSection: View {
         SettingsCardRow(
             configurationReview: .action,
             searchAnchorID: "setting:mobile:webAccess",
-            String(localized: "settings.mobile.webAccess", defaultValue: "Web Access"),
-            subtitle: String(localized: "settings.mobile.webAccess.subtitle", defaultValue: "Create a browser link for accessing this Mac's deppy-mux terminal from another device.")
+            String(localized: "settings.mobile.webAccess", defaultValue: "Web Connect"),
+            subtitle: String(localized: "settings.mobile.webAccess.subtitle", defaultValue: "Create a private Web Connect link for connecting to this Mac's deppy-mux terminal from another device.")
         ) {
             Button(webAccess.current == nil
                 ? String(localized: "settings.mobile.webAccess.create", defaultValue: "Create Link")
@@ -184,17 +184,22 @@ public struct MobileSection: View {
         } else if webAccess.lastError == .notSignedIn {
             SettingsCardNote(String(
                 localized: "settings.mobile.webAccess.notSignedIn",
-                defaultValue: "Sign in to deppy-mux before creating a browser link."
+                defaultValue: "Sign in to deppy-mux before creating a Web Connect link."
             ))
         } else if webAccess.lastError == .tailscaleUnavailable {
             SettingsCardNote(String(
                 localized: "settings.mobile.webAccess.tailscaleUnavailable",
-                defaultValue: "Tailscale is required for browser access. Turn on Tailscale on this Mac, then create the link again."
+                defaultValue: "Tailscale is required for Web Connect. Turn on Tailscale on this Mac, then create the link again."
+            ))
+        } else if webAccess.lastError == .webEndpointUnavailable {
+            SettingsCardNote(String(
+                localized: "settings.mobile.webAccess.webEndpointUnavailable",
+                defaultValue: "Could not reach the Web Connect server. Start the deppy-mux web server, then create the link again."
             ))
         } else if webAccess.lastError == .failed {
             SettingsCardNote(String(
                 localized: "settings.mobile.webAccess.failed",
-                defaultValue: "Could not create a browser link. Check your connection and try again."
+                defaultValue: "Could not create a Web Connect link. Check your connection and try again."
             ))
         }
     }
