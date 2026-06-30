@@ -432,6 +432,19 @@ extension CMUXCLI {
         return inline
     }
 
+    static func enabledFeedHookEvents(for def: AgentHookDef) -> [String] {
+        guard feedBridgeEnabledForCurrentBuild() else { return [] }
+        return def.feedHookEvents
+    }
+
+    static func feedBridgeEnabledForCurrentBuild() -> Bool {
+        #if DEPPY_LITE
+        return false
+        #else
+        return true
+        #endif
+    }
+
     private static func feedHookNoOpShellCommand(for def: AgentHookDef, agentEvent: String) -> String {
         let normalized = (def.name == "codex" ? "posttooluse" : agentEvent)
             .replacingOccurrences(of: "_", with: "")

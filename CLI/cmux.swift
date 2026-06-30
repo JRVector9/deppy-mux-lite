@@ -27131,7 +27131,7 @@ struct CMUXCLI {
         // timeout; Codex telemetry stays short so it never delays Codex's own
         // approval reviewer. Most nested agents use milliseconds. Codex, Grok,
         // and Antigravity hook schemas use seconds, so normalize before writing.
-        for agentEvent in def.feedHookEvents {
+        for agentEvent in Self.enabledFeedHookEvents(for: def) {
             let feedCmd = feedHookCommand(for: def, agentEvent: agentEvent)
             let feedTimeoutMs = feedHookTimeoutMs(for: def, agentEvent: agentEvent)
             switch def.format {
@@ -28965,7 +28965,7 @@ export default function cmuxPiSessionExtension(pi: ExtensionAPI) {
             )
         }
 
-        for agentEvent in def.feedHookEvents {
+        for agentEvent in Self.enabledFeedHookEvents(for: def) {
             guard let eventLabel = codexHookEventLabel(agentEvent) else { continue }
             insertHashes(
                 eventLabel: eventLabel,
@@ -29689,6 +29689,7 @@ export default function cmuxPiSessionExtension(pi: ExtensionAPI) {
         }
         func sendAgentFeedTelemetry(workspaceId: String? = nil, surfaceId: String? = nil) {
             didSendFeedTelemetry = true
+            guard Self.feedBridgeEnabledForCurrentBuild() else { return }
             sendFeedTelemetry(
                 client: client,
                 source: def.name,
@@ -29709,7 +29710,7 @@ export default function cmuxPiSessionExtension(pi: ExtensionAPI) {
             else {
                 return false
             }
-            return def.feedHookEvents.contains(event)
+            return Self.enabledFeedHookEvents(for: def).contains(event)
         }
         func sendAgentFeedTelemetryUnlessSuppressed(workspaceId: String? = nil, surfaceId: String? = nil) {
             if shouldSuppressGenericFeedTelemetry() {
@@ -31036,6 +31037,7 @@ export default function cmuxPiSessionExtension(pi: ExtensionAPI) {
         surfaceId: String? = nil,
         socketPassword: String? = nil
     ) {
+        guard Self.feedBridgeEnabledForCurrentBuild() else { return }
         let hookEventName = Self.feedEventName(forClaudeSubcommand: subcommand)
         guard !hookEventName.isEmpty else { return }
         let promptText = hookEventName == "UserPromptSubmit"
@@ -33004,6 +33006,11 @@ export default function cmuxPiSessionExtension(pi: ExtensionAPI) {
         telemetry: CLISocketSentryTelemetry
     ) throws {
         _ = telemetry
+        guard Self.feedBridgeEnabledForCurrentBuild() else {
+            print("{}")
+            return
+        }
+
         let source = optionValue(commandArgs, name: "--source") ?? ""
         guard !source.isEmpty else {
             throw CLIError(message: "cmux hooks feed requires --source <agent-name>")
@@ -34456,11 +34463,6 @@ export default function cmuxPiSessionExtension(pi: ExtensionAPI) {
         let normalized = command.lowercased()
         if Self.deppyLiteUnsupportedCommands.contains(normalized) {
             return deppyLiteUnsupportedFeatureMessage(command: command)
-        }
-
-        if normalized == "hooks",
-           commandArgs.first?.lowercased() == "feed" {
-            return deppyLiteUnsupportedFeatureMessage(command: "hooks feed")
         }
 
         if normalized == "right-sidebar",

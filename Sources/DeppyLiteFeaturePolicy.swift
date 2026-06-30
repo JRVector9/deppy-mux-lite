@@ -20,7 +20,17 @@ struct DeppyLiteFeaturePolicy: Sendable {
     static var cloudVMEnabled: Bool { !isEnabled }
     static var pwaWebAccessEnabled: Bool { true }
     static var sessionRestoreEnabled: Bool { true }
-    static var mobileWorkspaceObserverEnabled: Bool { !isEnabled }
+    static var mobileWorkspaceObserverEnabled: Bool { true }
+
+    private static let pwaWebAccessSocketMethods: Set<String> = [
+        "mobile.host.status",
+        "mobile.workspace.list",
+        "mobile.terminal.replay",
+        "mobile.terminal.viewport",
+        "terminal.input",
+        "terminal.paste",
+        "terminal.paste_image",
+    ]
 
     private static let mobileTerminalSocketAliases: Set<String> = [
         "terminal.create",
@@ -68,6 +78,9 @@ struct DeppyLiteFeaturePolicy: Sendable {
 
     static func blocksSocketMethod(_ method: String) -> Bool {
         guard isEnabled else { return false }
+        if pwaWebAccessEnabled, pwaWebAccessSocketMethods.contains(method) {
+            return false
+        }
         return method.hasPrefix("browser.") ||
             method.hasPrefix("feed.") ||
             method.hasPrefix("vm.") ||

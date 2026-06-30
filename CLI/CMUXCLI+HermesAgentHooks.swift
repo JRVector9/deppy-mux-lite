@@ -14,7 +14,7 @@ extension CMUXCLI {
                 timeout: 5
             )
         }
-        events.append(contentsOf: def.feedHookEvents.map { agentEvent in
+        events.append(contentsOf: Self.enabledFeedHookEvents(for: def).map { agentEvent in
             HermesAgentHookConfig.Event(
                 name: agentEvent,
                 command: hermesAgentShellCommand(feedHookCommand(for: def, agentEvent: agentEvent)),

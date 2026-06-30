@@ -1,6 +1,12 @@
 import XCTest
 import Darwin
 
+#if canImport(cmux_DEV)
+@testable import cmux_DEV
+#elseif canImport(cmux)
+@testable import cmux
+#endif
+
 extension CLINotifyProcessIntegrationRegressionTests {
     struct GenericHookPersistenceScenario {
         let agent: String
@@ -910,13 +916,22 @@ extension CLINotifyProcessIntegrationRegressionTests {
         let preToolCommands = preToolUse
             .compactMap { $0["hooks"] as? [[String: Any]] }
             .flatMap { $0 }
-        XCTAssertTrue(
-            preToolCommands.contains {
-                ($0["command"] as? String)?.contains("hooks feed --source antigravity --event PreToolUse") == true
-                    && ($0["timeout"] as? Int) == 120
-            },
-            "Expected Antigravity PreToolUse feed hook with second-based timeout, saw \(preToolCommands)"
-        )
+        if DeppyLiteFeaturePolicy.isEnabled {
+            XCTAssertFalse(
+                preToolCommands.contains {
+                    ($0["command"] as? String)?.contains("hooks feed --source antigravity --event PreToolUse") == true
+                },
+                "deppy-lite should not install Antigravity feed hooks, saw \(preToolCommands)"
+            )
+        } else {
+            XCTAssertTrue(
+                preToolCommands.contains {
+                    ($0["command"] as? String)?.contains("hooks feed --source antigravity --event PreToolUse") == true
+                        && ($0["timeout"] as? Int) == 120
+                },
+                "Expected Antigravity PreToolUse feed hook with second-based timeout, saw \(preToolCommands)"
+            )
+        }
 
         let stop = try XCTUnwrap(cmuxGroup["Stop"] as? [[String: Any]])
         XCTAssertTrue(
@@ -972,16 +987,25 @@ extension CLINotifyProcessIntegrationRegressionTests {
 
         let hooks = try XCTUnwrap(json["hooks"] as? [String: Any])
         let preToolUse = try XCTUnwrap(hooks["preToolUse"] as? [[String: Any]])
-        XCTAssertTrue(
-            preToolUse.contains {
-                ($0["command"] as? String)?.contains("hooks feed --source kiro --event preToolUse") == true
-                    && ($0["timeout_ms"] as? Int) == 120_000
-                    && (($0["command"] as? String)?.contains("|| echo '{}'") == false)
-                    && (($0["command"] as? String)?.contains("status=$?") == true)
-                    && (($0["command"] as? String)?.contains("exit 2") == true)
-            },
-            "Expected Kiro preToolUse feed hook to preserve cmux's exit status for deny decisions, saw \(preToolUse)"
-        )
+        if DeppyLiteFeaturePolicy.isEnabled {
+            XCTAssertFalse(
+                preToolUse.contains {
+                    ($0["command"] as? String)?.contains("hooks feed --source kiro --event preToolUse") == true
+                },
+                "deppy-lite should not install Kiro feed hooks, saw \(preToolUse)"
+            )
+        } else {
+            XCTAssertTrue(
+                preToolUse.contains {
+                    ($0["command"] as? String)?.contains("hooks feed --source kiro --event preToolUse") == true
+                        && ($0["timeout_ms"] as? Int) == 120_000
+                        && (($0["command"] as? String)?.contains("|| echo '{}'") == false)
+                        && (($0["command"] as? String)?.contains("status=$?") == true)
+                        && (($0["command"] as? String)?.contains("exit 2") == true)
+                },
+                "Expected Kiro preToolUse feed hook to preserve cmux's exit status for deny decisions, saw \(preToolUse)"
+            )
+        }
         XCTAssertNotNil(hooks["agentSpawn"])
         XCTAssertNotNil(hooks["userPromptSubmit"])
         XCTAssertNotNil(hooks["postToolUse"])
@@ -2815,7 +2839,7 @@ extension CLINotifyProcessIntegrationRegressionTests {
             .compactMap { $0["hooks"] as? [[String: Any]] }
             .flatMap { $0 }
             .compactMap { $0["timeout"] as? Int }
-        let preToolUseGroups = try XCTUnwrap(hooks["PreToolUse"] as? [[String: Any]])
+        let preToolUseGroups = hooks["PreToolUse"] as? [[String: Any]] ?? []
         let preToolUseTimeouts = preToolUseGroups
             .compactMap { $0["hooks"] as? [[String: Any]] }
             .flatMap { $0 }
@@ -2836,7 +2860,22 @@ extension CLINotifyProcessIntegrationRegressionTests {
             "Grok Notification should not use the generic stop handler, saw \(notificationCommands)"
         )
         XCTAssertEqual(notificationTimeouts, [5])
-        XCTAssertEqual(preToolUseTimeouts, [120])
+        if DeppyLiteFeaturePolicy.isEnabled {
+            XCTAssertFalse(
+                allCommands.contains { $0.contains("hooks feed --source grok") },
+                "deppy-lite should not install Grok feed hooks, saw \(allCommands)"
+            )
+            XCTAssertTrue(
+                preToolUseGroups.isEmpty,
+                "Grok PreToolUse is feed-bridge-only in deppy-lite, saw \(preToolUseGroups)"
+            )
+        } else {
+            XCTAssertEqual(preToolUseTimeouts, [120])
+            XCTAssertTrue(
+                allCommands.contains { $0.contains("hooks feed --source grok") },
+                "Expected full cmux to install Grok feed hooks, saw \(allCommands)"
+            )
+        }
         XCTAssertFalse(
             allCommands.contains { $0.contains("[ -n \"$CMUX_SURFACE_ID\" ]") },
             "Grok strips CMUX_* from hook subprocesses, so installed commands must not gate on CMUX_SURFACE_ID. Saw \(allCommands)"

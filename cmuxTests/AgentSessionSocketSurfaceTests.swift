@@ -11,6 +11,32 @@ import Testing
 @MainActor
 struct AgentSessionSocketSurfaceTests {
     @Test
+    func testDeppyLiteKeepsWebAccessSocketSurfaceAvailable() {
+        let webAccessMethods = [
+            "mobile.host.status",
+            "mobile.workspace.list",
+            "mobile.terminal.replay",
+            "mobile.terminal.viewport",
+            "terminal.input",
+            "terminal.paste",
+            "terminal.paste_image",
+        ]
+
+        for method in webAccessMethods {
+            #expect(
+                !DeppyLiteFeaturePolicy.blocksSocketMethod(method),
+                "deppy-lite must keep \(method) available for Web Access"
+            )
+        }
+
+        #expect(DeppyLiteFeaturePolicy.mobileWorkspaceObserverEnabled)
+        if DeppyLiteFeaturePolicy.isEnabled {
+            #expect(DeppyLiteFeaturePolicy.blocksSocketMethod("feed.push"))
+            #expect(DeppyLiteFeaturePolicy.blocksSocketMethod("browser.open"))
+        }
+    }
+
+    @Test
     func testPanelTypeParserAcceptsAgentSessionSpellings() {
         let controller = TerminalController.shared
 

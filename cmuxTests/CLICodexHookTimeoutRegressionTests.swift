@@ -3,6 +3,12 @@ import Foundation
 import Darwin
 import Testing
 
+#if canImport(cmux_DEV)
+    @testable import cmux_DEV
+#elseif canImport(cmux)
+    @testable import cmux
+#endif
+
 @Suite(.serialized)
 struct CLICodexHookTimeoutRegressionTests {
     struct ProcessRunResult {
@@ -66,9 +72,13 @@ struct CLICodexHookTimeoutRegressionTests {
         let installedFeedEvents = Set(feedCommands.compactMap { command in
             expectedFeedEvents.first { command.contains("--event \($0)") }
         })
-        #expect(feedCommands.count == expectedFeedEvents.count, "Installer should install every Codex feed hook")
-        #expect(installedFeedEvents == expectedFeedEvents)
-        #expect(feedCommands.allSatisfy { !$0.contains("nohup sh -c") && !$0.contains(">/dev/null 2>&1 &") })
+        if DeppyLiteFeaturePolicy.isEnabled {
+            #expect(feedCommands.isEmpty, "deppy-lite should not install Codex feed hooks")
+        } else {
+            #expect(feedCommands.count == expectedFeedEvents.count, "Installer should install every Codex feed hook")
+            #expect(installedFeedEvents == expectedFeedEvents)
+            #expect(feedCommands.allSatisfy { !$0.contains("nohup sh -c") && !$0.contains(">/dev/null 2>&1 &") })
+        }
     }
 
     @Test func codexInstalledHookReturnsBeforeSlowCmuxCommandFinishes() throws {
