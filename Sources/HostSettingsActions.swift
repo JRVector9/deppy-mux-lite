@@ -194,6 +194,12 @@ final class HostSettingsActions: SettingsHostActions {
         await WebConnectRuntimeInstaller().install()
     }
 
+    func installMobileWebAccessRuntime(
+        progress: @escaping @MainActor (MobileWebAccessRuntimeInstallProgress) -> Void
+    ) async -> MobileWebAccessRuntimeInstallResult {
+        await WebConnectRuntimeInstaller().install(progress: progress)
+    }
+
     func uninstallMobileWebAccessRuntime() -> Bool {
         WebConnectRuntimeInstaller().uninstall()
     }

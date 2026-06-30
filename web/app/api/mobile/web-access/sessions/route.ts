@@ -26,6 +26,11 @@ export const dynamic = "force-dynamic";
 const MAX_REQUEST_BYTES = 4 * 1024;
 
 export async function GET(request: Request): Promise<Response> {
+  if (localWebAccessEnabled()) {
+    if (!localWebAccessRequestAllowed(request)) return webConnectResponse(unauthorized());
+    return webConnectJsonResponse({ sessions: [] });
+  }
+
   const user = await verifyRequest(request, {
     requestedTeamId: requestedVmTeamIdFromRequest(request),
     allowCookie: true,
@@ -56,7 +61,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const localOnly = localWebAccessEnabled();
-  if (localOnly && !localWebAccessCreateAllowed(request)) return webConnectResponse(unauthorized());
+  if (localOnly && !localWebAccessRequestAllowed(request)) return webConnectResponse(unauthorized());
   const user = localOnly ? null : await verifyRequest(request, {
     requestedTeamId: requestedVmTeamIdFromRequest(request),
     allowCookie: false,
@@ -97,7 +102,7 @@ function webConnectJsonResponse(data: unknown, status = 200): Response {
   return webConnectResponse(jsonResponse(data, status));
 }
 
-function localWebAccessCreateAllowed(request: Request): boolean {
+function localWebAccessRequestAllowed(request: Request): boolean {
   if (!localWebAccessEnabled()) {
     return false;
   }
@@ -106,7 +111,13 @@ function localWebAccessCreateAllowed(request: Request): boolean {
   }
   try {
     const hostname = new URL(request.url).hostname.toLowerCase();
-    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]";
+    return (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "0.0.0.0" ||
+      hostname === "::1" ||
+      hostname === "[::1]"
+    );
   } catch {
     return false;
   }

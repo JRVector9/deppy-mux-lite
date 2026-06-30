@@ -91,6 +91,11 @@ public protocol SettingsHostActions: AnyObject {
     /// Installs the local Web Connect runtime from the host's configured package source.
     func installMobileWebAccessRuntime() async -> MobileWebAccessRuntimeInstallResult
 
+    /// Installs the local Web Connect runtime and reports user-visible progress.
+    func installMobileWebAccessRuntime(
+        progress: @escaping @MainActor (MobileWebAccessRuntimeInstallProgress) -> Void
+    ) async -> MobileWebAccessRuntimeInstallResult
+
     /// Removes the user-installed local Web Connect runtime, if present.
     func uninstallMobileWebAccessRuntime() -> Bool
 
@@ -211,6 +216,13 @@ public extension SettingsHostActions {
     func mobileWebAccessRuntimeRequired() -> Bool { true }
 
     func installMobileWebAccessRuntime() async -> MobileWebAccessRuntimeInstallResult { .missingSource }
+
+    func installMobileWebAccessRuntime(
+        progress: @escaping @MainActor (MobileWebAccessRuntimeInstallProgress) -> Void
+    ) async -> MobileWebAccessRuntimeInstallResult {
+        progress(.preparing)
+        return await installMobileWebAccessRuntime()
+    }
 
     func uninstallMobileWebAccessRuntime() -> Bool { false }
 
