@@ -67,16 +67,16 @@ public protocol SettingsHostActions: AnyObject {
     /// package can't open it directly.
     func openMobilePairingWindow()
 
-    /// Returns the current browser Web Access session, if this Mac has already
+    /// Returns the current browser Web Connect session, if this Mac has already
     /// created one during the app run. The Mobile section uses this to keep the
     /// URL visible after Settings reopens.
     func currentMobileWebAccessSession() -> MobileWebAccessSessionSnapshot?
 
-    /// Creates a browser Web Access session and starts the host-side heartbeat
+    /// Creates a browser Web Connect session and starts the host-side heartbeat
     /// that keeps this Mac visible behind the public URL.
     func startMobileWebAccessSession() async -> MobileWebAccessStartResult
 
-    /// Copies a browser Web Access URL using the host app's pasteboard bridge.
+    /// Copies a browser Web Connect URL using the host app's pasteboard bridge.
     func copyMobileWebAccessURL(_ url: String)
 
     /// Plays the currently configured notification sound so the user

@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// `@Observable` view-model for the Mobile section's browser Web Access row.
+/// `@Observable` view-model for the Mobile section's browser Web Connect row.
 @MainActor
 @Observable
 final class MobileWebAccessSessionModel {
@@ -18,7 +18,7 @@ final class MobileWebAccessSessionModel {
     @ObservationIgnored private let startSession: () async -> MobileWebAccessStartResult
     @ObservationIgnored private let copyURL: (String) -> Void
 
-    /// Creates a model bound to the host's browser Web Access actions.
+    /// Creates a model bound to the host's browser Web Connect actions.
     ///
     /// - Parameter hostActions: The host bridge that creates sessions and copies URLs.
     convenience init(hostActions: SettingsHostActions) {
@@ -56,7 +56,7 @@ final class MobileWebAccessSessionModel {
         case let .started(snapshot):
             current = snapshot
             lastError = nil
-        case .notSignedIn, .tailscaleUnavailable, .failed:
+        case .notSignedIn, .tailscaleUnavailable, .webEndpointUnavailable, .failed:
             lastError = result
         }
     }
