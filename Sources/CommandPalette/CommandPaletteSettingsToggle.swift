@@ -137,16 +137,24 @@ enum CommandPaletteSettingsToggleCommands {
         }
         let sidebarPullRequestLinksAvailable: @Sendable (UserDefaults) -> Bool = { defaults in
             sidebarDetailsAvailable(defaults)
+                && DeppyLiteFeaturePolicy.internalBrowserEnabled
                 && SidebarWorkspaceDetailDefaults.showPullRequestsValue(defaults: defaults)
                 && UserDefaultsSettingsClient(defaults: defaults).value(for: SettingCatalog().sidebar.makePullRequestsClickable)
         }
         let sidebarPortLinksAvailable: @Sendable (UserDefaults) -> Bool = { defaults in
             sidebarDetailsAvailable(defaults)
+                && DeppyLiteFeaturePolicy.internalBrowserEnabled
                 && SidebarWorkspaceDetailDefaults.boolValue(
                     defaults: defaults,
                     key: SidebarWorkspaceDetailDefaults.showPortsKey,
                     defaultValue: SidebarWorkspaceDetailDefaults.showPorts
                 )
+        }
+        let browserFeaturesAvailable: @Sendable (UserDefaults) -> Bool = { _ in
+            DeppyLiteFeaturePolicy.internalBrowserEnabled
+        }
+        let previewFeaturesAvailable: @Sendable (UserDefaults) -> Bool = { _ in
+            DeppyLiteFeaturePolicy.previewPanelsEnabled
         }
 
         return [
@@ -225,6 +233,7 @@ enum CommandPaletteSettingsToggleCommands {
                 ],
                 defaultValue: AppCatalogSection().openSupportedFilesInCmux.defaultValue,
                 defaultsKey: AppCatalogSection().openSupportedFilesInCmux.userDefaultsKey,
+                isAvailable: previewFeaturesAvailable,
                 didSet: { _, _, notificationCenter in
                     FileRouteSettingsStore(
                         defaults: .standard,
@@ -245,6 +254,7 @@ enum CommandPaletteSettingsToggleCommands {
                 keywords: ["app.openMarkdownInCmuxViewer", "markdown", "md", "viewer", "preview", "file"],
                 defaultValue: AppCatalogSection().openMarkdownInCmuxViewer.defaultValue,
                 defaultsKey: AppCatalogSection().openMarkdownInCmuxViewer.userDefaultsKey,
+                isAvailable: previewFeaturesAvailable,
                 didSet: { _, _, notificationCenter in
                     FileRouteSettingsStore(
                         defaults: .standard,
@@ -261,7 +271,8 @@ enum CommandPaletteSettingsToggleCommands {
                 sectionTitle: app,
                 keywords: ["fileEditor.wordWrap", "file", "editor", "word", "wrap", "soft", "reflow", "lines", "preview"],
                 defaultValue: FilePreviewWordWrapSettings.defaultEnabled,
-                defaultsKey: FilePreviewWordWrapSettings.key
+                defaultsKey: FilePreviewWordWrapSettings.key,
+                isAvailable: previewFeaturesAvailable
             ),
             CommandPaletteSettingToggleDescriptor(
                 commandId: commandIdPrefix + "iMessageMode",
@@ -825,7 +836,8 @@ enum CommandPaletteSettingsToggleCommands {
                 sectionTitle: browser,
                 keywords: ["browser.showSearchSuggestions", "browser", "search", "suggestions", "autocomplete", "address", "bar"],
                 defaultValue: BrowserSearchSettingsStore.defaultSearchSuggestionsEnabled,
-                defaultsKey: BrowserSearchSettingsStore.searchSuggestionsEnabledKey
+                defaultsKey: BrowserSearchSettingsStore.searchSuggestionsEnabledKey,
+                isAvailable: browserFeaturesAvailable
             ),
             CommandPaletteSettingToggleDescriptor(
                 commandId: commandIdPrefix + "openTerminalLinksInCmuxBrowser",
@@ -839,7 +851,8 @@ enum CommandPaletteSettingsToggleCommands {
                 sectionTitle: browser,
                 keywords: ["browser.openTerminalLinksInCmuxBrowser", "browser", "terminal", "links", "url", "click"],
                 defaultValue: BrowserLinkOpenSettings.defaultOpenTerminalLinksInCmuxBrowser,
-                defaultsKey: BrowserLinkOpenSettings.openTerminalLinksInCmuxBrowserKey
+                defaultsKey: BrowserLinkOpenSettings.openTerminalLinksInCmuxBrowserKey,
+                isAvailable: browserFeaturesAvailable
             ),
             CommandPaletteSettingToggleDescriptor(
                 commandId: commandIdPrefix + "interceptTerminalOpenCommandInCmuxBrowser",
@@ -860,7 +873,8 @@ enum CommandPaletteSettingsToggleCommands {
                 },
                 setOn: { newValue, defaults, _ in
                     defaults.set(newValue, forKey: BrowserLinkOpenSettings.interceptTerminalOpenCommandInCmuxBrowserKey)
-                }
+                },
+                isAvailable: browserFeaturesAvailable
             ),
             CommandPaletteSettingToggleDescriptor(
                 commandId: commandIdPrefix + "showBrowserImportHintOnBlankTabs",
@@ -875,6 +889,7 @@ enum CommandPaletteSettingsToggleCommands {
                 keywords: ["browser.showImportHintOnBlankTabs", "browser", "import", "hint", "blank", "tabs", "onboarding"],
                 defaultValue: BrowserImportHintSettings.defaultShowOnBlankTabs,
                 defaultsKey: BrowserImportHintSettings.showOnBlankTabsKey,
+                isAvailable: browserFeaturesAvailable,
                 didSet: { newValue, defaults, _ in
                     if newValue {
                         defaults.set(false, forKey: BrowserImportHintSettings.dismissedKey)
