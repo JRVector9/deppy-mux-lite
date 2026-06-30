@@ -191,6 +191,8 @@ git commit -m "Update ghostty submodule"
 
 ## Release
 
+For deppy-lite/deppy-mux fork work, use the `origin` remote (`https://github.com/JRVector9/deppy-mux.git`) as the source of truth for GitHub links, login/release automation, and downloadable runtime assets. Do not point deppy-lite runtime or app download links at upstream `manaflow-ai/cmux` unless the user explicitly asks for an upstream cmux release.
+
 Use the `/release` command to prepare a new release. This will:
 1. Determine the new version (bumps minor by default)
 2. Gather commits since the last tag and update the changelog

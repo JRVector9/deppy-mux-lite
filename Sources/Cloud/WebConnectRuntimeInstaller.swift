@@ -123,7 +123,7 @@ struct WebConnectRuntimeInstaller {
            !value.isEmpty {
             return url
         }
-        return URL(string: "https://github.com/manaflow-ai/cmux/releases/latest/download/deppy-web-connect-runtime-\(Self.runtimeArch).zip")
+        return URL(string: "https://github.com/JRVector9/deppy-mux/releases/latest/download/deppy-web-connect-runtime-\(Self.runtimeArch).zip")
     }
 
     private func downloadArchive(_ url: URL, to stagingRoot: URL) async throws -> URL {
