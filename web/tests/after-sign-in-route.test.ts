@@ -43,7 +43,7 @@ function signInRequest(nativeReturnTo: string, handoffNonce: string): NextReques
 }
 
 function returnHref(html: string): string {
-  const match = html.match(/<a href="([^"]+)">Return to cmux<\/a>/);
+  const match = html.match(/<a href="([^"]+)">Return to deppy-mux<\/a>/);
   expect(match).toBeTruthy();
   return match![1].replaceAll("&amp;", "&");
 }
@@ -64,8 +64,8 @@ describe("after sign-in native handoff", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     const html = await response.text();
-    expect(html).toContain("Signed in to cmux");
-    expect(html).toContain("Return to cmux");
+    expect(html).toContain("Signed in to deppy-mux");
+    expect(html).toContain("Return to deppy-mux");
     expect(html).toContain("window.location.replace");
     expect(html).not.toContain("http-equiv=\"refresh\"");
 
@@ -91,10 +91,25 @@ describe("after sign-in native handoff", () => {
 
     expect(response.status).toBe(200);
     const html = await response.text();
-    expect(html).toContain("Signed in to cmux");
-    expect(html).toContain("Return to cmux");
+    expect(html).toContain("Signed in to deppy-mux");
+    expect(html).toContain("Return to deppy-mux");
     expect(html).not.toContain("window.location.replace");
     expect(returnHref(html)).toContain("cmux://auth-callback");
+  });
+
+  test("allows the lite native callback scheme", async () => {
+    handoffCookie = "handoff-nonce";
+    const nativeReturnTo = "deppy-mux-lite://auth-callback?cmux_auth_state=state-lite";
+
+    const response = await GET(signInRequest(nativeReturnTo, "handoff-nonce"));
+
+    expect(response.status).toBe(200);
+    const html = await response.text();
+    const callbackURL = new URL(returnHref(html));
+    expect(callbackURL.protocol).toBe("deppy-mux-lite:");
+    expect(callbackURL.hostname).toBe("auth-callback");
+    expect(callbackURL.searchParams.get("cmux_auth_state")).toBe("state-lite");
+    expect(callbackURL.searchParams.get("stack_refresh")).toBe("refresh-token");
   });
 
   test("does not crash on malformed percent-encoded stack cookies", async () => {

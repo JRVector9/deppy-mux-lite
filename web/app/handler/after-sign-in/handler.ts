@@ -3,7 +3,7 @@ import type { Locale } from "../../../i18n/routing";
 import { locales, routing } from "../../../i18n/routing";
 
 const NATIVE_SCHEME = "cmux://";
-const NATIVE_SCHEMES = new Set(["cmux", "cmux-nightly"]);
+const NATIVE_SCHEMES = new Set(["cmux", "cmux-nightly", "deppy-mux-lite"]);
 const NATIVE_HANDOFF_COOKIE = "cmux-native-auth-handoff";
 const NATIVE_HANDOFF_PARAM = "cmux_auth_handoff";
 
