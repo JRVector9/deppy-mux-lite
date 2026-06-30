@@ -1966,17 +1966,7 @@ class TerminalController {
     }
 
     private nonisolated func v2LiteUnavailableResponse(_ request: V2SocketRequest) -> String? {
-        guard DeppyLiteFeaturePolicy.isEnabled else { return nil }
-        let method = request.method
-        let isUnavailable =
-            method.hasPrefix("browser.") ||
-            method.hasPrefix("feed.") ||
-            method.hasPrefix("vm.") ||
-            method == "file.open" ||
-            method == "markdown.open" ||
-            method.hasPrefix("sidebar.custom.") ||
-            method == "extension.sidebar.snapshot"
-        guard isUnavailable else { return nil }
+        guard DeppyLiteFeaturePolicy.blocksSocketMethod(request.method) else { return nil }
         return v2Error(id: request.id, code: "method_not_found", message: "Unknown method")
     }
 
@@ -2222,20 +2212,12 @@ class TerminalController {
             methods.append("system.top")
             methods.append("system.memory")
         }
-        if DeppyLiteFeaturePolicy.isEnabled {
-            methods.removeAll { method in
-                method.hasPrefix("browser.") ||
-                    method.hasPrefix("feed.") ||
-                    method.hasPrefix("vm.") ||
-                    method == "file.open" ||
-                    method == "markdown.open" ||
-                    method.hasPrefix("sidebar.custom.") ||
-                    method == "extension.sidebar.snapshot"
-            }
-        }
 #if DEBUG
         methods.append(contentsOf: Self.v2DebugMethodNames)
 #endif
+        if DeppyLiteFeaturePolicy.isEnabled {
+            methods.removeAll { DeppyLiteFeaturePolicy.hidesSocketCapability($0) }
+        }
 
         return [
             "protocol": "cmux-socket",

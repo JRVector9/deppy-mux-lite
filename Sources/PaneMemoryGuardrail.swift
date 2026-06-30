@@ -48,8 +48,8 @@ final class PaneMemoryGuardrail {
     private var lastScopedScanAt = Date.distantPast
 
     func start() {
-        startSystemMemoryPressureSourceIfNeeded()
         guard DeppyLiteFeaturePolicy.paneMemoryPollingEnabled else { return }
+        startSystemMemoryPressureSourceIfNeeded()
         guard timer == nil else { return }
         let timer = DispatchSource.makeTimerSource(queue: timerQueue)
         timer.schedule(

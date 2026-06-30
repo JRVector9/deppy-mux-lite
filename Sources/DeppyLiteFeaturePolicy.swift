@@ -20,6 +20,7 @@ struct DeppyLiteFeaturePolicy: Sendable {
     static var cloudVMEnabled: Bool { !isEnabled }
     static var pwaWebAccessEnabled: Bool { true }
     static var sessionRestoreEnabled: Bool { true }
+    static var mobileWorkspaceObserverEnabled: Bool { !isEnabled }
 
     static func supportedSessionPanelType(_ panelType: PanelType) -> Bool {
         guard isEnabled else { return true }
@@ -51,5 +52,28 @@ struct DeppyLiteFeaturePolicy: Sendable {
             normalized == "palette.openfindpane" ||
             normalized == "palette.openfolderinvscodeinline" ||
             normalized == "palette.openvaultpane"
+    }
+
+    static func blocksSocketMethod(_ method: String) -> Bool {
+        guard isEnabled else { return false }
+        return method.hasPrefix("browser.") ||
+            method.hasPrefix("feed.") ||
+            method.hasPrefix("vm.") ||
+            method.hasPrefix("remotes.") ||
+            method.hasPrefix("workspace.remote.") ||
+            method.hasPrefix("remote.tmux.") ||
+            method.hasPrefix("sidebar.custom.") ||
+            method.hasPrefix("debug.") ||
+            method == "extension.sidebar.snapshot" ||
+            method == "file.open" ||
+            method == "markdown.open" ||
+            method == "system.top" ||
+            method == "system.memory"
+    }
+
+    static func hidesSocketCapability(_ method: String) -> Bool {
+        guard isEnabled else { return false }
+        return blocksSocketMethod(method) ||
+            method.hasPrefix("mobile.")
     }
 }
