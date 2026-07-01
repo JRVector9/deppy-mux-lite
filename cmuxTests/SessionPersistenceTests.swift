@@ -590,7 +590,51 @@ final class SessionPersistenceTests: XCTestCase {
 
         XCTAssertTrue(contents.contains("\(red)RED\(reset)"))
         XCTAssertTrue(contents.hasPrefix(reset))
-        XCTAssertTrue(contents.hasSuffix(reset))
+        XCTAssertTrue(contents.hasSuffix("\n"))
+        XCTAssertTrue(String(contents.dropLast()).hasSuffix(reset))
+    }
+
+    func testScrollbackReplayEnvironmentSkipsPromptOnlyContent() {
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cmux-scrollback-replay-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let environment = SessionScrollbackReplayStore.replayEnvironment(
+            for: """
+            Last login: Wed Jul  1 11:57:06 on ttys004
+            You have mail.
+            jr@host ~ %
+            jr@host ~ %
+            """,
+            tempDirectory: tempDir
+        )
+
+        XCTAssertTrue(environment.isEmpty)
+    }
+
+    func testScrollbackReplayEnvironmentTerminatesPromptBoundaryWhenMissingNewline() {
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cmux-scrollback-replay-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let environment = SessionScrollbackReplayStore.replayEnvironment(
+            for: "echo hi\nhi",
+            tempDirectory: tempDir
+        )
+
+        guard let path = environment[SessionScrollbackReplayStore.environmentKey] else {
+            XCTFail("Expected replay file path")
+            return
+        }
+
+        guard let contents = try? String(contentsOfFile: path, encoding: .utf8) else {
+            XCTFail("Expected replay file contents")
+            return
+        }
+
+        XCTAssertEqual(contents, "echo hi\nhi\n")
     }
 
     // Regression for https://github.com/manaflow-ai/cmux/issues/5165.
