@@ -13,6 +13,8 @@ private let mobileWorkspaceObserverLog = Logger(subsystem: "dev.cmux", category:
 /// the `@Published` source of truth instead of trying to catch every caller.
 @MainActor
 final class MobileWorkspaceListObserver {
+    private static let workspaceUpdatedTopic = "workspace.updated"
+
     private weak var tabManager: TabManager?
     /// The app-global notification store, source of each workspace's last-activity
     /// preview line. Weak because the store is app-global and outlives this
@@ -200,6 +202,12 @@ final class MobileWorkspaceListObserver {
 
     private func emitIfNeeded(force: Bool) {
         guard let tabManager else { return }
+        guard MobileHostService.hasEventSubscribers(topic: Self.workspaceUpdatedTopic) else {
+            #if DEBUG
+            cmuxDebugLog("mobile.observer skip: no workspace.updated subscribers tabs=\(tabManager.tabs.count)")
+            #endif
+            return
+        }
         let hash = Self.summaryHash(
             for: tabManager.tabs,
             groups: tabManager.workspaceGroups,
@@ -217,7 +225,7 @@ final class MobileWorkspaceListObserver {
         #if DEBUG
         cmuxDebugLog("mobile.observer EMIT workspace.updated hash=\(hash) tabs=\(tabManager.tabs.count) force=\(force)")
         #endif
-        MobileHostService.shared.emitEvent(topic: "workspace.updated", payload: [:])
+        MobileHostService.shared.emitEvent(topic: Self.workspaceUpdatedTopic, payload: [:])
     }
 
     /// Stable hash of the iOS-facing shape: workspace ids + titles + their
@@ -277,14 +285,16 @@ final class MobileWorkspaceListObserver {
                 hasher.combine(workspace.panelDirectories[id])
             }
             hasher.combine(workspace.currentDirectory)
-            // Hash every panelDirectories entry (including ids not yet in
-            // `panels`) so a directory update is detected even before its panel
-            // registers. The ordered loop above already covers in-panel
-            // directories; this preserves the pre-existing behavior the mobile
-            // hash test relies on.
-            for id in workspace.panelDirectories.keys.sorted() {
-                hasher.combine(id)
-                hasher.combine(workspace.panelDirectories[id])
+            // The ordered loop above already covers visible panel directories.
+            // Only sort/hash pre-registration directory entries that have no
+            // visible panel yet; sorting all keys on every observer tick allocates
+            // unnecessarily when many workspaces are open.
+            if workspace.panelDirectories.count > panelIDs.count {
+                let orderedPanelIDSet = Set(panelIDs)
+                for id in workspace.panelDirectories.keys.filter({ !orderedPanelIDSet.contains($0) }).sorted() {
+                    hasher.combine(id)
+                    hasher.combine(workspace.panelDirectories[id])
+                }
             }
         }
         return hasher.finalize()
