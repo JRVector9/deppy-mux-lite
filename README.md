@@ -62,7 +62,7 @@ Still being hardened:
 Clone the repository:
 
 ```bash
-git clone https://github.com/JRVector9/deppy-mux.git
+git clone https://github.com/JRVector9/deppy-mux-lite.git
 cd deppy-mux
 ```
 
