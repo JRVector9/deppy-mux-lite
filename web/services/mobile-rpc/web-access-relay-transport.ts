@@ -3,6 +3,7 @@ import type { MobileRpcMethod, MobileRpcParams, MobileRpcTransport } from "./typ
 
 type WebAccessRelayTransportOptions = {
   browserToken?: string | null;
+  fetchTimeoutMs?: number;
   pollIntervalMs?: number;
   timeoutMs?: number;
 };
@@ -13,6 +14,7 @@ type RelayStatus =
   | { status: "failed"; error: { code?: string; message: string } };
 
 export class WebAccessRelayTransport implements MobileRpcTransport {
+  private readonly fetchTimeoutMs: number;
   private readonly pollIntervalMs: number;
   private readonly timeoutMs: number;
   private readonly browserToken: string | null;
@@ -21,6 +23,7 @@ export class WebAccessRelayTransport implements MobileRpcTransport {
     private readonly slug: string,
     options: WebAccessRelayTransportOptions = {},
   ) {
+    this.fetchTimeoutMs = options.fetchTimeoutMs ?? Math.min(options.timeoutMs ?? 30_000, 10_000);
     this.pollIntervalMs = options.pollIntervalMs ?? 500;
     this.timeoutMs = options.timeoutMs ?? 30_000;
     this.browserToken = options.browserToken?.trim() || null;
@@ -33,7 +36,16 @@ export class WebAccessRelayTransport implements MobileRpcTransport {
     const queued = await this.enqueue(method, params);
     const startedAt = Date.now();
     while (Date.now() - startedAt <= this.timeoutMs) {
-      const status = await this.status(method, queued.requestId, queued.statusToken);
+      let status: RelayStatus;
+      try {
+        status = await this.status(method, queued.requestId, queued.statusToken);
+      } catch (error) {
+        if (!isTransientFetchError(error)) {
+          throw error;
+        }
+        await delay(this.pollIntervalMs);
+        continue;
+      }
       if (status.status === "completed") {
         return status.result as T;
       }
@@ -49,11 +61,15 @@ export class WebAccessRelayTransport implements MobileRpcTransport {
     method: MobileRpcMethod,
     params?: MobileRpcParams,
   ): Promise<{ requestId: string; statusToken: string }> {
-    const response = await fetch(`/api/mobile/web-access/sessions/${this.slug}/rpc`, {
-      method: "POST",
-      headers: this.headers({ "content-type": "application/json" }),
-      body: JSON.stringify({ method, params: params ?? {} }),
-    });
+    const response = await fetchWithTimeout(
+      `/api/mobile/web-access/sessions/${this.slug}/rpc`,
+      {
+        method: "POST",
+        headers: this.headers({ "content-type": "application/json" }),
+        body: JSON.stringify({ method, params: params ?? {} }),
+      },
+      this.fetchTimeoutMs,
+    );
     const payload = await response.json().catch(() => null);
     if (
       !response.ok ||
@@ -73,12 +89,13 @@ export class WebAccessRelayTransport implements MobileRpcTransport {
     requestId: string,
     statusToken: string,
   ): Promise<RelayStatus> {
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `/api/mobile/web-access/sessions/${this.slug}/rpc/${requestId}`,
       {
         cache: "no-store",
         headers: { "x-cmux-web-access-status-token": statusToken },
       },
+      this.fetchTimeoutMs,
     );
     const payload = await response.json().catch(() => null);
     if (!response.ok || !payload || typeof payload !== "object") {
@@ -95,6 +112,27 @@ export class WebAccessRelayTransport implements MobileRpcTransport {
       ? { ...base, "x-cmux-web-access-browser-token": this.browserToken }
       : base;
   }
+}
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = globalThis.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    globalThis.clearTimeout(timeout);
+  }
+}
+
+function isTransientFetchError(error: unknown): boolean {
+  return (
+    (error instanceof DOMException && error.name === "AbortError") ||
+    error instanceof TypeError
+  );
 }
 
 function delay(milliseconds: number): Promise<void> {

@@ -194,6 +194,7 @@ describe("mobile web access route", () => {
       );
       const publicBody = await publicResponse.json();
       expect(publicResponse.status).toBe(200);
+      expect(publicResponse.headers.get(WEB_CONNECT_COMPATIBILITY_HEADER)).toBe(WEB_CONNECT_COMPATIBILITY_VALUE);
       expect(publicBody.session.slug).toBe(slug);
 
       const enqueueResponse = await enqueueRpc(
@@ -213,6 +214,7 @@ describe("mobile web access route", () => {
       );
       const queued = await enqueueResponse.json();
       expect(enqueueResponse.status).toBe(202);
+      expect(enqueueResponse.headers.get(WEB_CONNECT_COMPATIBILITY_HEADER)).toBe(WEB_CONNECT_COMPATIBILITY_VALUE);
       expect(queued.requestId).toBeTruthy();
       expect(queued.statusToken).toBeTruthy();
 
@@ -224,6 +226,7 @@ describe("mobile web access route", () => {
       );
       const claimed = await claimResponse.json();
       expect(claimResponse.status).toBe(200);
+      expect(claimResponse.headers.get(WEB_CONNECT_COMPATIBILITY_HEADER)).toBe(WEB_CONNECT_COMPATIBILITY_VALUE);
       expect(claimed.requests).toHaveLength(1);
       expect(claimed.requests[0].id).toBe(queued.requestId);
 
@@ -243,6 +246,7 @@ describe("mobile web access route", () => {
         routeParams({ slug }),
       );
       expect(completeResponse.status).toBe(200);
+      expect(completeResponse.headers.get(WEB_CONNECT_COMPATIBILITY_HEADER)).toBe(WEB_CONNECT_COMPATIBILITY_VALUE);
 
       const statusResponse = await getRpcStatus(
         new Request(`${origin}/api/mobile/web-access/sessions/${slug}/rpc/${queued.requestId}`, {
@@ -252,6 +256,7 @@ describe("mobile web access route", () => {
       );
       const statusBody = await statusResponse.json();
       expect(statusResponse.status).toBe(200);
+      expect(statusResponse.headers.get(WEB_CONNECT_COMPATIBILITY_HEADER)).toBe(WEB_CONNECT_COMPATIBILITY_VALUE);
       expect(statusBody).toEqual({ status: "completed", result: { accepted: true } });
     } finally {
       restoreLocalOnly(previousLocalOnly);

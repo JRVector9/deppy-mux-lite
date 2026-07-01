@@ -2,6 +2,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { buildAlternates } from "../../../i18n/seo";
 import { SiteHeader } from "../components/site-header";
+import { SiteFooter } from "../components/site-footer";
 import {
   testimonials,
   TestimonialCard,
@@ -47,6 +48,7 @@ export default function WallOfLovePage() {
           ))}
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }

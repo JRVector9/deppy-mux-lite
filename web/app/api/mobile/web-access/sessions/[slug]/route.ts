@@ -5,7 +5,9 @@ import {
 import {
   webAccessSessionRepository,
 } from "../../../../../../services/mobile-web-access/local";
-import { jsonResponse } from "../../../../../../services/vms/routeHelpers";
+import {
+  webConnectJsonResponse,
+} from "../../../../../../services/mobile-web-access/response";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,9 +23,9 @@ export async function GET(
   const { slug } = await params;
   const session = await getPublicWebAccessSession(slug, new Date(), webAccessSessionRepository());
   if (!session) {
-    return jsonResponse({ error: "web_access_session_not_found" }, 404);
+    return webConnectJsonResponse({ error: "web_access_session_not_found" }, 404);
   }
-  return jsonResponse({ session });
+  return webConnectJsonResponse({ session });
 }
 
 export async function POST(
@@ -33,12 +35,12 @@ export async function POST(
   const { slug } = await params;
   const hostToken = request.headers.get("x-cmux-web-access-host-token")?.trim();
   if (!hostToken) {
-    return jsonResponse({ error: "unauthorized" }, 401);
+    return webConnectJsonResponse({ error: "unauthorized" }, 401);
   }
   const now = new Date();
   const ok = await markWebAccessHostSeen({ slug, hostToken, now }, webAccessSessionRepository());
   if (!ok) {
-    return jsonResponse({ error: "web_access_session_not_found" }, 404);
+    return webConnectJsonResponse({ error: "web_access_session_not_found" }, 404);
   }
-  return jsonResponse({ ok: true, hostSeenAt: now.toISOString() });
+  return webConnectJsonResponse({ ok: true, hostSeenAt: now.toISOString() });
 }

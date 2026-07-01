@@ -8,11 +8,12 @@ import {
 import { readBoundedJsonObject } from "../../../../../../../services/http/bounded-json";
 import { unauthorized, verifyRequest } from "../../../../../../../services/vms/auth";
 import {
-  jsonResponse,
-} from "../../../../../../../services/vms/routeHelpers";
-import {
   webAccessBrowserMutationOriginAllowed,
 } from "../../../../../../../services/mobile-web-access/browser-origin";
+import {
+  webConnectJsonResponse,
+  webConnectResponse,
+} from "../../../../../../../services/mobile-web-access/response";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ export async function POST(
   { params }: RelayRpcRouteProps,
 ): Promise<Response> {
   if (!webAccessBrowserMutationOriginAllowed(request)) {
-    return jsonResponse({ error: "forbidden" }, 403);
+    return webConnectJsonResponse({ error: "forbidden" }, 403);
   }
   const { slug } = await params;
   const browserToken = browserTokenFromRequest(request);
@@ -38,14 +39,14 @@ export async function POST(
       allowCookie: true,
       includeTeams: true,
     });
-  if (!browserToken && !user) return unauthorized();
+  if (!browserToken && !user) return webConnectResponse(unauthorized());
 
   const body = await readBoundedJsonObject(request, MAX_REQUEST_BYTES);
   if (!body.ok) {
-    return jsonResponse({ error: "invalid_request" }, body.status);
+    return webConnectJsonResponse({ error: "invalid_request" }, body.status);
   }
   if (!isWebAccessRelayMethod(body.value.method)) {
-    return jsonResponse({ error: "invalid_method" }, 400);
+    return webConnectJsonResponse({ error: "invalid_method" }, 400);
   }
 
   const queued = await enqueueWebAccessRpcRequest(
@@ -63,13 +64,13 @@ export async function POST(
     webAccessRelayRepository(),
   );
   if (!queued.ok && queued.reason === "not_found") {
-    return jsonResponse({ error: "web_access_session_not_found" }, 404);
+    return webConnectJsonResponse({ error: "web_access_session_not_found" }, 404);
   }
   if (!queued.ok) {
-    return jsonResponse({ error: "web_access_relay_queue_full" }, 429);
+    return webConnectJsonResponse({ error: "web_access_relay_queue_full" }, 429);
   }
 
-  return jsonResponse({
+  return webConnectJsonResponse({
     requestId: queued.request.id,
     statusToken: queued.statusToken,
     status: "pending",
