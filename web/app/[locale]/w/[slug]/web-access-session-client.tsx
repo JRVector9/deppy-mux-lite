@@ -94,6 +94,7 @@ export function WebAccessSessionClient({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [terminalViewportWidth, setTerminalViewportWidth] = useState(0);
   const [viewportHeight, setViewportHeight] = useState("100svh");
+  const [viewportWidth, setViewportWidth] = useState(0);
   const attachmentName = attachment?.name ?? "";
 
   useEffect(() => {
@@ -102,27 +103,33 @@ export function WebAccessSessionClient({
     root.classList.add("web-access-viewport-lock");
     body.classList.add("web-access-viewport-lock");
 
-    const updateViewportHeight = () => {
+    const updateViewportSize = () => {
       const height = Math.floor(window.visualViewport?.height ?? window.innerHeight);
+      const width = Math.floor(window.visualViewport?.width ?? window.innerWidth);
       if (height > 0) {
         setViewportHeight((current) => {
           const next = `${height}px`;
           return current === next ? current : next;
         });
       }
+      if (width > 0) {
+        setViewportWidth((current) => (current === width ? current : width));
+      }
     };
 
-    updateViewportHeight();
-    window.visualViewport?.addEventListener("resize", updateViewportHeight);
-    window.visualViewport?.addEventListener("scroll", updateViewportHeight);
-    window.addEventListener("orientationchange", updateViewportHeight);
+    updateViewportSize();
+    window.visualViewport?.addEventListener("resize", updateViewportSize);
+    window.visualViewport?.addEventListener("scroll", updateViewportSize);
+    window.addEventListener("orientationchange", updateViewportSize);
+    window.addEventListener("resize", updateViewportSize);
 
     return () => {
       root.classList.remove("web-access-viewport-lock");
       body.classList.remove("web-access-viewport-lock");
-      window.visualViewport?.removeEventListener("resize", updateViewportHeight);
-      window.visualViewport?.removeEventListener("scroll", updateViewportHeight);
-      window.removeEventListener("orientationchange", updateViewportHeight);
+      window.visualViewport?.removeEventListener("resize", updateViewportSize);
+      window.visualViewport?.removeEventListener("scroll", updateViewportSize);
+      window.removeEventListener("orientationchange", updateViewportSize);
+      window.removeEventListener("resize", updateViewportSize);
     };
   }, []);
 
@@ -378,11 +385,17 @@ export function WebAccessSessionClient({
       ? ""
       : copy.waiting;
   const skillCommands = ["/review", "/test", "/mcp", "/release-note"];
+  const forceMobileReadableTerminal = viewportWidth > 0 && viewportWidth <= 768;
 
   return (
     <main
-      className="fixed inset-0 flex min-h-0 w-dvw flex-col overflow-hidden overscroll-none bg-[#050505] text-[#f2f2f2] [height:var(--web-access-viewport-height)]"
-      style={{ "--web-access-viewport-height": viewportHeight } as CSSProperties}
+      className="fixed inset-0 flex min-h-0 min-w-0 max-w-[100vw] flex-col overflow-hidden overscroll-none bg-[#050505] text-[#f2f2f2] [height:var(--web-access-viewport-height)] [width:var(--web-access-viewport-width)]"
+      style={
+        {
+          "--web-access-viewport-height": viewportHeight,
+          "--web-access-viewport-width": viewportWidth > 0 ? `${viewportWidth}px` : "100vw",
+        } as CSSProperties
+      }
     >
       <div className="pointer-events-none absolute left-3 right-3 top-[max(12px,env(safe-area-inset-top))] z-30 grid gap-2">
         {activeNotice ? (
@@ -400,7 +413,7 @@ export function WebAccessSessionClient({
       </div>
 
       {showWorkspacePicker ? (
-        <section className="flex min-h-0 flex-1 flex-col px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-[max(14px,env(safe-area-inset-top))]">
+        <section className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-clip px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-[max(14px,env(safe-area-inset-top))]">
           <header className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-0.5">
             <div className="min-w-0">
               <h1 className="truncate text-lg font-semibold tracking-normal">{copy.title}</h1>
@@ -418,7 +431,7 @@ export function WebAccessSessionClient({
             </a>
           ) : null}
 
-          <div className="web-access-scroll mt-3 flex min-h-0 flex-1 flex-col gap-2 pb-1">
+          <div className="web-access-scroll mt-3 flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-2 pb-1">
             {workspaces.length === 0 ? (
               <div className="rounded-xl border border-[#2a2a2a] bg-[#101010] p-4 text-sm text-[#a8a8a8]">
                 {connected ? copy.transcriptEmpty : copy.waiting}
@@ -453,8 +466,8 @@ export function WebAccessSessionClient({
           </div>
         </section>
       ) : (
-        <section className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#030303]">
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#030303]">
+        <section className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden bg-[#030303]">
+          <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden bg-[#030303]">
             <div className="grid min-h-10 grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-2 border-b border-[#1f1f1f] bg-[#0d0d0d] px-2 pb-2 pt-[max(8px,env(safe-area-inset-top))]">
               <button
                 aria-label={copy.workspaceList}
@@ -476,16 +489,17 @@ export function WebAccessSessionClient({
             </div>
 
             <div
-              className="web-access-scroll min-h-0 flex-1 overflow-x-hidden bg-[#030303] font-mono text-[15px] leading-6 text-[#e7e7e7]"
+              className="web-access-scroll min-h-0 min-w-0 max-w-full flex-1 bg-[#030303] font-mono text-[15px] leading-6 text-[#e7e7e7]"
               ref={terminalViewportRef}
             >
               {terminalSnapshot?.kind === "render-grid" ? (
                 <TerminalRenderGridView
+                  forceReadableLayout={forceMobileReadableTerminal}
                   frame={terminalSnapshot.frame}
                   viewportWidth={terminalViewportWidth}
                 />
               ) : terminalSnapshot?.kind === "text" && terminalSnapshot.text ? (
-                <pre className="whitespace-pre-wrap break-words p-3 font-mono text-[15px] leading-6 [overflow-wrap:anywhere]">
+                <pre className="min-w-0 max-w-full whitespace-pre-wrap break-words p-3 font-mono text-[15px] leading-6 [overflow-wrap:anywhere] [word-break:break-all]">
                   {terminalSnapshot.text}
                 </pre>
               ) : transcript.length === 0 ? (
@@ -499,7 +513,7 @@ export function WebAccessSessionClient({
               )}
             </div>
 
-            <div className="border-t border-[#1f1f1f] bg-[#0a0a0a] px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2">
+            <div className="min-w-0 max-w-full overflow-x-clip border-t border-[#1f1f1f] bg-[#0a0a0a] px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2">
               {attachmentName ? (
                 <div className="mb-2 flex min-w-0 items-center gap-2 overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#151515] px-2 py-1.5 text-xs text-[#a8a8a8]">
                   <span className="h-6 w-6 shrink-0 rounded-md bg-gradient-to-br from-[#77a8ff] to-[#59d185]" />
@@ -646,9 +660,11 @@ function terminalSnapshotFromReplay(
 }
 
 function TerminalRenderGridView({
+  forceReadableLayout,
   frame,
   viewportWidth,
 }: {
+  forceReadableLayout: boolean;
   frame: MobileRenderGridFrame;
   viewportWidth: number;
 }) {
@@ -667,7 +683,8 @@ function TerminalRenderGridView({
   const foreground = frame.terminalForeground ?? webTerminalDefaultForeground;
   const cursorColor = frame.terminalCursorColor ?? foreground;
   const naturalWidthPx = Math.max(1, frame.columns * estimatedTerminalCellWidthPx);
-  const useReadableMobileLayout = viewportWidth > 0 && viewportWidth < naturalWidthPx;
+  const useReadableMobileLayout =
+    forceReadableLayout || (viewportWidth > 0 && viewportWidth < naturalWidthPx);
 
   if (useReadableMobileLayout) {
     return (
@@ -758,7 +775,7 @@ function TerminalReadableGridView({
 }) {
   return (
     <div
-      className="min-h-full w-full font-mono text-[15px] leading-6 tracking-normal"
+      className="min-h-full min-w-0 max-w-full overflow-x-clip font-mono text-[15px] leading-6 tracking-normal"
       style={{
         backgroundColor: background,
         color: foreground,
@@ -769,16 +786,17 @@ function TerminalReadableGridView({
     >
       <div
         aria-label={`terminal ${frame.columns} by ${frame.rows}`}
-        className="px-3 py-3"
+        className="min-w-0 max-w-full overflow-x-clip px-3 py-3"
         role="img"
       >
         {rows.map((row, index) => (
           <div
-            className="min-h-6 whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
+            className="min-h-6 min-w-0 max-w-full whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-all]"
             key={`${frame.surfaceId}:${frame.stateSeq}:readable:${index}`}
           >
             {row.length === 0 ? "\u00A0" : row.map((span, spanIndex) => (
               <span
+                className="[overflow-wrap:anywhere] [word-break:break-all]"
                 key={`${span.column}:${spanIndex}`}
                 style={styleForRenderSpan(
                   stylesById.get(span.styleId),
@@ -911,9 +929,12 @@ function displayTextForSpan(span: MobileRenderGridSpan): string {
 
 function displayTextForReadableSpan(span: MobileRenderGridSpan): string {
   if (span.text.length > 0) {
+    if (/^\s+$/.test(span.text)) {
+      return " ".repeat(Math.min(span.text.length, 8));
+    }
     return span.text;
   }
-  return span.cellWidth > 0 ? " ".repeat(span.cellWidth) : "";
+  return span.cellWidth > 0 ? " ".repeat(Math.min(span.cellWidth, 8)) : "";
 }
 
 function styleForRenderSpan(
