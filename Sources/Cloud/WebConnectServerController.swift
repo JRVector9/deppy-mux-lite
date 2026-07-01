@@ -233,11 +233,42 @@ final class WebConnectServerController {
             return .stopped
         }
         switch await compatibilityProbe(baseURL: baseURL) {
-        case .compatible, .incompatible:
+        case .compatible:
+            return await stopLocalRuntimeListener(port: port) ? .stopped : .externalProcess(port: port)
+        case .incompatible:
             return .externalProcess(port: port)
         case .unreachable:
-            return Self.canBindLocalPort(port) ? .stopped : .externalProcess(port: port)
+            if Self.canBindLocalPort(port) {
+                return .stopped
+            }
+            return await stopLocalRuntimeListener(port: port) ? .stopped : .externalProcess(port: port)
         }
+    }
+
+    private func stopLocalRuntimeListener(port: Int) async -> Bool {
+        let environment = ProcessInfo.processInfo.environment
+        let runtimePath = Self.runtimeDirectory(environment: environment)?.path
+        let pids = Self.listenerPIDs(port: port).filter { pid in
+            Self.isWebConnectRuntimeCommandLine(Self.commandLine(pid: pid), runtimePath: runtimePath)
+        }
+        guard !pids.isEmpty else {
+            return false
+        }
+        for pid in pids {
+            _ = Self.sendSignal("TERM", pid: pid)
+        }
+        let clock = ContinuousClock()
+        for _ in 0..<20 {
+            if Self.canBindLocalPort(port) {
+                return true
+            }
+            // Bounded shutdown grace period after SIGTERM for a same-runtime server.
+            try? await clock.sleep(for: .milliseconds(100))
+        }
+        for pid in pids {
+            _ = Self.sendSignal("KILL", pid: pid)
+        }
+        return Self.canBindLocalPort(port)
     }
 
     private func processDidTerminate(_ finishedProcess: Process) {
@@ -282,6 +313,59 @@ final class WebConnectServerController {
         components.query = nil
         components.fragment = nil
         return components.url
+    }
+
+    private static func listenerPIDs(port: Int) -> [Int32] {
+        commandOutput(
+            executable: "/usr/sbin/lsof",
+            arguments: ["-nP", "-tiTCP:\(port)", "-sTCP:LISTEN"]
+        )
+        .split(whereSeparator: \.isNewline)
+        .compactMap { Int32(String($0).trimmingCharacters(in: .whitespacesAndNewlines)) }
+    }
+
+    private static func commandLine(pid: Int32) -> String {
+        commandOutput(
+            executable: "/bin/ps",
+            arguments: ["-p", String(pid), "-o", "command="]
+        )
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func isWebConnectRuntimeCommandLine(_ commandLine: String, runtimePath: String?) -> Bool {
+        guard commandLine.contains("server.js") else {
+            return false
+        }
+        if let runtimePath, commandLine.contains(runtimePath) {
+            return true
+        }
+        return commandLine.contains("/WebConnectRuntime/current/")
+    }
+
+    private static func sendSignal(_ signal: String, pid: Int32) -> Bool {
+        runCommand(executable: "/bin/kill", arguments: ["-\(signal)", String(pid)]).exitCode == 0
+    }
+
+    private static func commandOutput(executable: String, arguments: [String]) -> String {
+        let result = runCommand(executable: executable, arguments: arguments)
+        return result.exitCode == 0 ? result.output : ""
+    }
+
+    private static func runCommand(executable: String, arguments: [String]) -> (exitCode: Int32, output: String) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: executable)
+        process.arguments = arguments
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = Pipe()
+        do {
+            try process.run()
+            process.waitUntilExit()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            return (process.terminationStatus, String(data: data, encoding: .utf8) ?? "")
+        } catch {
+            return (1, "")
+        }
     }
 
     private struct ServerCommand {
