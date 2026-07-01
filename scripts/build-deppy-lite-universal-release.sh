@@ -47,6 +47,12 @@ EOF
   exit 67
 fi
 
+if [[ -z "$PREBUILT_GHOSTTY_HELPER" && "${CMUX_SKIP_ZIG_BUILD:-}" != "1" ]]; then
+  CMUX_ZIG="$("$ROOT_DIR/scripts/ensure-zig-required.sh")"
+  export CMUX_ZIG
+  echo "Using zig $("$CMUX_ZIG" version) at $CMUX_ZIG"
+fi
+
 XCODEBUILD_ARGS=(
   -project cmux.xcodeproj
   -scheme deppy-mux-lite

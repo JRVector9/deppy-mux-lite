@@ -24,7 +24,8 @@
 - `scripts/build-deppy-lite-arm64-release.sh` builds Apple Silicon-only `deppy-mux-lite.app` and asserts the app binary and bundled `deppy-cli` are `arm64`.
 - `scripts/build-deppy-lite-universal-release.sh` builds Intel + Apple Silicon `deppy-mux-lite-universal.app` and asserts both `arm64` and `x86_64` slices are present.
 - Final downloadable release packages must contain a real Ghostty CLI helper, not the `CMUX_SKIP_ZIG_BUILD=1` stub.
-- If Zig 0.15.2 is unavailable on the app build machine, build the helper separately on a compatible macOS runner and pass it with `DEPPY_LITE_GHOSTTY_HELPER_PATH=<path>`.
+- If no prebuilt helper is provided, the lite release scripts call `scripts/ensure-zig-required.sh` and use a pinned Zig 0.15.2 from `~/Library/Caches/deppy-mux/zig`, without changing the system Homebrew Zig.
+- If Zig 0.15.2 cannot link correctly on the app build machine, build the helper separately on a compatible macOS runner and pass it with `DEPPY_LITE_GHOSTTY_HELPER_PATH=<path>`.
 - `scripts/build-deppy-lite-arm64-release.sh` accepts a universal helper but thins it to `arm64` before packaging.
 - `scripts/build-deppy-lite-universal-release.sh` requires a helper containing both `arm64` and `x86_64`.
 - `CMUX_SKIP_ZIG_BUILD=1` without `DEPPY_LITE_GHOSTTY_HELPER_PATH` now fails by default. Use `DEPPY_LITE_ALLOW_STUB_GHOSTTY_HELPER=1` only for local compile validation, never for release assets.

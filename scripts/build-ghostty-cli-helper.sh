@@ -75,6 +75,10 @@ select_zig_for_target() {
   fi
 
   local -a candidates=()
+  local ensured_zig=""
+  if ensured_zig="$("$SCRIPT_DIR/ensure-zig-required.sh")"; then
+    [[ -n "$ensured_zig" ]] && candidates+=("$ensured_zig")
+  fi
   # Prefer Apple Silicon Homebrew Zig on macOS runners. Some CI shells expose
   # /usr/local/bin first or run under Rosetta, but the x86_64 Zig link path can
   # fail against newer macOS SDKs while arm64 Zig cross-compiles both slices.
