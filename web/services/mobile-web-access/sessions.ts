@@ -1,4 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 import { and, asc, desc, eq, gt, inArray, lte, sql } from "drizzle-orm";
 import { cloudDb } from "../../db/client";
 import { webAccessSessions } from "../../db/schema";
@@ -337,6 +339,173 @@ export function createMemoryWebAccessSessionRepository(): WebAccessSessionReposi
   };
 }
 
+export function createFileWebAccessSessionRepository(filePath: string): WebAccessSessionRepository {
+  const sessions = new Map<string, StoredWebAccessSession>();
+  let loaded = false;
+
+  async function load() {
+    if (loaded) {
+      return;
+    }
+    loaded = true;
+    try {
+      const raw = await readFile(filePath, "utf8");
+      const parsed = JSON.parse(raw) as {
+        version?: number;
+        sessions?: StoredWebAccessSession[];
+      };
+      if (parsed.version !== 1 || !Array.isArray(parsed.sessions)) {
+        return;
+      }
+      for (const session of parsed.sessions) {
+        if (isStoredWebAccessSession(session)) {
+          sessions.set(session.slug, session);
+        }
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        return;
+      }
+      throw error;
+    }
+  }
+
+  async function persist() {
+    await mkdir(dirname(filePath), { recursive: true });
+    const payload = JSON.stringify(
+      {
+        version: 1,
+        sessions: [...sessions.values()].sort((lhs, rhs) =>
+          Date.parse(rhs.createdAt) - Date.parse(lhs.createdAt),
+        ),
+      },
+      null,
+      2,
+    );
+    const tempPath = `${filePath}.${process.pid}.tmp`;
+    await writeFile(tempPath, payload, { mode: 0o600 });
+    await rename(tempPath, filePath);
+  }
+
+  return {
+    async pruneExpired(now) {
+      await load();
+      const nowMs = now.getTime();
+      let changed = false;
+      for (const [slug, session] of sessions) {
+        if (Date.parse(session.expiresAt) <= nowMs) {
+          sessions.delete(slug);
+          changed = true;
+        }
+      }
+      if (changed) {
+        await persist();
+      }
+    },
+    async insert(session) {
+      await load();
+      sessions.set(session.slug, session);
+      await persist();
+    },
+    async deleteSameDevice(input) {
+      await load();
+      if (!input.deviceId) {
+        return;
+      }
+      let changed = false;
+      for (const [slug, session] of sessions) {
+        if (
+          session.userId === input.userId &&
+          session.teamId === input.teamId &&
+          session.deviceId === input.deviceId
+        ) {
+          sessions.delete(slug);
+          changed = true;
+        }
+      }
+      if (changed) {
+        await persist();
+      }
+    },
+    async enforceOwnerLimit(input) {
+      await load();
+      const ownerSessions = [...sessions.values()]
+        .filter((session) => session.userId === input.userId && session.teamId === input.teamId)
+        .sort((lhs, rhs) => Date.parse(lhs.createdAt) - Date.parse(rhs.createdAt));
+      const staleSessions = ownerSessions.slice(
+        0,
+        Math.max(0, ownerSessions.length - input.maxActiveSessions),
+      );
+      for (const stale of staleSessions) {
+        sessions.delete(stale.slug);
+      }
+      if (staleSessions.length > 0) {
+        await persist();
+      }
+    },
+    async findActiveBySlug(slug, now) {
+      await load();
+      const session = sessions.get(slug);
+      if (!session || Date.parse(session.expiresAt) <= now.getTime()) {
+        return null;
+      }
+      return session;
+    },
+    async listActiveForRequester(input) {
+      await load();
+      return [...sessions.values()]
+        .filter(
+          (session) =>
+            session.userId === input.userId &&
+            input.teamIds.includes(session.teamId) &&
+            Date.parse(session.expiresAt) > input.now.getTime(),
+        )
+        .sort((lhs, rhs) => Date.parse(rhs.createdAt) - Date.parse(lhs.createdAt));
+    },
+    async markHostSeen(input) {
+      await load();
+      const session = sessions.get(input.slug);
+      if (
+        !session ||
+        session.hostTokenHash !== input.hostTokenHash ||
+        Date.parse(session.expiresAt) <= input.now.getTime()
+      ) {
+        return false;
+      }
+      session.lastHostSeenAt = input.now.toISOString();
+      await persist();
+      return true;
+    },
+    async refreshHostSession(input) {
+      await load();
+      const session = sessions.get(input.slug);
+      if (
+        !session ||
+        session.hostTokenHash !== input.hostTokenHash ||
+        Date.parse(session.expiresAt) <= input.now.getTime()
+      ) {
+        return null;
+      }
+      session.expiresAt = input.expiresAt.toISOString();
+      session.lastHostSeenAt = input.now.toISOString();
+      await persist();
+      return session;
+    },
+    async findActiveByBrowserToken(input) {
+      await load();
+      const session = sessions.get(input.slug);
+      if (
+        !session ||
+        hashToken(session.browserToken) !== input.browserTokenHash ||
+        Date.parse(session.expiresAt) <= input.now.getTime()
+      ) {
+        return null;
+      }
+      return session;
+    },
+  };
+}
+
 type WebAccessDb = Pick<
   ReturnType<typeof cloudDb>,
   "delete" | "execute" | "insert" | "select" | "update"
@@ -576,4 +745,21 @@ function hashToken(value: string): string {
 function cleanOptional(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
   return trimmed ? trimmed.slice(0, 128) : null;
+}
+
+function isStoredWebAccessSession(value: unknown): value is StoredWebAccessSession {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const session = value as Partial<StoredWebAccessSession>;
+  return typeof session.slug === "string" &&
+    typeof session.hostTokenHash === "string" &&
+    typeof session.browserToken === "string" &&
+    typeof session.userId === "string" &&
+    typeof session.teamId === "string" &&
+    typeof session.createdAt === "string" &&
+    typeof session.expiresAt === "string" &&
+    (session.deviceId === null || typeof session.deviceId === "string") &&
+    (session.displayName === null || typeof session.displayName === "string") &&
+    (session.lastHostSeenAt === null || typeof session.lastHostSeenAt === "string");
 }

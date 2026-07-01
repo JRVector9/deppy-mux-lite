@@ -1,10 +1,15 @@
 import { describe, expect, test } from "bun:test";
+import { mkdtemp, rm } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import {
+  createFileWebAccessSessionRepository,
   createMemoryWebAccessSessionRepository,
   createWebAccessSession,
   getPublicWebAccessSession,
   listOwnerWebAccessSessions,
   markWebAccessHostSeen,
+  verifyWebAccessBrowserToken,
   type WebAccessSessionRepository,
 } from "../services/mobile-web-access/sessions";
 
@@ -222,5 +227,69 @@ describe("mobile web access sessions", () => {
     await expect(getPublicWebAccessSession(sessions[1]!.slug, checkTime, repository)).resolves.not.toBeNull();
     await expect(getPublicWebAccessSession(sessions[2]!.slug, checkTime, repository)).resolves.not.toBeNull();
     await expect(getPublicWebAccessSession(sessions[3]!.slug, checkTime, repository)).resolves.not.toBeNull();
+  });
+
+  test("persists local-only sessions across runtime repository restarts", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "web-access-sessions-"));
+    try {
+      const filePath = join(directory, "sessions.json");
+      const firstRepository = createFileWebAccessSessionRepository(filePath);
+      const createdAt = new Date("2026-06-29T00:00:00.000Z");
+      const session = await createWebAccessSession(
+        {
+          userId: "local-user",
+          teamId: "local-team",
+          deviceId: "mac-1",
+          displayName: "Desk Mac",
+          now: createdAt,
+        },
+        firstRepository,
+      );
+      await expect(
+        markWebAccessHostSeen(
+          {
+            slug: session.slug,
+            hostToken: session.hostToken,
+            now: new Date("2026-06-29T00:01:00.000Z"),
+          },
+          firstRepository,
+        ),
+      ).resolves.toBe(true);
+
+      const restartedRepository = createFileWebAccessSessionRepository(filePath);
+      await expect(
+        verifyWebAccessBrowserToken(
+          {
+            slug: session.slug,
+            browserToken: session.browserToken,
+            now: new Date("2026-06-29T00:02:00.000Z"),
+          },
+          restartedRepository,
+        ),
+      ).resolves.toBe(true);
+      await expect(
+        markWebAccessHostSeen(
+          {
+            slug: session.slug,
+            hostToken: session.hostToken,
+            now: new Date("2026-06-29T00:02:00.000Z"),
+          },
+          restartedRepository,
+        ),
+      ).resolves.toBe(true);
+      await expect(
+        getPublicWebAccessSession(
+          session.slug,
+          new Date("2026-06-29T00:02:00.000Z"),
+          restartedRepository,
+        ),
+      ).resolves.toMatchObject({
+        slug: session.slug,
+        displayName: "Desk Mac",
+        connected: true,
+      });
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 });

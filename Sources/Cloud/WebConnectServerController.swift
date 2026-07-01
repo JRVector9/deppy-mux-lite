@@ -664,6 +664,7 @@ final class WebConnectServerController {
         result["HOSTNAME"] = environment["CMUX_WEB_CONNECT_HOSTNAME"] ?? "0.0.0.0"
         result["CMUX_WEB_CONNECT_LOCAL_ONLY"] = "1"
         result[Self.localControlTokenEnvironmentKey] = Self.localControlToken
+        result["CMUX_WEB_CONNECT_STATE_FILE"] = environment["CMUX_WEB_CONNECT_STATE_FILE"] ?? defaultStateFilePath()
         result["SKIP_ENV_VALIDATION"] = "1"
         result["CMUX_PORT_RANGE"] = String(range)
         result["CMUX_PORT_END"] = environment["CMUX_PORT_END"] ?? String(port + max(range, 1) - 1)
@@ -673,6 +674,32 @@ final class WebConnectServerController {
         result["STACK_SECRET_SERVER_KEY"] = environment["STACK_SECRET_SERVER_KEY"] ?? "preview-secret-server-key"
         result["PATH"] = executableSearchPath(environment: environment)
         return result
+    }
+
+    private static func defaultStateFilePath() -> String {
+        let fallback = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent("deppy-web-connect", isDirectory: true)
+            .appendingPathComponent("sessions.json")
+        guard let applicationSupport = FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first else {
+            return fallback.path
+        }
+        let directory = applicationSupport
+            .appendingPathComponent("deppy-mux", isDirectory: true)
+            .appendingPathComponent("WebConnectRuntime", isDirectory: true)
+            .appendingPathComponent("state", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(
+                at: directory,
+                withIntermediateDirectories: true,
+                attributes: [.posixPermissions: 0o700]
+            )
+            return directory.appendingPathComponent("sessions.json").path
+        } catch {
+            return fallback.path
+        }
     }
 
     nonisolated private static func makeLocalControlToken() -> String {

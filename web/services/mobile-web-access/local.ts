@@ -1,4 +1,5 @@
 import {
+  createFileWebAccessSessionRepository,
   createMemoryWebAccessSessionRepository,
   type WebAccessSessionRepository,
 } from "./sessions";
@@ -20,11 +21,18 @@ function localState(): LocalWebAccessState {
   if (globalForLocalWebAccess.__cmuxLocalWebAccess) {
     return globalForLocalWebAccess.__cmuxLocalWebAccess;
   }
-  const sessions = createMemoryWebAccessSessionRepository();
+  const sessions = localSessionRepository();
   const relay = createMemoryWebAccessRelayRepositoryForSessions(sessions);
   const state = { sessions, relay };
   globalForLocalWebAccess.__cmuxLocalWebAccess = state;
   return state;
+}
+
+function localSessionRepository(): WebAccessSessionRepository {
+  const stateFile = process.env.CMUX_WEB_CONNECT_STATE_FILE?.trim();
+  return stateFile
+    ? createFileWebAccessSessionRepository(stateFile)
+    : createMemoryWebAccessSessionRepository();
 }
 
 export function localWebAccessEnabled(): boolean {
