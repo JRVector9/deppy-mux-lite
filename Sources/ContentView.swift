@@ -2601,8 +2601,14 @@ struct ContentView: View {
             AppDelegate.shared?.syncBonsplitTabShortcutHintEligibility(in: observedWindow)
             guard let newValue else { return }
             if selectedTabIds.count <= 1 {
-                selectedTabIds = [newValue]
-                lastSidebarSelectionIndex = tabManager.tabs.firstIndex { $0.id == newValue }
+                let nextSelectedTabIds: Set<UUID> = [newValue]
+                if selectedTabIds != nextSelectedTabIds {
+                    selectedTabIds = nextSelectedTabIds
+                }
+                let nextSidebarSelectionIndex = tabManager.tabs.firstIndex { $0.id == newValue }
+                if lastSidebarSelectionIndex != nextSidebarSelectionIndex {
+                    lastSidebarSelectionIndex = nextSidebarSelectionIndex
+                }
             }
             updateTitlebarText()
         })

@@ -13,12 +13,104 @@ permissions:
 
 env:
   CREATE_DMG_VERSION: 8.0.0
+  DEPPY_LITE_ARM64_DMG_ASSET: deppy-mux-lite-arm64.dmg
+  DEPPY_LITE_UNIVERSAL_DMG_ASSET: deppy-mux-lite-universal.dmg
+  DEPPY_WEB_CONNECT_RUNTIME_ARM64_ASSET: deppy-web-connect-runtime-arm64.zip
+  DEPPY_WEB_CONNECT_RUNTIME_X86_64_ASSET: deppy-web-connect-runtime-x86_64.zip
 
 jobs:
+  guard-release-assets:
+    runs-on: ${{ vars.LINUX_RUNNER || 'blacksmith-4vcpu-ubuntu-2404' }}
+    outputs:
+      skip_all: ${{ steps.guard.outputs.skip_all }}
+      skip_upload: ${{ steps.guard.outputs.skip_upload }}
+      release_state: ${{ steps.guard.outputs.release_state }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Guard immutable deppy-lite release assets
+        id: guard
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { evaluateReleaseAssetGuard } = require('./scripts/release_asset_guard');
+            const tag = context.ref.startsWith('refs/tags/')
+              ? context.ref.replace('refs/tags/', '')
+              : null;
+            const immutableAssetNames = [
+              process.env.DEPPY_LITE_ARM64_DMG_ASSET,
+              process.env.DEPPY_LITE_UNIVERSAL_DMG_ASSET,
+              process.env.DEPPY_WEB_CONNECT_RUNTIME_ARM64_ASSET,
+              process.env.DEPPY_WEB_CONNECT_RUNTIME_X86_64_ASSET,
+            ];
+            core.setOutput('skip_all', 'false');
+            core.setOutput('skip_upload', 'false');
+            core.setOutput('release_state', 'clear');
+            if (!tag) {
+              core.notice('workflow_dispatch is not running from a tag; release guard is in dry-run mode.');
+              return;
+            }
+            try {
+              const release = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag,
+              });
+              const existingAssetNames = (release.data.assets || []).map((asset) => asset.name);
+              const {
+                conflicts,
+                missingImmutableAssets,
+                guardState,
+                hasPartialConflict,
+                shouldSkipBuildAndUpload,
+              } = evaluateReleaseAssetGuard({ existingAssetNames, immutableAssetNames });
+
+              core.setOutput('release_state', guardState);
+
+              if (hasPartialConflict) {
+                core.setFailed(
+                  `Release ${tag} has a partial immutable asset state. Existing immutable assets: ` +
+                  `${conflicts.join(', ')}. Missing immutable assets: ${missingImmutableAssets.join(', ')}. ` +
+                  'Resolve release assets manually before rerunning.'
+                );
+                return;
+              }
+
+              if (shouldSkipBuildAndUpload) {
+                core.notice(
+                  `Release ${tag} already contains immutable assets (${conflicts.join(', ')}). ` +
+                  'Skipping build, notarization, and upload to preserve existing signed artifacts.'
+                );
+                core.setOutput('skip_all', 'true');
+                core.setOutput('skip_upload', 'true');
+                return;
+              }
+
+              core.notice(`Release ${tag} exists but has no immutable deppy-lite assets yet; continuing.`);
+            } catch (error) {
+              if (error.status === 404) {
+                core.notice(`Release ${tag} does not exist yet; safe to build and publish deppy-lite assets.`);
+                return;
+              }
+              throw error;
+            }
+
   build-ghostty-cli-helper:
+    needs: guard-release-assets
+    if: needs.guard-release-assets.outputs.skip_all != 'true'
     runs-on: ${{ vars.MACOS_RUNNER_15 || 'blacksmith-6vcpu-macos-15' }}
     timeout-minutes: 20
     steps:
+      - name: Clear stale git locks
+        shell: bash
+        run: |
+          ws="${GITHUB_WORKSPACE:-$PWD}"
+          rm -f "$ws/.git/index.lock" 2>/dev/null || true
+          if [ -d "$ws/.git/modules" ]; then
+            find "$ws/.git/modules" -type f -name "*.lock" -delete 2>/dev/null || true
+          fi
+
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -52,8 +144,96 @@ jobs:
           path: ghostty-cli-helper/ghostty
           if-no-files-found: error
 
+  build-web-connect-runtime:
+    needs: guard-release-assets
+    if: needs.guard-release-assets.outputs.skip_all != 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: ${{ vars.MACOS_RUNNER_15 || 'blacksmith-6vcpu-macos-15' }}
+          - arch: x86_64
+            runner: ${{ vars.DEPPY_LITE_MACOS_X86_64_RUNNER || 'macos-15-intel' }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - name: Clear stale git locks
+        shell: bash
+        run: |
+          ws="${GITHUB_WORKSPACE:-$PWD}"
+          rm -f "$ws/.git/index.lock" 2>/dev/null || true
+          if [ -d "$ws/.git/modules" ]; then
+            find "$ws/.git/modules" -type f -name "*.lock" -delete 2>/dev/null || true
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Verify runner architecture
+        run: |
+          set -euo pipefail
+          current_arch="$(uname -m)"
+          expected_arch="${{ matrix.arch }}"
+          if [ "$current_arch" != "$expected_arch" ]; then
+            echo "Expected a $expected_arch runner, got $current_arch." >&2
+            echo "Set DEPPY_LITE_MACOS_X86_64_RUNNER to an Intel macOS runner for the x86_64 runtime asset." >&2
+            exit 1
+          fi
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+
+      - name: Install web dependencies
+        working-directory: web
+        run: bun install --frozen-lockfile
+
+      - name: Build Web Connect runtime archive
+        run: |
+          set -euo pipefail
+          arch="${{ matrix.arch }}"
+          asset="deppy-web-connect-runtime-${arch}.zip"
+          mkdir -p release-assets
+          DEPPY_WEB_CONNECT_ARCHIVE_OUTPUT="$PWD/release-assets/$asset" \
+            scripts/install-web-connect-runtime.sh --output "$RUNNER_TEMP/current"
+
+      - name: Verify Web Connect runtime archive
+        run: |
+          set -euo pipefail
+          arch="${{ matrix.arch }}"
+          archive="$PWD/release-assets/deppy-web-connect-runtime-${arch}.zip"
+          verify_dir="$RUNNER_TEMP/web-connect-runtime-verify"
+          rm -rf "$verify_dir"
+          mkdir -p "$verify_dir"
+          ditto -x -k "$archive" "$verify_dir"
+          runtime_dir="$verify_dir/current"
+          test -f "$runtime_dir/server.js"
+          if [ -x "$runtime_dir/bin/bun" ]; then
+            lipo "$runtime_dir/bin/bun" -verify_arch "$arch"
+          elif [ -x "$runtime_dir/bin/node" ]; then
+            lipo "$runtime_dir/bin/node" -verify_arch "$arch"
+          else
+            echo "Runtime archive does not contain bin/bun or bin/node" >&2
+            exit 1
+          fi
+          while IFS= read -r -d '' binary; do
+            lipo "$binary" -verify_arch "$arch"
+          done < <(find "$runtime_dir" -type f \( -name '*.node' -o -name '*.dylib' \) -print0)
+          du -sh "$archive"
+
+      - name: Upload Web Connect runtime archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: deppy-web-connect-runtime-${{ matrix.arch }}
+          path: release-assets/deppy-web-connect-runtime-${{ matrix.arch }}.zip
+          if-no-files-found: error
+
   build-sign-notarize:
-    needs: build-ghostty-cli-helper
+    needs:
+      - guard-release-assets
+      - build-ghostty-cli-helper
+      - build-web-connect-runtime
+    if: needs.guard-release-assets.outputs.skip_all != 'true'
     runs-on: ${{ vars.MACOS_RUNNER_26_RELEASE || 'blacksmith-6vcpu-macos-26' }}
     timeout-minutes: 60
     strategy:
@@ -71,6 +251,15 @@ jobs:
             app_path: build-deppy-lite-universal/Build/Products/Release/deppy-mux-lite-universal.app
             dmg_name: deppy-mux-lite-universal.dmg
     steps:
+      - name: Clear stale git locks
+        shell: bash
+        run: |
+          ws="${GITHUB_WORKSPACE:-$PWD}"
+          rm -f "$ws/.git/index.lock" 2>/dev/null || true
+          if [ -d "$ws/.git/modules" ]; then
+            find "$ws/.git/modules" -type f -name "*.lock" -delete 2>/dev/null || true
+          fi
+
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -134,12 +323,41 @@ jobs:
           name: deppy-lite-ghostty-cli-helper
           path: ghostty-cli-helper
 
+      - name: Download Web Connect runtime archives
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: deppy-web-connect-runtime-*
+          path: release-assets
+          merge-multiple: true
+
       - name: Build deppy-lite app
         run: |
           set -euo pipefail
           DERIVED_DATA="$PWD/${{ matrix.derived_data }}" \
           DEPPY_LITE_GHOSTTY_HELPER_PATH="$PWD/ghostty-cli-helper/ghostty" \
           "${{ matrix.script }}"
+
+      - name: Verify deppy-lite release inputs
+        run: |
+          set -euo pipefail
+          APP_PATH="${{ matrix.app_path }}"
+          CLI_BIN="$APP_PATH/Contents/Resources/bin/deppy-cli"
+          HELPER_BIN="$APP_PATH/Contents/Resources/bin/ghostty"
+          test -d "$APP_PATH"
+          test ! -e "$APP_PATH/Contents/Resources/web-connect"
+          lipo "$CLI_BIN" -verify_arch arm64
+          if [ "${{ matrix.variant }}" = "universal" ]; then
+            APP_BIN="$APP_PATH/Contents/MacOS/deppy-mux-lite-universal"
+            lipo "$APP_BIN" -verify_arch arm64 x86_64
+            lipo "$CLI_BIN" -verify_arch x86_64
+            lipo "$HELPER_BIN" -verify_arch arm64 x86_64
+          else
+            APP_BIN="$APP_PATH/Contents/MacOS/deppy-mux-lite"
+            lipo "$APP_BIN" -verify_arch arm64
+            lipo "$HELPER_BIN" -verify_arch arm64
+          fi
+          test -f "release-assets/$DEPPY_WEB_CONNECT_RUNTIME_ARM64_ASSET"
+          test -f "release-assets/$DEPPY_WEB_CONNECT_RUNTIME_X86_64_ASSET"
 
       - name: Import signing cert
         env:
@@ -241,8 +459,11 @@ jobs:
           if-no-files-found: error
 
   publish:
-    needs: build-sign-notarize
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    needs:
+      - guard-release-assets
+      - build-sign-notarize
+      - build-web-connect-runtime
+    if: needs.guard-release-assets.outputs.skip_upload != 'true' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
       - name: Download DMG artifacts
@@ -252,11 +473,20 @@ jobs:
           path: release-assets
           merge-multiple: true
 
+      - name: Download Web Connect runtime artifacts
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: deppy-web-connect-runtime-*
+          path: release-assets
+          merge-multiple: true
+
       - name: Upload release assets
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           files: |
             release-assets/deppy-mux-lite-arm64.dmg
             release-assets/deppy-mux-lite-universal.dmg
+            release-assets/deppy-web-connect-runtime-arm64.zip
+            release-assets/deppy-web-connect-runtime-x86_64.zip
           generate_release_notes: true
           overwrite_files: false

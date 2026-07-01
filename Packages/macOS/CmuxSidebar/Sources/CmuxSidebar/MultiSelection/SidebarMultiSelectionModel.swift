@@ -33,6 +33,7 @@ public final class SidebarMultiSelectionModel {
 
     /// Replaces the selection wholesale.
     public func replaceSelection(with workspaceIds: Set<UUID>) {
+        guard selectedWorkspaceIds != workspaceIds else { return }
         selectedWorkspaceIds = workspaceIds
     }
 

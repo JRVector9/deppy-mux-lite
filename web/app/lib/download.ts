@@ -1,10 +1,9 @@
 /**
- * Single source of truth for cmux download links.
+ * Single source of truth for deppy-mux-lite download links.
  *
- * `DOWNLOAD_URL` is the actual release asset. cmux ships only a macOS build,
- * so there is one asset; if win/linux builds are added later, route them from
- * here (and from the confirmation page) rather than duplicating URLs at call
- * sites.
+ * `DOWNLOAD_URL` is the actual release asset. deppy-mux-lite ships a universal
+ * macOS build from the JRVector9/deppy-mux-lite fork, so route Download CTAs
+ * from here rather than duplicating GitHub asset URLs at call sites.
  *
  * `DOWNLOAD_CONFIRMATION_PATH` is the locale-agnostic in-app route that every
  * Download CTA navigates to (same-tab). That page auto-triggers the real
@@ -20,7 +19,7 @@
  * reflects the original page load.
  */
 export const DOWNLOAD_URL =
-  "https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg";
+  "https://github.com/JRVector9/deppy-mux-lite/releases/latest/download/deppy-mux-lite-universal.dmg";
 
 export const DOWNLOAD_CONFIRMATION_PATH = "/download/confirmation";
 

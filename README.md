@@ -41,6 +41,19 @@ Current product lines:
 - `deppy-lite-arm64`: Apple Silicon-only optimized release branch.
 - Web Connect runtime is downloaded separately by default instead of bundled into the base app.
 
+Latest universal macOS DMG:
+
+```text
+https://github.com/JRVector9/deppy-mux-lite/releases/latest/download/deppy-mux-lite-universal.dmg
+```
+
+The app's Web Connect installer downloads one of these release assets:
+
+```text
+https://github.com/JRVector9/deppy-mux-lite/releases/latest/download/deppy-web-connect-runtime-arm64.zip
+https://github.com/JRVector9/deppy-mux-lite/releases/latest/download/deppy-web-connect-runtime-x86_64.zip
+```
+
 Still being hardened:
 
 - Release packaging, signing, and notarized DMG flow.
