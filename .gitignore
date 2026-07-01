@@ -11,9 +11,18 @@ xcuserdata/
 
 # Local env
 .env
+.env.*
 .envrc
 !web/.envrc
 ios/Config/AppStoreConnect.local.plist
+
+# Local release/signing secrets — never commit
+sparkle_private_key*
+*sparkle*private*key*
+*.p12
+*.pem
+*.p8
+*.mobileprovision
 
 # Swift Package Manager
 .swiftpm/
@@ -26,6 +35,8 @@ GhosttyKit.xcframework.bak-*/
 # Release artifacts
 cmux-*.zip
 cmux-macos.dmg
+deppy-mux-lite-*.dmg
+deppy-mux-lite-*.zip
 appcast.xml
 
 # Python

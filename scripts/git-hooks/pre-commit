@@ -8,12 +8,20 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 PBXPROJ="cmux.xcodeproj/project.pbxproj"
 
-# Only run when the pbxproj is part of this commit.
-if ! git diff --cached --name-only --diff-filter=ACMRT | grep -Fxq "$PBXPROJ"; then
-    exit 0
+cd "$REPO_ROOT"
+
+staged_paths="$(git diff --cached --name-only --diff-filter=ACMRT)"
+if printf '%s\n' "$staged_paths" | grep -E '(^|/)(\.env($|\.)|.*[Ss]parkle.*[Pp]rivate.*[Kk]ey.*|sparkle_private_key.*|.*\.(p12|pem|p8|mobileprovision))$' >/dev/null; then
+    echo "pre-commit: refusing to commit local secrets or signing material:" >&2
+    printf '%s\n' "$staged_paths" | grep -E '(^|/)(\.env($|\.)|.*[Ss]parkle.*[Pp]rivate.*[Kk]ey.*|sparkle_private_key.*|.*\.(p12|pem|p8|mobileprovision))$' >&2
+    echo "Store Sparkle private keys and release credentials in Keychain, ~/.secrets, or GitHub Secrets instead." >&2
+    exit 1
 fi
 
-cd "$REPO_ROOT"
+# Only run when the pbxproj is part of this commit.
+if ! printf '%s\n' "$staged_paths" | grep -Fxq "$PBXPROJ"; then
+    exit 0
+fi
 
 # Refuse to normalize when the working-tree pbxproj has unstaged changes.
 # Otherwise the `git add` at the end would silently stage hunks the
