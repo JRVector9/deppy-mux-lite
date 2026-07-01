@@ -19,6 +19,7 @@ type MobileTerminalViewportProps = {
   };
   fitWidthEnabled: boolean;
   fontSizePx: number;
+  onFocusComposer: () => void;
   readableWrapEnabled: boolean;
   terminalSnapshot: TerminalSnapshot | null;
   terminalViewportRef: RefObject<HTMLDivElement | null>;
@@ -35,6 +36,7 @@ export function MobileTerminalViewport({
   copy,
   fitWidthEnabled,
   fontSizePx,
+  onFocusComposer,
   readableWrapEnabled,
   terminalSnapshot,
   terminalViewportRef,
@@ -44,6 +46,7 @@ export function MobileTerminalViewport({
   return (
     <div
       className="web-access-scroll min-h-0 min-w-0 max-w-full flex-1 bg-[#030303] font-mono text-[#e7e7e7]"
+      onClick={onFocusComposer}
       ref={terminalViewportRef}
     >
       {terminalSnapshot?.kind === "render-grid" ? (
@@ -129,7 +132,7 @@ function TerminalRenderGridView({
     return (
       <TerminalReadableGridView
         background={background}
-        fontSizePx={fontSizePx}
+        fontSizePx={fittedFontSizePx}
         foreground={foreground}
         frame={frame}
         inheritedBackground={inheritedBackground}
@@ -143,14 +146,14 @@ function TerminalRenderGridView({
 
   return (
     <div
-      className="min-h-full w-full overflow-hidden font-mono text-[12px] tracking-normal"
+      className="min-h-full w-full max-w-full overflow-hidden font-mono text-[12px] tracking-normal"
       style={{
         backgroundColor: background,
         color: foreground,
       }}
     >
       <div
-        className="relative inline-block min-w-full max-w-full overflow-hidden font-mono tracking-normal"
+        className="relative block min-w-0 max-w-full overflow-hidden font-mono tracking-normal"
         style={{
           backgroundColor: background,
           color: foreground,
@@ -160,7 +163,7 @@ function TerminalRenderGridView({
           fontSize: `${fittedFontSizePx}px`,
           lineHeight: terminalLineHeightEm,
           minHeight: `${frame.rows * terminalLineHeightEm}em`,
-          width: `${frame.columns}ch`,
+          width: fitWidth ? "100%" : `${frame.columns}ch`,
         }}
       >
         <div aria-label={`${terminalLabel} ${frame.columns} by ${frame.rows}`} role="img">
@@ -221,7 +224,7 @@ function TerminalReadableGridView({
 }) {
   return (
     <div
-      className="web-access-no-x min-h-full font-mono tracking-normal"
+      className="web-access-no-x min-h-full w-full max-w-full font-mono tracking-normal"
       style={{
         backgroundColor: background,
         color: foreground,
@@ -234,17 +237,17 @@ function TerminalReadableGridView({
     >
       <div
         aria-label={`${terminalLabel} ${frame.columns} by ${frame.rows}`}
-        className="web-access-no-x px-3 py-3"
+        className="web-access-no-x w-full max-w-full px-3 py-3"
         role="img"
       >
         {rows.map((row, index) => (
           <div
-            className="web-access-no-x min-h-6 whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-all]"
+            className="web-access-no-x min-h-[1.35em] whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]"
             key={`${frame.surfaceId}:${frame.stateSeq}:readable:${index}`}
           >
             {row.length === 0 ? "\u00A0" : row.map((span, spanIndex) => (
               <span
-                className="[overflow-wrap:anywhere] [word-break:break-all]"
+                className="[overflow-wrap:anywhere] [word-break:break-word]"
                 key={`${span.column}:${spanIndex}`}
                 style={styleForRenderSpan(
                   stylesById.get(span.styleId),

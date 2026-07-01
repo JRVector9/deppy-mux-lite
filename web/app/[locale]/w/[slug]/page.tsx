@@ -67,6 +67,10 @@ export default async function WebAccessPage({ params }: WebAccessPageProps) {
         workspaceList: pwaT("workspaceList"),
         workspaceUpdated: pwaT("workspaceUpdated"),
         workspaceUpdatedBadge: pwaT("workspaceUpdatedBadge"),
+        commandSection: pwaT("commandSection"),
+        modelCommand: pwaT("modelCommand"),
+        modelSection: pwaT("modelSection"),
+        skillPickerTitle: pwaT("skillPickerTitle"),
       }}
       authEnabled={false}
       expiresAt={session.expiresAt}
