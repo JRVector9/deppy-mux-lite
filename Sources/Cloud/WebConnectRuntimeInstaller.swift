@@ -133,7 +133,7 @@ struct WebConnectRuntimeInstaller {
            !value.isEmpty {
             return url
         }
-        return URL(string: "https://github.com/JRVector9/deppy-mux/releases/latest/download/deppy-web-connect-runtime-\(Self.runtimeArch).zip")
+        return URL(string: "https://github.com/JRVector9/deppy-mux-lite/releases/latest/download/deppy-web-connect-runtime-\(Self.runtimeArch).zip")
     }
 
     private func downloadArchive(
