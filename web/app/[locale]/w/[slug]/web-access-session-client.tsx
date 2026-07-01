@@ -638,7 +638,7 @@ export function WebAccessSessionClient({
               )}
             </div>
 
-            <div className="web-access-no-x border-t border-[#1f1f1f] bg-[#0a0a0a] px-2 pb-[max(6px,env(safe-area-inset-bottom))] pt-1.5">
+            <div className="web-access-no-x border-t border-[#1f1f1f] bg-[#0a0a0a] px-2 pb-[max(4px,env(safe-area-inset-bottom))] pt-1">
               {composerError ? (
                 <div className="mb-1.5 rounded-lg border border-[#5a2d2d] bg-[#211010] px-2 py-1.5 text-xs leading-4 text-[#ffb6b6]">
                   {composerError}
@@ -659,7 +659,7 @@ export function WebAccessSessionClient({
                 </div>
               ) : null}
               <form
-                className="grid min-w-0 grid-cols-[34px_34px_minmax(0,1fr)_38px] items-center gap-1"
+                className="grid min-w-0 grid-cols-[30px_30px_minmax(0,1fr)_34px] items-center gap-1"
                 onSubmit={(event) => {
                   event.preventDefault();
                   if (composer.trimEnd().length > 0 || attachment) {
@@ -680,7 +680,7 @@ export function WebAccessSessionClient({
                   type="file"
                 />
                 <button
-                  className="grid h-[34px] w-[34px] place-items-center rounded-lg border border-[#2a2a2a] bg-[#0b0b0b] text-base font-semibold"
+                  className="grid h-[30px] w-[30px] place-items-center rounded-lg border border-[#2a2a2a] bg-[#0b0b0b] text-sm font-semibold"
                   disabled={isSending}
                   onClick={() => fileInputRef.current?.click()}
                   type="button"
@@ -688,7 +688,7 @@ export function WebAccessSessionClient({
                   +
                 </button>
                 <button
-                  className="grid h-[34px] w-[34px] place-items-center rounded-lg border border-[#2a2a2a] bg-[#0b0b0b] text-base font-semibold"
+                  className="grid h-[30px] w-[30px] place-items-center rounded-lg border border-[#2a2a2a] bg-[#0b0b0b] text-sm font-semibold"
                   disabled={isSending}
                   onClick={() => setSkillPickerOpen(true)}
                   type="button"
@@ -697,7 +697,7 @@ export function WebAccessSessionClient({
                 </button>
                 <input
                   autoComplete="off"
-                  className="h-[34px] min-w-0 rounded-lg border border-[#2a2a2a] bg-[#050505] px-2.5 text-[15px] text-[#f2f2f2] outline-none focus:border-[#5b5b5b] disabled:opacity-60"
+                  className="h-[30px] min-w-0 rounded-lg border border-[#2a2a2a] bg-[#050505] px-2 text-[14px] text-[#f2f2f2] outline-none focus:border-[#5b5b5b] disabled:opacity-60"
                   disabled={!target}
                   onChange={(event) => setComposer(event.target.value)}
                   onKeyDown={(event) => {
@@ -710,7 +710,7 @@ export function WebAccessSessionClient({
                 />
                 <button
                   aria-label={copy.send}
-                  className="grid h-[34px] w-[38px] place-items-center rounded-lg bg-[#f5f5f5] text-base font-extrabold text-[#080808] disabled:opacity-40"
+                  className="grid h-[30px] w-[34px] place-items-center rounded-lg bg-[#f5f5f5] text-sm font-extrabold text-[#080808] disabled:opacity-40"
                   disabled={!target || isSending}
                   type="submit"
                 >
