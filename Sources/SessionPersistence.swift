@@ -1922,6 +1922,7 @@ enum SessionScrollbackReplayStore {
     static let environmentKey = "CMUX_RESTORE_SCROLLBACK_FILE"
     private static let directoryName = "cmux-session-scrollback"
     private static let ansiEscape = "\u{001B}"
+    private static let ansiEscapeScalar = UnicodeScalar(0x1B)!
     private static let ansiReset = "\u{001B}[0m"
 
     static func replayEnvironment(
@@ -1948,21 +1949,124 @@ enum SessionScrollbackReplayStore {
         // which would otherwise survive a theme change as white-on-white output
         // (issue #5165). Strip them before replay.
         let themePortable = strippingTerminalColorOSCSequences(scrollback)
+        guard containsReplayableContent(themePortable) else { return nil }
         guard let truncated = SessionPersistencePolicy.truncatedScrollback(themePortable) else { return nil }
-        return ansiSafeReplayText(truncated)
+        return replayTextWithPromptBoundary(ansiSafeReplayText(truncated))
     }
 
     /// Preserve ANSI color state safely across replay boundaries.
     private static func ansiSafeReplayText(_ text: String) -> String {
         guard text.contains(ansiEscape) else { return text }
-        var output = text
+        let (body, trailingLineTerminator) = splitTrailingLineTerminator(from: text)
+        var output = body
         if !output.hasPrefix(ansiReset) {
             output = ansiReset + output
         }
         if !output.hasSuffix(ansiReset) {
             output += ansiReset
         }
-        return output
+        return output + trailingLineTerminator
+    }
+
+    /// Keep a fresh login-shell prompt from being rendered on the same line as
+    /// restored scrollback when the captured screen ended at an idle prompt.
+    private static func replayTextWithPromptBoundary(_ text: String) -> String {
+        guard !text.hasSuffix("\n"), !text.hasSuffix("\r") else { return text }
+        return text + "\n"
+    }
+
+    private static func splitTrailingLineTerminator(from text: String) -> (body: String, terminator: String) {
+        var body = text
+        if body.hasSuffix("\r\n") {
+            body.removeLast(2)
+            return (body, "\r\n")
+        }
+        if body.hasSuffix("\n") {
+            body.removeLast()
+            return (body, "\n")
+        }
+        if body.hasSuffix("\r") {
+            body.removeLast()
+            return (body, "\r")
+        }
+        return (text, "")
+    }
+
+    private static func containsReplayableContent(_ text: String) -> Bool {
+        for rawLine in text.split(whereSeparator: \.isNewline) {
+            let line = String(rawLine).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !line.isEmpty else { continue }
+            if !isShellReplayNoiseLine(line) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private static func isShellReplayNoiseLine(_ line: String) -> Bool {
+        let visibleLine = visibleTextForReplayHeuristic(line)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !visibleLine.isEmpty else { return true }
+        if visibleLine == "You have mail." || visibleLine.hasPrefix("Last login:") {
+            return true
+        }
+        guard visibleLine.count <= 160 else { return false }
+        guard visibleLine.hasSuffix(" %") || visibleLine.hasSuffix(" $") || visibleLine.hasSuffix(" #")
+        else { return false }
+        return visibleLine.contains("@") || visibleLine.contains("~") || visibleLine.contains("/")
+    }
+
+    private static func visibleTextForReplayHeuristic(_ text: String) -> String {
+        let scalars = Array(text.unicodeScalars)
+        var output = String.UnicodeScalarView()
+        var index = 0
+        while index < scalars.count {
+            let scalar = scalars[index]
+            if scalar == ansiEscapeScalar {
+                index = indexAfterEscapeSequence(in: scalars, startingAt: index)
+                continue
+            }
+            if !CharacterSet.controlCharacters.contains(scalar) {
+                output.append(scalar)
+            }
+            index += 1
+        }
+        return String(output)
+    }
+
+    private static func indexAfterEscapeSequence(
+        in scalars: [UnicodeScalar],
+        startingAt escapeIndex: Int
+    ) -> Int {
+        guard escapeIndex + 1 < scalars.count else { return escapeIndex + 1 }
+        let introducer = scalars[escapeIndex + 1]
+        if introducer == "[" {
+            var index = escapeIndex + 2
+            while index < scalars.count {
+                let value = scalars[index].value
+                index += 1
+                if (0x40...0x7E).contains(value) {
+                    break
+                }
+            }
+            return index
+        }
+        if introducer == "]" {
+            var index = escapeIndex + 2
+            while index < scalars.count {
+                if scalars[index].value == 0x07 {
+                    return index + 1
+                }
+                if scalars[index] == ansiEscapeScalar,
+                   index + 1 < scalars.count,
+                   scalars[index + 1] == "\\" {
+                    return index + 2
+                }
+                index += 1
+            }
+            return index
+        }
+        return escapeIndex + 2
     }
 
     /// Removes terminal-color OSC sequences (palette entries and the dynamic
