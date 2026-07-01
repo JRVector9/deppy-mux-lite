@@ -7,6 +7,7 @@ type MobileWebAccessShellProps = {
   activeNotice: string;
   attachmentName: string;
   children: ReactNode;
+  completionToast: string | null;
   menuPanel: ReactNode;
   viewport: VisualViewportLockState;
 };
@@ -15,6 +16,7 @@ export function MobileWebAccessShell({
   activeNotice,
   attachmentName,
   children,
+  completionToast,
   menuPanel,
   viewport,
 }: MobileWebAccessShellProps) {
@@ -35,6 +37,15 @@ export function MobileWebAccessShell({
           <div className="flex items-center gap-2 rounded-xl border border-white/15 bg-[#121212]/95 px-3 py-2 text-sm shadow-2xl backdrop-blur">
             <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400" />
             <span className="min-w-0 truncate">{activeNotice}</span>
+          </div>
+        ) : null}
+        {completionToast ? (
+          <div
+            className="flex items-center gap-2 rounded-xl border border-emerald-300/25 bg-[#0d2015]/95 px-3 py-2 text-sm shadow-2xl backdrop-blur"
+            role="status"
+          >
+            <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" />
+            <span className="min-w-0 truncate">{completionToast}</span>
           </div>
         ) : null}
         {attachmentName ? (

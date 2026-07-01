@@ -6,6 +6,8 @@ public enum MobileWebAccessServerControlResult: Sendable, Equatable {
     case running(port: Int)
     /// The local server has been stopped.
     case stopped
+    /// The requested port is occupied by a process this app does not own.
+    case externalProcess(port: Int)
     /// The requested port is invalid.
     case invalidPort(port: Int)
     /// Another local process is already using the requested port.

@@ -82,6 +82,10 @@ public protocol SettingsHostActions: AnyObject {
     /// already owns it.
     func setMobileWebAccessServerEnabled(_ enabled: Bool, port: Int) async -> MobileWebAccessServerControlResult
 
+    /// Stops the local Web Connect server on the requested port when it is
+    /// owned by this app, or reports that another process owns the port.
+    func stopMobileWebAccessServer(port: Int) async -> MobileWebAccessServerControlResult
+
     /// Returns whether the local Web Connect runtime is installed and usable.
     func mobileWebAccessRuntimeStatus() -> MobileWebAccessRuntimeStatus
 
@@ -209,6 +213,11 @@ public extension SettingsHostActions {
     ) async -> MobileWebAccessServerControlResult {
         guard (1...65535).contains(port) else { return .invalidPort(port: port) }
         return enabled ? .runtimeMissing : .stopped
+    }
+
+    func stopMobileWebAccessServer(port: Int) async -> MobileWebAccessServerControlResult {
+        guard (1...65535).contains(port) else { return .invalidPort(port: port) }
+        return .stopped
     }
 
     func mobileWebAccessRuntimeStatus() -> MobileWebAccessRuntimeStatus { .missing }

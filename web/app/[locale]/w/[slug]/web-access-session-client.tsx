@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { MobileRpcClient } from "@/services/mobile-rpc/client";
 import { parseMobileRenderGridFrame } from "@/services/mobile-rpc/render-grid";
 import { terminalReplayToText } from "@/services/mobile-rpc/terminal-screen";
@@ -24,11 +25,17 @@ type WebAccessSessionCopy = {
   composerPlaceholder: string;
   connected: string;
   enter: string;
+  fitWidth?: string;
+  fontLarger?: string;
+  fontSmaller?: string;
   menu: string;
   refreshSession: string;
   refreshSessionFailed: string;
   refreshingSession: string;
+  readableWrap?: string;
+  reconnecting?: string;
   sendFailed: string;
+  sessionExtended?: string;
   selected: string;
   send: string;
   signIn: string;
@@ -39,6 +46,13 @@ type WebAccessSessionCopy = {
   signInRequired: string;
   waiting: string;
   workspaceList: string;
+  workspaceUpdated?: string;
+  workspaceUpdatedBadge?: string;
+};
+
+type WebMobileWorkspacePreview = MobileWorkspacePreview & {
+  hasUnread?: boolean;
+  preview?: string;
 };
 
 type WebAccessSessionClientProps = {
@@ -54,6 +68,12 @@ const webClientId = "web-access";
 const maxImageAttachmentBytes = 256 * 1024;
 const sessionRefreshLeadMs = 10 * 60 * 1000;
 const sessionRefreshPollMs = 60 * 1000;
+const terminalFontSizeStorageKey = "cmux:web-access:terminal-font-size";
+const terminalFitWidthStorageKey = "cmux:web-access:fit-width";
+const terminalReadableWrapStorageKey = "cmux:web-access:readable-wrap";
+const terminalFontSizeDefault = 15;
+const terminalFontSizeMin = 10;
+const terminalFontSizeMax = 24;
 
 export function WebAccessSessionClient({
   authEnabled,
@@ -63,6 +83,7 @@ export function WebAccessSessionClient({
   signInHref,
   slug,
 }: WebAccessSessionClientProps) {
+  const pwaT = useTranslations("pwa");
   const [browserToken] = useState(() => browserTokenFromLocation(slug, expiresAt));
   const [sessionExpiresAt, setSessionExpiresAt] = useState(expiresAt);
   const client = useMemo(
@@ -77,7 +98,8 @@ export function WebAccessSessionClient({
     [browserToken, slug],
   );
   const [connected, setConnected] = useState(initialConnected);
-  const [workspaces, setWorkspaces] = useState<MobileWorkspacePreview[]>([]);
+  const [hasConnected, setHasConnected] = useState(initialConnected);
+  const [workspaces, setWorkspaces] = useState<WebMobileWorkspacePreview[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState("");
   const [selectedTerminalId, setSelectedTerminalId] = useState("");
   const [composer, setComposer] = useState("");
@@ -90,6 +112,10 @@ export function WebAccessSessionClient({
   const [isRefreshingSession, setIsRefreshingSession] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sessionRefreshError, setSessionRefreshError] = useState<string | null>(null);
+  const [sessionRefreshNotice, setSessionRefreshNotice] = useState<string | null>(null);
+  const [completionToast, setCompletionToast] = useState<string | null>(null);
+  const seenUnreadWorkspaceIdsRef = useRef(new Set<string>());
+  const completionNoticeInitializedRef = useRef(false);
   const [transcript, setTranscript] = useState<string[]>([]);
   const [terminalSnapshot, setTerminalSnapshot] = useState<TerminalSnapshot | null>(
     null,
@@ -99,6 +125,20 @@ export function WebAccessSessionClient({
   const terminalViewportRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [terminalViewportWidth, setTerminalViewportWidth] = useState(0);
+  const [terminalFontSize, setTerminalFontSize] = useState(() =>
+    readStoredNumber(
+      terminalFontSizeStorageKey,
+      terminalFontSizeDefault,
+      terminalFontSizeMin,
+      terminalFontSizeMax,
+    ),
+  );
+  const [fitWidthEnabled, setFitWidthEnabled] = useState(() =>
+    readStoredBoolean(terminalFitWidthStorageKey, true),
+  );
+  const [readableWrapEnabled, setReadableWrapEnabled] = useState(() =>
+    readStoredBoolean(terminalReadableWrapStorageKey, true),
+  );
   const viewport = useVisualViewportLock();
   const attachmentName = attachment?.name ?? "";
 
@@ -106,10 +146,16 @@ export function WebAccessSessionClient({
     setSessionExpiresAt(expiresAt);
   }, [expiresAt]);
 
+  useEffect(() => {
+    if (connected) {
+      setHasConnected(true);
+    }
+  }, [connected]);
+
   function applySessionExpiresAt(nextExpiresAt: string) {
     setSessionExpiresAt(nextExpiresAt);
     if (browserToken) {
-      storeLocalWebAccessSession({ browserToken, expiresAt: nextExpiresAt, slug });
+      storeLocalWebAccessSession(localWebAccessSession(slug, browserToken, nextExpiresAt));
     }
   }
 
@@ -160,10 +206,12 @@ export function WebAccessSessionClient({
         if (cancelled) {
           return;
         }
-        setWorkspaces(response.workspaces);
+        const nextWorkspaces = response.workspaces.map(normalizeWorkspacePreview);
+        updateUnreadWorkspaceNotices(nextWorkspaces);
+        setWorkspaces(nextWorkspaces);
         setSignInRequired(false);
         setSelectedWorkspaceId((current) =>
-          response.workspaces.some((workspace) => workspace.id === current)
+          nextWorkspaces.some((workspace) => workspace.id === current)
             ? current
             : "",
         );
@@ -181,7 +229,35 @@ export function WebAccessSessionClient({
       cancelled = true;
       globalThis.clearInterval(interval);
     };
-  }, [authEnabled, client, connected]);
+  }, [authEnabled, client, connected, pwaT, selectedWorkspaceId]);
+
+  useEffect(() => {
+    writeStoredNumber(terminalFontSizeStorageKey, terminalFontSize);
+  }, [terminalFontSize]);
+
+  useEffect(() => {
+    writeStoredBoolean(terminalFitWidthStorageKey, fitWidthEnabled);
+  }, [fitWidthEnabled]);
+
+  useEffect(() => {
+    writeStoredBoolean(terminalReadableWrapStorageKey, readableWrapEnabled);
+  }, [readableWrapEnabled]);
+
+  useEffect(() => {
+    if (!completionToast) {
+      return;
+    }
+    const timeout = globalThis.setTimeout(() => setCompletionToast(null), 3500);
+    return () => globalThis.clearTimeout(timeout);
+  }, [completionToast]);
+
+  useEffect(() => {
+    if (!sessionRefreshNotice) {
+      return;
+    }
+    const timeout = globalThis.setTimeout(() => setSessionRefreshNotice(null), 2500);
+    return () => globalThis.clearTimeout(timeout);
+  }, [sessionRefreshNotice]);
 
   const selectedWorkspace =
     workspaces.find((workspace) => workspace.id === selectedWorkspaceId) ?? null;
@@ -349,6 +425,7 @@ export function WebAccessSessionClient({
       const refreshed = await client.refreshWebAccessSession();
       if (typeof refreshed.expiresAt === "string") {
         applySessionExpiresAt(refreshed.expiresAt);
+        setSessionRefreshNotice(pwaT("sessionExtended"));
       }
     } catch {
       setSessionRefreshError(copy.refreshSessionFailed);
@@ -479,16 +556,51 @@ export function WebAccessSessionClient({
     );
   }
 
+  function updateUnreadWorkspaceNotices(nextWorkspaces: WebMobileWorkspacePreview[]) {
+    const previous = seenUnreadWorkspaceIdsRef.current;
+    const initialized = completionNoticeInitializedRef.current;
+    const next = new Set<string>();
+    for (const workspace of nextWorkspaces) {
+      if (workspaceAppearsComplete(workspace)) {
+        next.add(workspace.id);
+        if (initialized && !previous.has(workspace.id) && workspace.id !== selectedWorkspaceId) {
+          setCompletionToast(pwaT("workspaceCompleteToast", { title: workspace.title }));
+        }
+      }
+    }
+    seenUnreadWorkspaceIdsRef.current = next;
+    completionNoticeInitializedRef.current = true;
+  }
+
+  function adjustTerminalFontSize(delta: number) {
+    setTerminalFontSize((current) =>
+      clampNumber(current + delta, terminalFontSizeMin, terminalFontSizeMax),
+    );
+  }
+
   const showWorkspacePicker = workspacePickerOpen || !selectedWorkspace || !selectedTerminal;
+  const connectionStatusLabel = connected
+    ? copy.connected
+    : hasConnected
+      ? pwaT("reconnecting")
+      : copy.waiting;
+  const sessionExpiryTime = formatSessionExpiryTime(sessionExpiresAt);
+  const sessionExpiryLabel = sessionExpiryTime
+    ? pwaT("sessionExpires", { time: sessionExpiryTime })
+    : null;
   const activeNotice = signInRequired
     ? copy.signInRequired
     : sessionRefreshError
       ? sessionRefreshError
-      : connected
-        ? ""
-        : copy.waiting;
+      : sessionRefreshNotice
+        ? sessionRefreshNotice
+        : connected
+          ? ""
+          : connectionStatusLabel;
   const skillCommands = ["/review", "/test", "/mcp", "/release-note"];
-  const forceMobileReadableTerminal = viewport.width === 0 || viewport.width <= 768;
+  const selectedWorkspaceHasUnread = selectedWorkspace
+    ? workspaceAppearsComplete(selectedWorkspace)
+    : false;
   const menuButton = (
     <MobileTopMenuButton
       label={copy.menu}
@@ -501,15 +613,35 @@ export function WebAccessSessionClient({
     <MobileWebAccessShell
       activeNotice={activeNotice}
       attachmentName={attachmentName}
+      completionToast={completionToast}
       menuPanel={
         <MobileTopMenuPanel
           appVersion={copy.appVersion}
           connected={connected}
+          copy={{
+            connectionStatus: copy.status,
+            decreaseFontSize: pwaT("decreaseFontSize"),
+            extendSession: pwaT("extendSession"),
+            fitWidth: pwaT("fitWidth"),
+            fontSize: pwaT("fontSize"),
+            increaseFontSize: pwaT("increaseFontSize"),
+            off: pwaT("off"),
+            on: pwaT("on"),
+            readableWrap: pwaT("readableWrap"),
+          }}
+          connectionStatusLabel={connectionStatusLabel}
+          fitWidthEnabled={fitWidthEnabled}
+          fontSizePx={terminalFontSize}
           isRefreshingSession={isRefreshingSession}
+          onDecreaseFontSize={() => adjustTerminalFontSize(-1)}
+          onIncreaseFontSize={() => adjustTerminalFontSize(1)}
           onRefreshSession={() => void refreshSessionManually()}
+          onToggleFitWidth={() => setFitWidthEnabled((enabled) => !enabled)}
+          onToggleReadableWrap={() => setReadableWrapEnabled((enabled) => !enabled)}
           open={menuOpen}
-          refreshLabel={copy.refreshSession}
+          readableWrapEnabled={readableWrapEnabled}
           refreshingLabel={copy.refreshingSession}
+          sessionExpiryLabel={sessionExpiryLabel}
         />
       }
       viewport={viewport}
@@ -519,7 +651,7 @@ export function WebAccessSessionClient({
           <header className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-0.5">
             <div className="min-w-0">
               <h1 className="truncate text-lg font-semibold tracking-normal">{copy.title}</h1>
-              <div className="mt-0.5 truncate text-xs text-[#a8a8a8]">{connected ? copy.connected : copy.waiting}</div>
+              <div className="mt-0.5 truncate text-xs text-[#a8a8a8]">{connectionStatusLabel}</div>
             </div>
             <div className="flex min-w-0 items-center gap-2">
               <span className="inline-flex min-h-7 items-center gap-1.5 rounded-full border border-[#2a2a2a] bg-[#0d0d0d] px-2.5 text-xs text-[#a8a8a8]">
@@ -551,6 +683,11 @@ export function WebAccessSessionClient({
               >
                 <span className="min-w-0">
                   <span className="block truncate text-base font-semibold tracking-normal">{workspace.title}</span>
+                  {workspaceAppearsComplete(workspace) ? (
+                    <span className="mt-1 inline-flex rounded-full bg-emerald-400 px-2 py-0.5 text-[11px] font-bold leading-none text-[#04130a]">
+                      {pwaT("done")}
+                    </span>
+                  ) : null}
                   {workspace.currentDirectory ? (
                     <span className="mt-1 block truncate font-mono text-xs text-[#a8a8a8]">{workspace.currentDirectory}</span>
                   ) : null}
@@ -573,7 +710,7 @@ export function WebAccessSessionClient({
       ) : (
         <section className="web-access-no-x relative flex min-h-0 flex-1 flex-col bg-[#030303]">
           <div className="web-access-no-x flex min-h-0 flex-1 flex-col bg-[#030303]">
-            <div className="grid min-h-10 grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-2 border-b border-[#1f1f1f] bg-[#0d0d0d] px-2 pb-2 pt-[max(8px,env(safe-area-inset-top))]">
+            <div className="grid min-h-12 grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-2 border-b border-[#1f1f1f] bg-[#0d0d0d] px-2 pb-2 pt-[max(8px,env(safe-area-inset-top))]">
               <button
                 aria-label={copy.workspaceList}
                 className="grid h-9 w-9 place-items-center rounded-xl border border-[#2a2a2a] bg-[#0b0b0b] text-lg font-semibold"
@@ -582,7 +719,21 @@ export function WebAccessSessionClient({
               >
                 ‹
               </button>
-              <div className="min-w-0 truncate text-sm font-semibold tracking-normal">{selectedWorkspace?.title}</div>
+              <div className="min-w-0">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="min-w-0 truncate text-sm font-semibold tracking-normal">
+                    {selectedWorkspace?.title}
+                  </span>
+                  {selectedWorkspaceHasUnread ? (
+                    <span className="shrink-0 rounded-full bg-emerald-400 px-2 py-0.5 text-[10px] font-extrabold leading-none text-[#04130a]">
+                      {pwaT("done")}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="mt-0.5 truncate text-[11px] leading-none text-[#8e8e8e]">
+                  {connectionStatusLabel}
+                </div>
+              </div>
               <div className="flex min-w-0 items-center gap-1">
                 <button
                   className="h-8 max-w-28 truncate rounded-full border border-[#2a2a2a] bg-[#101010] px-2 py-1 text-xs text-[#a8a8a8] disabled:opacity-70"
@@ -597,8 +748,13 @@ export function WebAccessSessionClient({
             </div>
 
             <MobileTerminalViewport
-              copy={{ transcriptEmpty: copy.transcriptEmpty }}
-              forceReadableLayout={forceMobileReadableTerminal}
+              copy={{
+                terminal: copy.terminal,
+                transcriptEmpty: copy.transcriptEmpty,
+              }}
+              fitWidthEnabled={fitWidthEnabled}
+              fontSizePx={terminalFontSize}
+              readableWrapEnabled={readableWrapEnabled}
               terminalSnapshot={terminalSnapshot}
               terminalViewportRef={terminalViewportRef}
               terminalViewportWidth={terminalViewportWidth}
@@ -702,6 +858,53 @@ function terminalSnapshotFromReplay(
   return text ? { kind: "text", text } : null;
 }
 
+function normalizeWorkspacePreview(
+  workspace: MobileWorkspacePreview,
+): WebMobileWorkspacePreview {
+  const raw = workspace as unknown as Record<string, unknown>;
+  const rawTerminals = Array.isArray(raw.terminals)
+    ? raw.terminals
+    : Array.isArray(workspace.terminals)
+      ? workspace.terminals
+      : [];
+  return {
+    ...workspace,
+    currentDirectory:
+      optionalString(raw.currentDirectory ?? raw.current_directory) ??
+      workspace.currentDirectory,
+    hasUnread: booleanValue(raw.hasUnread ?? raw.has_unread, false),
+    id: stringValue(raw.id, workspace.id),
+    isSelected: booleanValue(
+      raw.isSelected ?? raw.is_selected,
+      workspace.isSelected === true,
+    ),
+    preview: optionalString(raw.preview ?? raw.previewText ?? raw.preview_text),
+    terminals: rawTerminals.map((terminal) =>
+      normalizeTerminalPreview(terminal as MobileTerminalPreview),
+    ),
+    title: stringValue(raw.title, workspace.title),
+  };
+}
+
+function normalizeTerminalPreview(
+  terminal: MobileTerminalPreview,
+): MobileTerminalPreview {
+  const raw = terminal as unknown as Record<string, unknown>;
+  return {
+    ...terminal,
+    currentDirectory:
+      optionalString(raw.currentDirectory ?? raw.current_directory) ??
+      terminal.currentDirectory,
+    id: stringValue(raw.id, terminal.id),
+    isFocused: booleanValue(
+      raw.isFocused ?? raw.is_focused,
+      terminal.isFocused === true,
+    ),
+    isReady: booleanValue(raw.isReady ?? raw.is_ready, terminal.isReady === true),
+    title: stringValue(raw.title, terminal.title),
+  };
+}
+
 function terminalTarget(
   workspace: MobileWorkspacePreview,
   terminal: MobileTerminalPreview,
@@ -729,9 +932,102 @@ function updateTerminalSnapshotCache(
   }
 }
 
+function workspaceAppearsComplete(workspace: WebMobileWorkspacePreview): boolean {
+  return workspace.hasUnread === true;
+}
+
+function stringValue(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.length > 0 ? value : fallback;
+}
+
+function optionalString(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function booleanValue(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function formatSessionExpiryTime(expiresAt: string): string | null {
+  const expiresAtMs = Date.parse(expiresAt);
+  if (!Number.isFinite(expiresAtMs)) {
+    return null;
+  }
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(expiresAtMs));
+}
+
+function readStoredNumber(
+  key: string,
+  defaultValue: number,
+  minimum: number,
+  maximum: number,
+): number {
+  if (typeof window === "undefined") {
+    return defaultValue;
+  }
+  try {
+    const raw = window.localStorage.getItem(key);
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    return Number.isFinite(parsed)
+      ? clampNumber(parsed, minimum, maximum)
+      : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+}
+
+function writeStoredNumber(key: string, value: number) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.setItem(key, String(value));
+  } catch {
+    return;
+  }
+}
+
+function readStoredBoolean(key: string, defaultValue: boolean): boolean {
+  if (typeof window === "undefined") {
+    return defaultValue;
+  }
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (raw === "true") {
+      return true;
+    }
+    if (raw === "false") {
+      return false;
+    }
+    return defaultValue;
+  } catch {
+    return defaultValue;
+  }
+}
+
+function writeStoredBoolean(key: string, value: boolean) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.setItem(key, value ? "true" : "false");
+  } catch {
+    return;
+  }
+}
+
+function clampNumber(value: number, minimum: number, maximum: number): number {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
 type StoredLocalWebAccessSession = {
   browserToken: string;
+  displayName?: string;
   expiresAt: string;
+  origin?: string;
   slug: string;
 };
 
@@ -745,13 +1041,13 @@ function browserTokenFromLocation(slug: string, expiresAt: string): string | nul
   const fromUrl = tokenFromUrl(window.location.href);
   if (fromUrl) {
     window.sessionStorage.setItem(storageKey, fromUrl);
-    storeLocalWebAccessSession({ browserToken: fromUrl, expiresAt, slug });
+    storeLocalWebAccessSession(localWebAccessSession(slug, fromUrl, expiresAt));
     removeTokenFromLocation();
     return fromUrl;
   }
   const fromSessionStorage = window.sessionStorage.getItem(storageKey);
   if (fromSessionStorage) {
-    storeLocalWebAccessSession({ browserToken: fromSessionStorage, expiresAt, slug });
+    storeLocalWebAccessSession(localWebAccessSession(slug, fromSessionStorage, expiresAt));
     return fromSessionStorage;
   }
   return storedLocalWebAccessSession(slug)?.browserToken ?? null;
@@ -789,12 +1085,28 @@ function storedLocalWebAccessSession(slug: string): StoredLocalWebAccessSession 
     }
     return {
       browserToken: session.browserToken,
+      displayName: typeof session.displayName === "string" ? session.displayName : undefined,
       expiresAt: session.expiresAt,
+      origin: typeof session.origin === "string" ? session.origin : undefined,
       slug,
     };
   } catch {
     return null;
   }
+}
+
+function localWebAccessSession(
+  slug: string,
+  browserToken: string,
+  expiresAt: string,
+): StoredLocalWebAccessSession {
+  return {
+    browserToken,
+    displayName: window.location.host,
+    expiresAt,
+    origin: window.location.origin,
+    slug,
+  };
 }
 
 function removeTokenFromLocation() {

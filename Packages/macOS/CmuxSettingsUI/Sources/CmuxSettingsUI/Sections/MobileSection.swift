@@ -315,6 +315,14 @@ public struct MobileSection: View {
                     draftWebConnectPort == webConnectPort.current
                 )
                 .accessibilityIdentifier("SettingsMobileWebConnectPortApplyButton")
+
+                Button(String(localized: "settings.mobile.webConnect.server.stop", defaultValue: "Stop Server")) {
+                    stopWebConnectServer()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(isApplyingWebConnectServer || !isDraftWebConnectPortValid)
+                .accessibilityIdentifier("SettingsMobileWebConnectServerStopButton")
             }
         }
     }
@@ -409,6 +417,11 @@ public struct MobileSection: View {
                 localized: "settings.mobile.webConnect.server.stopped",
                 defaultValue: "Web Connect server is stopped."
             )
+        case .externalProcess(let port):
+            return String(
+                localized: "settings.mobile.webConnect.server.externalProcess",
+                defaultValue: "Port \(port) is being used by another process. deppy-mux did not stop it."
+            )
         case .invalidPort:
             return String(
                 localized: "settings.mobile.webConnect.server.invalidPort",
@@ -417,7 +430,7 @@ public struct MobileSection: View {
         case .portInUse(let port):
             return String(
                 localized: "settings.mobile.webConnect.server.portInUse",
-                defaultValue: "Port \(port) is already in use. Choose another port, then apply it."
+                defaultValue: "Port \(port) is already in use. Use Stop Server to stop a server started by this app, or choose another port."
             )
         case .tailscaleUnavailable:
             return String(
@@ -585,6 +598,8 @@ public struct MobileSection: View {
                     webConnectServerEnabled.set(true)
                 } else if case .portInUse = result {
                     webConnectServerEnabled.set(true)
+                } else if case .externalProcess(_) = result {
+                    webConnectServerEnabled.set(false)
                 } else {
                     webConnectServerEnabled.set(false)
                 }
@@ -603,12 +618,23 @@ public struct MobileSection: View {
             webConnectPort.set(port)
             editedWebConnectPort = nil
             webConnectServerEnabled.set(true)
-        case .stopped:
+        case .stopped, .externalProcess(_):
             webConnectServerEnabled.set(false)
         case .portInUse where webConnectServerEnabled.current:
             webConnectServerEnabled.set(true)
         case .invalidPort, .portInUse, .tailscaleUnavailable, .runtimeMissing, .failed:
             webConnectServerEnabled.set(false)
+        }
+    }
+
+    private func stopWebConnectServer() {
+        let requested = draftWebConnectPort
+        guard !isApplyingWebConnectServer, isDraftWebConnectPortValid else { return }
+        Task {
+            let result = await controlWebConnectServer(enabled: false, port: requested)
+            if case .invalidPort = result {} else {
+                webConnectServerEnabled.set(false)
+            }
         }
     }
 
@@ -638,9 +664,9 @@ public struct MobileSection: View {
         isInstallingWebConnectRuntime = true
         webConnectRuntimeInstallProgress = nil
         Task {
-            _ = await hostActions.setMobileWebAccessServerEnabled(false, port: draftWebConnectPort)
+            let stopResult = await hostActions.stopMobileWebAccessServer(port: draftWebConnectPort)
             webConnectServerEnabled.set(false)
-            webConnectServerResult = .stopped
+            webConnectServerResult = stopResult
             let removed = hostActions.uninstallMobileWebAccessRuntime()
             webConnectRuntimeInstallResult = removed ? nil : .removeFailed
             refreshWebConnectRuntimeStatus()
@@ -658,7 +684,9 @@ public struct MobileSection: View {
         }
         isApplyingWebConnectServer = true
         defer { isApplyingWebConnectServer = false }
-        let result = await hostActions.setMobileWebAccessServerEnabled(enabled, port: port)
+        let result = enabled
+            ? await hostActions.setMobileWebAccessServerEnabled(true, port: port)
+            : await hostActions.stopMobileWebAccessServer(port: port)
         webConnectServerResult = result
         return result
     }
