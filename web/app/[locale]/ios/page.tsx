@@ -4,6 +4,7 @@ import { Link } from "../../../i18n/navigation";
 import { RevealImage } from "../components/reveal-image";
 import { buildAlternates } from "../../../i18n/seo";
 import { SiteHeader } from "../components/site-header";
+import { SiteFooter } from "../components/site-footer";
 import { BrandLogoLink } from "../components/brand-logo-link";
 import { GitHubButton } from "../components/github-button";
 import { AppleMark } from "../components/apple-mark";
@@ -212,6 +213,7 @@ export default function IosLanding() {
           </Link>
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }

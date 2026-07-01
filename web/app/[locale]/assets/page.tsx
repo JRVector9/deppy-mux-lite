@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import Image from "next/image";
 import { buildAlternates } from "../../../i18n/seo";
 import { SiteHeader } from "../components/site-header";
+import { SiteFooter } from "../components/site-footer";
 
 const brandAssets = [
   {
@@ -108,6 +109,7 @@ export default function BrandAssetsPage() {
           </div>
         </section>
       </main>
+      <SiteFooter />
     </div>
   );
 }

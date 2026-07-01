@@ -846,9 +846,31 @@ function browserTokenFromLocation(slug: string): string | null {
   const fromUrl = tokenFromUrl(window.location.href);
   if (fromUrl) {
     window.sessionStorage.setItem(storageKey, fromUrl);
+    removeTokenFromLocation();
     return fromUrl;
   }
   return window.sessionStorage.getItem(storageKey);
+}
+
+function removeTokenFromLocation() {
+  const url = new URL(window.location.href);
+  let changed = false;
+  if (url.searchParams.has("access_token")) {
+    url.searchParams.delete("access_token");
+    changed = true;
+  }
+  const hash = url.hash.startsWith("#") ? url.hash.slice(1) : url.hash;
+  if (hash) {
+    const hashParams = new URLSearchParams(hash);
+    if (hashParams.has("access_token")) {
+      hashParams.delete("access_token");
+      url.hash = hashParams.toString() ? `#${hashParams.toString()}` : "";
+      changed = true;
+    }
+  }
+  if (changed) {
+    window.history.replaceState(window.history.state, "", url.toString());
+  }
 }
 
 function tokenFromUrl(href: string): string | null {

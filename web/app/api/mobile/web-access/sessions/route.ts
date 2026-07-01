@@ -9,6 +9,7 @@ import {
 } from "../../../../../services/mobile-web-access/local";
 import {
   webConnectResponse,
+  webConnectJsonResponse,
 } from "../../../../../services/mobile-web-access/response";
 import {
   resolveDeviceRegistryTeam,
@@ -16,7 +17,6 @@ import {
 import { readOptionalBoundedJsonObject } from "../../../../../services/http/bounded-json";
 import { unauthorized, verifyRequest } from "../../../../../services/vms/auth";
 import {
-  jsonResponse,
   requestedVmTeamIdFromRequest,
 } from "../../../../../services/vms/routeHelpers";
 
@@ -96,10 +96,6 @@ export async function POST(request: Request): Promise<Response> {
     hostToken: session.hostToken,
     expiresAt: session.expiresAt,
   });
-}
-
-function webConnectJsonResponse(data: unknown, status = 200): Response {
-  return webConnectResponse(jsonResponse(data, status));
 }
 
 function localWebAccessRequestAllowed(request: Request): boolean {

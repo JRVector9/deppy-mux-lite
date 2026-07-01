@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { buildAlternates } from "../../../i18n/seo";
 import { DocsNav } from "./docs-nav";
 import { SiteHeader } from "../components/site-header";
+import { SiteFooter } from "../components/site-footer";
 
 export async function generateMetadata({
   params,
@@ -32,6 +33,7 @@ export default function DocsLayout({
     <div className="min-h-screen">
       <SiteHeader section="docs" />
       <DocsNav>{children}</DocsNav>
+      <SiteFooter />
     </div>
   );
 }

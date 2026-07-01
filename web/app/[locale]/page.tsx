@@ -6,6 +6,7 @@ import { DownloadButton } from "./components/download-button";
 import { GitHubButton } from "./components/github-button";
 import { WaitlistCallout } from "./components/waitlist-callout";
 import { SiteHeader } from "./components/site-header";
+import { SiteFooter } from "./components/site-footer";
 import { BrandLogoLink } from "./components/brand-logo-link";
 import {
   testimonials,
@@ -555,6 +556,7 @@ function HomeContent() {
           </Link>
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }

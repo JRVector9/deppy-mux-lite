@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { buildAlternates } from "../../../i18n/seo";
 import { SiteHeader } from "../components/site-header";
+import { SiteFooter } from "../components/site-footer";
 import { BlogPager } from "../components/blog-pager";
 import { BlogCTA } from "../components/blog-cta";
 
@@ -37,6 +38,7 @@ export default function BlogLayout({
         <BlogCTA />
         <BlogPager />
       </main>
+      <SiteFooter />
     </div>
   );
 }

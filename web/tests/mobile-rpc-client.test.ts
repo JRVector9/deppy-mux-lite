@@ -202,6 +202,35 @@ describe("mobile RPC web client", () => {
     }
   });
 
+  test("keeps polling after a transient web access status timeout", async () => {
+    let statusPolls = 0;
+    const previousFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/api/mobile/web-access/sessions/slug-1/rpc")) {
+        return json({ requestId: "request-1", statusToken: "status-token" }, 202);
+      }
+      statusPolls += 1;
+      if (statusPolls === 1) {
+        throw new DOMException("The operation was aborted.", "AbortError");
+      }
+      return json({ status: "completed", result: { status: "ok" } });
+    }) as typeof fetch;
+    try {
+      const client = new MobileRpcClient(
+        new WebAccessRelayTransport("slug-1", {
+          pollIntervalMs: 1,
+          timeoutMs: 100,
+        }),
+      );
+
+      await expect(client.hostStatus()).resolves.toEqual({ status: "ok" });
+      expect(statusPolls).toBe(2);
+    } finally {
+      globalThis.fetch = previousFetch;
+    }
+  });
+
   test("raises relay failures as mobile RPC errors", async () => {
     const previousFetch = globalThis.fetch;
     globalThis.fetch = (async (input: RequestInfo | URL) => {

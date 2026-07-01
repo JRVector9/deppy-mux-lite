@@ -10,3 +10,12 @@ export function webConnectResponse(response: Response): Response {
     headers,
   });
 }
+
+export function webConnectJsonResponse(data: unknown, status = 200): Response {
+  return webConnectResponse(
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { "content-type": "application/json" },
+    }),
+  );
+}

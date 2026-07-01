@@ -6,7 +6,9 @@ import {
   webAccessRelayRepository,
 } from "../../../../../../../services/mobile-web-access/local";
 import { readBoundedJsonObject } from "../../../../../../../services/http/bounded-json";
-import { jsonResponse } from "../../../../../../../services/vms/routeHelpers";
+import {
+  webConnectJsonResponse,
+} from "../../../../../../../services/mobile-web-access/response";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,7 +26,7 @@ export async function GET(
   const { slug } = await params;
   const hostToken = hostTokenFromRequest(request);
   if (!hostToken) {
-    return jsonResponse({ error: "unauthorized" }, 401);
+    return webConnectJsonResponse({ error: "unauthorized" }, 401);
   }
 
   const url = new URL(request.url);
@@ -38,9 +40,9 @@ export async function GET(
     webAccessRelayRepository(),
   );
   if (!requests) {
-    return jsonResponse({ error: "web_access_session_not_found" }, 404);
+    return webConnectJsonResponse({ error: "web_access_session_not_found" }, 404);
   }
-  return jsonResponse({ requests });
+  return webConnectJsonResponse({ requests });
 }
 
 export async function POST(
@@ -50,16 +52,16 @@ export async function POST(
   const { slug } = await params;
   const hostToken = hostTokenFromRequest(request);
   if (!hostToken) {
-    return jsonResponse({ error: "unauthorized" }, 401);
+    return webConnectJsonResponse({ error: "unauthorized" }, 401);
   }
 
   const body = await readBoundedJsonObject(request, MAX_REQUEST_BYTES);
   if (!body.ok) {
-    return jsonResponse({ error: "invalid_request" }, body.status);
+    return webConnectJsonResponse({ error: "invalid_request" }, body.status);
   }
   const requestId = typeof body.value.requestId === "string" ? body.value.requestId.trim() : "";
   if (!requestId) {
-    return jsonResponse({ error: "invalid_request" }, 400);
+    return webConnectJsonResponse({ error: "invalid_request" }, 400);
   }
 
   const ok = await completeWebAccessRpcRequest(
@@ -72,9 +74,9 @@ export async function POST(
     webAccessRelayRepository(),
   );
   if (!ok) {
-    return jsonResponse({ error: "web_access_rpc_request_not_found" }, 404);
+    return webConnectJsonResponse({ error: "web_access_rpc_request_not_found" }, 404);
   }
-  return jsonResponse({ ok: true });
+  return webConnectJsonResponse({ ok: true });
 }
 
 function completionFromBody(value: Record<string, unknown>) {

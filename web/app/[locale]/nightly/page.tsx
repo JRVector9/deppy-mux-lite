@@ -2,6 +2,7 @@ import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { buildAlternates } from "../../../i18n/seo";
 import { SiteHeader } from "../components/site-header";
+import { SiteFooter } from "../components/site-footer";
 
 export async function generateMetadata({
   params,
@@ -96,6 +97,7 @@ export default function NightlyPage() {
           })}
         </p>
       </main>
+      <SiteFooter />
     </div>
   );
 }

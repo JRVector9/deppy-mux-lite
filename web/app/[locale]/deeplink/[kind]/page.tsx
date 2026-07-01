@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { buildAlternates } from "../../../../i18n/seo";
 import { Link } from "../../../../i18n/navigation";
 import { SiteHeader } from "../../components/site-header";
+import { SiteFooter } from "../../components/site-footer";
 import { DOWNLOAD_CONFIRMATION_HREF } from "../../../lib/download";
 
 type SearchValue = string | string[] | undefined;
@@ -393,6 +394,7 @@ export default async function DeeplinkPage({
           .
         </p>
       </main>
+      <SiteFooter />
     </div>
   );
 }

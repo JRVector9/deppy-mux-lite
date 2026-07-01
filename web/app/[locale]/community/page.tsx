@@ -2,6 +2,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { buildAlternates } from "../../../i18n/seo";
 import { SiteHeader } from "../components/site-header";
+import { SiteFooter } from "../components/site-footer";
 import { OfficialLinks } from "../components/official-links";
 import {
   awesomeCmuxCategoryOrder,
@@ -101,6 +102,7 @@ export default function CommunityPage() {
           categorySummaries={categorySummaries}
         />
       </main>
+      <SiteFooter />
     </div>
   );
 }

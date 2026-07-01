@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { buildAlternates } from "../../../../i18n/seo";
 import { SiteHeader } from "../../components/site-header";
+import { SiteFooter } from "../../components/site-footer";
 import { DownloadConfirmation } from "../../components/download-confirmation";
 
 export async function generateMetadata({
@@ -33,6 +34,7 @@ export default async function DownloadConfirmationPage({
     <div className="min-h-screen">
       <SiteHeader section={t("section")} />
       <DownloadConfirmation />
+      <SiteFooter />
     </div>
   );
 }
