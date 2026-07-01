@@ -385,11 +385,11 @@ export function WebAccessSessionClient({
       ? ""
       : copy.waiting;
   const skillCommands = ["/review", "/test", "/mcp", "/release-note"];
-  const forceMobileReadableTerminal = viewportWidth > 0 && viewportWidth <= 768;
+  const forceMobileReadableTerminal = viewportWidth === 0 || viewportWidth <= 768;
 
   return (
     <main
-      className="fixed inset-0 flex min-h-0 min-w-0 max-w-[100vw] flex-col overflow-hidden overscroll-none bg-[#050505] text-[#f2f2f2] [height:var(--web-access-viewport-height)] [width:var(--web-access-viewport-width)]"
+      className="web-access-no-x fixed inset-0 flex min-h-0 max-w-[100vw] flex-col overscroll-none bg-[#050505] text-[#f2f2f2] [height:var(--web-access-viewport-height)] [width:var(--web-access-viewport-width)]"
       style={
         {
           "--web-access-viewport-height": viewportHeight,
@@ -413,7 +413,7 @@ export function WebAccessSessionClient({
       </div>
 
       {showWorkspacePicker ? (
-        <section className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-clip px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-[max(14px,env(safe-area-inset-top))]">
+        <section className="web-access-no-x flex min-h-0 flex-1 flex-col px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-[max(14px,env(safe-area-inset-top))]">
           <header className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-0.5">
             <div className="min-w-0">
               <h1 className="truncate text-lg font-semibold tracking-normal">{copy.title}</h1>
@@ -466,8 +466,8 @@ export function WebAccessSessionClient({
           </div>
         </section>
       ) : (
-        <section className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden bg-[#030303]">
-          <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden bg-[#030303]">
+        <section className="web-access-no-x relative flex min-h-0 flex-1 flex-col bg-[#030303]">
+          <div className="web-access-no-x flex min-h-0 flex-1 flex-col bg-[#030303]">
             <div className="grid min-h-10 grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-2 border-b border-[#1f1f1f] bg-[#0d0d0d] px-2 pb-2 pt-[max(8px,env(safe-area-inset-top))]">
               <button
                 aria-label={copy.workspaceList}
@@ -513,14 +513,14 @@ export function WebAccessSessionClient({
               )}
             </div>
 
-            <div className="min-w-0 max-w-full overflow-x-clip border-t border-[#1f1f1f] bg-[#0a0a0a] px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2">
+            <div className="web-access-no-x border-t border-[#1f1f1f] bg-[#0a0a0a] px-2 pb-[max(6px,env(safe-area-inset-bottom))] pt-1.5">
               {attachmentName ? (
-                <div className="mb-2 flex min-w-0 items-center gap-2 overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#151515] px-2 py-1.5 text-xs text-[#a8a8a8]">
-                  <span className="h-6 w-6 shrink-0 rounded-md bg-gradient-to-br from-[#77a8ff] to-[#59d185]" />
+                <div className="mb-1.5 flex min-w-0 items-center gap-2 overflow-hidden rounded-lg border border-[#2a2a2a] bg-[#151515] px-2 py-1 text-xs text-[#a8a8a8]">
+                  <span className="h-5 w-5 shrink-0 rounded bg-gradient-to-br from-[#77a8ff] to-[#59d185]" />
                   <span className="min-w-0 flex-1 truncate">{attachmentName}</span>
                   <button
                     aria-label={copy.clear}
-                    className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-[#2a2a2a] bg-[#0b0b0b]"
+                    className="grid h-6 w-6 shrink-0 place-items-center rounded-md border border-[#2a2a2a] bg-[#0b0b0b]"
                     onClick={() => setAttachment(null)}
                     type="button"
                   >
@@ -529,7 +529,7 @@ export function WebAccessSessionClient({
                 </div>
               ) : null}
               <form
-                className="grid grid-cols-[38px_38px_minmax(0,1fr)_42px] items-center gap-1.5"
+                className="grid min-w-0 grid-cols-[34px_34px_minmax(0,1fr)_38px] items-center gap-1"
                 onSubmit={(event) => {
                   event.preventDefault();
                   if (composer.trimEnd().length > 0 || attachment) {
@@ -550,14 +550,14 @@ export function WebAccessSessionClient({
                   type="file"
                 />
                 <button
-                  className="grid h-10 w-10 place-items-center rounded-xl border border-[#2a2a2a] bg-[#0b0b0b] text-lg font-semibold"
+                  className="grid h-[34px] w-[34px] place-items-center rounded-lg border border-[#2a2a2a] bg-[#0b0b0b] text-base font-semibold"
                   onClick={() => fileInputRef.current?.click()}
                   type="button"
                 >
                   +
                 </button>
                 <button
-                  className="grid h-10 w-10 place-items-center rounded-xl border border-[#2a2a2a] bg-[#0b0b0b] text-lg font-semibold"
+                  className="grid h-[34px] w-[34px] place-items-center rounded-lg border border-[#2a2a2a] bg-[#0b0b0b] text-base font-semibold"
                   onClick={() => setSkillPickerOpen(true)}
                   type="button"
                 >
@@ -565,7 +565,7 @@ export function WebAccessSessionClient({
                 </button>
                 <input
                   autoComplete="off"
-                  className="h-10 min-w-0 rounded-xl border border-[#2a2a2a] bg-[#050505] px-3 text-base text-[#f2f2f2] outline-none focus:border-[#5b5b5b] disabled:opacity-60"
+                  className="h-[34px] min-w-0 rounded-lg border border-[#2a2a2a] bg-[#050505] px-2.5 text-[15px] text-[#f2f2f2] outline-none focus:border-[#5b5b5b] disabled:opacity-60"
                   disabled={!target}
                   onChange={(event) => setComposer(event.target.value)}
                   onKeyDown={(event) => {
@@ -578,7 +578,7 @@ export function WebAccessSessionClient({
                 />
                 <button
                   aria-label={copy.send}
-                  className="grid h-10 w-[42px] place-items-center rounded-xl bg-[#f5f5f5] text-lg font-extrabold text-[#080808] disabled:opacity-40"
+                  className="grid h-[34px] w-[38px] place-items-center rounded-lg bg-[#f5f5f5] text-base font-extrabold text-[#080808] disabled:opacity-40"
                   disabled={!target}
                   type="submit"
                 >
@@ -775,7 +775,7 @@ function TerminalReadableGridView({
 }) {
   return (
     <div
-      className="min-h-full min-w-0 max-w-full overflow-x-clip font-mono text-[15px] leading-6 tracking-normal"
+      className="web-access-no-x min-h-full font-mono text-[15px] leading-6 tracking-normal"
       style={{
         backgroundColor: background,
         color: foreground,
@@ -786,12 +786,12 @@ function TerminalReadableGridView({
     >
       <div
         aria-label={`terminal ${frame.columns} by ${frame.rows}`}
-        className="min-w-0 max-w-full overflow-x-clip px-3 py-3"
+        className="web-access-no-x px-3 py-3"
         role="img"
       >
         {rows.map((row, index) => (
           <div
-            className="min-h-6 min-w-0 max-w-full whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-all]"
+            className="web-access-no-x min-h-6 whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-all]"
             key={`${frame.surfaceId}:${frame.stateSeq}:readable:${index}`}
           >
             {row.length === 0 ? "\u00A0" : row.map((span, spanIndex) => (
