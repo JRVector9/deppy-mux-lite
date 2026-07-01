@@ -67,6 +67,7 @@ body.web-access-viewport-lock {
   overflow: hidden;
   scrollbar-gutter: auto;
   overscroll-behavior: none;
+  touch-action: none;
   background: #050505;
 }
 

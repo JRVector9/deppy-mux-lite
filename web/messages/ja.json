@@ -2227,6 +2227,8 @@
     "metaTitle": "deppy-mux-beta",
     "metaDescription": "ブラウザから deppy-mux-beta のワークスペースとターミナルへ接続します。",
     "title": "deppy-mux-beta",
+    "appVersion": "バージョン 0.0.1",
+    "menu": "メニュー",
     "subtitle": "デスクトップアプリで作成した有効な deppy-mux-beta Web Connect リンクを開き、ブラウザからワークスペースとターミナルへ接続します。",
     "mockBadge": "プレビュー transport",
     "deviceList": "デバイス",

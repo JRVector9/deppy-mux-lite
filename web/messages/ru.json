@@ -1901,6 +1901,8 @@
     "metaTitle": "deppy-mux-beta",
     "metaDescription": "Подключайтесь к рабочим областям и терминалам deppy-mux-beta из браузера.",
     "title": "deppy-mux-beta",
+    "appVersion": "Version 0.0.1",
+    "menu": "Menu",
     "subtitle": "Open active deppy-mux-beta Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
     "mockBadge": "Предпросмотр transport",
     "deviceList": "Устройства",

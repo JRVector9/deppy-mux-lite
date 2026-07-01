@@ -2281,6 +2281,8 @@
     "metaTitle": "deppy-mux-beta",
     "metaDescription": "Connect to deppy-mux-beta workspaces and terminals from the browser.",
     "title": "deppy-mux-beta",
+    "appVersion": "Version 0.0.1",
+    "menu": "Menu",
     "subtitle": "Open active deppy-mux-beta Web Connect links created by your desktop app, then connect to workspaces and terminals from the browser.",
     "mockBadge": "Preview transport",
     "deviceList": "Devices",

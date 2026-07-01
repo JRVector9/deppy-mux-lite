@@ -1901,6 +1901,8 @@
     "metaTitle": "deppy-mux-beta",
     "metaDescription": "從瀏覽器連接到 deppy-mux-beta 工作區和終端機。",
     "title": "deppy-mux-beta",
+    "appVersion": "Version 0.0.1",
+    "menu": "Menu",
     "subtitle": "Open active deppy-mux-beta Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
     "mockBadge": "預覽 transport",
     "deviceList": "裝置",

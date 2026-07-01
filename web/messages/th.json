@@ -1901,6 +1901,8 @@
     "metaTitle": "deppy-mux-beta",
     "metaDescription": "เชื่อมต่อ workspace และ terminal ของ deppy-mux-beta จากเบราว์เซอร์",
     "title": "deppy-mux-beta",
+    "appVersion": "Version 0.0.1",
+    "menu": "Menu",
     "subtitle": "Open active deppy-mux-beta Web Access links created by your desktop app, then connect to workspaces and terminals from the browser.",
     "mockBadge": "Preview transport",
     "deviceList": "อุปกรณ์",
