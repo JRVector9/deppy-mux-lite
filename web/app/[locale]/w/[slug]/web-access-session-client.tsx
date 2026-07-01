@@ -34,6 +34,7 @@ type WebAccessSessionCopy = {
   refreshingSession: string;
   readableWrap?: string;
   reconnecting?: string;
+  savedMacList: string;
   sendFailed: string;
   sessionExtended?: string;
   selected: string;
@@ -601,6 +602,7 @@ export function WebAccessSessionClient({
   const selectedWorkspaceHasUnread = selectedWorkspace
     ? workspaceAppearsComplete(selectedWorkspace)
     : false;
+  const pwaHomeHref = useMemo(() => pwaHomePathFromLocation(), []);
   const menuButton = (
     <MobileTopMenuButton
       label={copy.menu}
@@ -628,6 +630,7 @@ export function WebAccessSessionClient({
             off: pwaT("off"),
             on: pwaT("on"),
             readableWrap: pwaT("readableWrap"),
+            savedMacList: copy.savedMacList,
           }}
           connectionStatusLabel={connectionStatusLabel}
           fitWidthEnabled={fitWidthEnabled}
@@ -639,6 +642,7 @@ export function WebAccessSessionClient({
           onToggleFitWidth={() => setFitWidthEnabled((enabled) => !enabled)}
           onToggleReadableWrap={() => setReadableWrapEnabled((enabled) => !enabled)}
           open={menuOpen}
+          pwaHomeHref={pwaHomeHref}
           readableWrapEnabled={readableWrapEnabled}
           refreshingLabel={copy.refreshingSession}
           sessionExpiryLabel={sessionExpiryLabel}
@@ -1128,6 +1132,16 @@ function removeTokenFromLocation() {
   if (changed) {
     window.history.replaceState(window.history.state, "", url.toString());
   }
+}
+
+function pwaHomePathFromLocation(): string {
+  if (typeof window === "undefined") {
+    return "/pwa";
+  }
+  const firstPathSegment = window.location.pathname.split("/").filter(Boolean)[0];
+  return firstPathSegment && firstPathSegment !== "w"
+    ? `/${firstPathSegment}/pwa`
+    : "/pwa";
 }
 
 function tokenFromUrl(href: string): string | null {

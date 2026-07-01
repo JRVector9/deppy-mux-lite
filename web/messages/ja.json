@@ -2279,6 +2279,7 @@
     "noWebAccessSessions": "有効な Web Connect リンクはありません",
     "expires": "有効期限",
     "pwaListSavedMacs": "保存済み Mac",
+    "savedMacList": "保存済み Mac 一覧",
     "pwaListLocalOnlyBadge": "ローカル専用",
     "pwaListLocalOnlyTitle": "中央リレーなし",
     "pwaListLocalOnlyBody": "Web Connect はこの Mac とプライベートネットワーク内に留まります。この PWA は、このブラウザに保存されたペアリングだけを読み取り、ブラウザトークンをローカルに保存します。",

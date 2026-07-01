@@ -19,6 +19,7 @@ type MobileTopMenuPanelProps = {
     off: string;
     on: string;
     readableWrap: string;
+    savedMacList: string;
   };
   connectionStatusLabel: string;
   fitWidthEnabled: boolean;
@@ -30,6 +31,7 @@ type MobileTopMenuPanelProps = {
   onToggleFitWidth: () => void;
   onToggleReadableWrap: () => void;
   open: boolean;
+  pwaHomeHref: string;
   readableWrapEnabled: boolean;
   refreshingLabel: string;
   sessionExpiryLabel: string | null;
@@ -67,6 +69,7 @@ export function MobileTopMenuPanel({
   onToggleFitWidth,
   onToggleReadableWrap,
   open,
+  pwaHomeHref,
   readableWrapEnabled,
   refreshingLabel,
   sessionExpiryLabel,
@@ -96,6 +99,12 @@ export function MobileTopMenuPanel({
       >
         {isRefreshingSession ? refreshingLabel : copy.extendSession}
       </button>
+      <a
+        className="mb-1 grid w-full rounded-xl border border-[#2a2a2a] bg-[#0b0b0b] px-3 py-2 text-left text-sm font-semibold"
+        href={pwaHomeHref}
+      >
+        {copy.savedMacList}
+      </a>
       <div className="mb-1 grid gap-1 rounded-xl bg-[#050505] p-2">
         <div className="flex min-w-0 items-center justify-between gap-2 px-1 text-xs text-[#a8a8a8]">
           <span className="truncate font-semibold">{copy.fontSize}</span>

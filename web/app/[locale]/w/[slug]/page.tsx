@@ -52,6 +52,7 @@ export default async function WebAccessPage({ params }: WebAccessPageProps) {
         refreshingSession: pwaT("refreshingSession"),
         readableWrap: pwaT("readableWrap"),
         reconnecting: pwaT("reconnecting"),
+        savedMacList: pwaT("savedMacList"),
         sendFailed: pwaT("sendFailed"),
         sessionExtended: pwaT("sessionExtended"),
         selected: pwaT("selected"),
