@@ -63,7 +63,10 @@ export class MockMobileRpcTransport implements MobileRpcTransport {
             : ["workspace.updated", "terminal.render_grid"],
           already_subscribed: false,
         } satisfies MobileEventsSubscribeResponse) as T;
+      case "web_access.session.refresh":
+        return ({ expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString() }) as T;
       case "mobile.events.unsubscribe":
+        return {} as T;
       case "mobile.terminal.viewport":
         return ({ columns: 80, rows: 24 } satisfies
           MobileTerminalViewportResponse) as T;

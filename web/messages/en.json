@@ -2277,6 +2277,7 @@
     }
   },
   "pwa": {
+    "attachmentTooLarge": "Choose an image under 256 KB.",
     "metaTitle": "deppy-mux-beta",
     "metaDescription": "Connect to deppy-mux-beta workspaces and terminals from the browser.",
     "title": "deppy-mux-beta",
@@ -2289,6 +2290,10 @@
     "connected": "Connected",
     "composerPlaceholder": "Type a command or message",
     "send": "Send",
+    "refreshSession": "Refresh",
+    "refreshSessionFailed": "Could not refresh the Web Connect session. Check the connection and try again.",
+    "refreshingSession": "Refreshing",
+    "sendFailed": "Could not send to the terminal. Check the connection and try again.",
     "enter": "Enter",
     "clear": "Clear",
     "targetLabel": "Target",

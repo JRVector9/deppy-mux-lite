@@ -90,6 +90,7 @@ const webAccessRelayMethods = [
   "mobile.workspace.list",
   "mobile.terminal.replay",
   "mobile.terminal.viewport",
+  "web_access.session.refresh",
   "terminal.input",
   "terminal.paste",
   "terminal.paste_image",

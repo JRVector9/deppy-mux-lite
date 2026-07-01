@@ -38,10 +38,15 @@ export default async function WebAccessPage({ params }: WebAccessPageProps) {
   return (
     <WebAccessSessionClient
       copy={{
+        attachmentTooLarge: pwaT("attachmentTooLarge"),
         clear: pwaT("clear"),
         composerPlaceholder: pwaT("composerPlaceholder"),
         connected: pwaT("connected"),
         enter: pwaT("enter"),
+        refreshSession: pwaT("refreshSession"),
+        refreshSessionFailed: pwaT("refreshSessionFailed"),
+        refreshingSession: pwaT("refreshingSession"),
+        sendFailed: pwaT("sendFailed"),
         selected: pwaT("selected"),
         send: pwaT("send"),
         signIn: pwaT("signIn"),

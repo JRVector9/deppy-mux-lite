@@ -18,7 +18,7 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MAX_REQUEST_BYTES = 16 * 1024;
+const MAX_REQUEST_BYTES = 512 * 1024;
 
 type RelayRpcRouteProps = {
   params: Promise<{ slug: string }>;

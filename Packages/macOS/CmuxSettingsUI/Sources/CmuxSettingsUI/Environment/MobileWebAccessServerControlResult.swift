@@ -10,6 +10,8 @@ public enum MobileWebAccessServerControlResult: Sendable, Equatable {
     case invalidPort(port: Int)
     /// Another local process is already using the requested port.
     case portInUse(port: Int)
+    /// Tailscale is required for browser Web Connect, but no Tailscale address is available.
+    case tailscaleUnavailable
     /// The host could not find an installed Web Connect runtime.
     case runtimeMissing
     /// The host found a runtime but could not launch it.

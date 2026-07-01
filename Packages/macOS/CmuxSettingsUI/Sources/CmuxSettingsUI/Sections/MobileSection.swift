@@ -419,6 +419,11 @@ public struct MobileSection: View {
                 localized: "settings.mobile.webConnect.server.portInUse",
                 defaultValue: "Port \(port) is already in use. Choose another port, then apply it."
             )
+        case .tailscaleUnavailable:
+            return String(
+                localized: "settings.mobile.webConnect.server.tailscaleUnavailable",
+                defaultValue: "Tailscale is required for Web Connect. Install or turn on Tailscale on this Mac before starting the server."
+            )
         case .runtimeMissing:
             return String(
                 localized: "settings.mobile.webConnect.server.runtimeMissing",
@@ -602,7 +607,7 @@ public struct MobileSection: View {
             webConnectServerEnabled.set(false)
         case .portInUse where webConnectServerEnabled.current:
             webConnectServerEnabled.set(true)
-        case .invalidPort, .portInUse, .runtimeMissing, .failed:
+        case .invalidPort, .portInUse, .tailscaleUnavailable, .runtimeMissing, .failed:
             webConnectServerEnabled.set(false)
         }
     }

@@ -2223,6 +2223,7 @@
     }
   },
   "pwa": {
+    "attachmentTooLarge": "256 KB 未満の画像を選択してください。",
     "metaTitle": "deppy-mux-beta",
     "metaDescription": "ブラウザから deppy-mux-beta のワークスペースとターミナルへ接続します。",
     "title": "deppy-mux-beta",
@@ -2235,6 +2236,10 @@
     "connected": "接続済み",
     "composerPlaceholder": "コマンドまたはメッセージを入力",
     "send": "送信",
+    "refreshSession": "更新",
+    "refreshSessionFailed": "Web Connect セッションを更新できませんでした。接続を確認してもう一度お試しください。",
+    "refreshingSession": "更新中",
+    "sendFailed": "ターミナルへ送信できませんでした。接続を確認してもう一度お試しください。",
     "enter": "Enter",
     "clear": "クリア",
     "targetLabel": "送信先",

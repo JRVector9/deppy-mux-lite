@@ -94,7 +94,7 @@ final class HostSettingsActions: SettingsHostActions {
     }
 
     func sendFeedback() {
-        guard let url = URL(string: "https://github.com/manaflow-ai/cmux/issues/new") else { return }
+        guard let url = URL(string: "mailto:jr@vector9.app?subject=deppy-mux-lite%20Feedback") else { return }
         NSWorkspace.shared.open(url)
     }
 

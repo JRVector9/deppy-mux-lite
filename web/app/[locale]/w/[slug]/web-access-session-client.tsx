@@ -22,10 +22,15 @@ import type {
 import { WebAccessRelayTransport } from "@/services/mobile-rpc/web-access-relay-transport";
 
 type WebAccessSessionCopy = {
+  attachmentTooLarge: string;
   clear: string;
   composerPlaceholder: string;
   connected: string;
   enter: string;
+  refreshSession: string;
+  refreshSessionFailed: string;
+  refreshingSession: string;
+  sendFailed: string;
   selected: string;
   send: string;
   signIn: string;
@@ -52,6 +57,9 @@ const estimatedTerminalCellWidthPx = 7.2;
 const terminalLineHeightEm = 1.35;
 const webTerminalDefaultForeground = "#d8d8d8";
 const webTerminalDefaultBackground = "#050505";
+const maxImageAttachmentBytes = 256 * 1024;
+const sessionRefreshLeadMs = 10 * 60 * 1000;
+const sessionRefreshPollMs = 60 * 1000;
 
 type TerminalSnapshot =
   | { kind: "render-grid"; frame: MobileRenderGridFrame }
@@ -66,6 +74,7 @@ export function WebAccessSessionClient({
   slug,
 }: WebAccessSessionClientProps) {
   const [browserToken] = useState(() => browserTokenFromLocation(slug, expiresAt));
+  const [sessionExpiresAt, setSessionExpiresAt] = useState(expiresAt);
   const client = useMemo(
     () =>
       new MobileRpcClient(
@@ -86,6 +95,10 @@ export function WebAccessSessionClient({
   const [workspacePickerOpen, setWorkspacePickerOpen] = useState(true);
   const [skillPickerOpen, setSkillPickerOpen] = useState(false);
   const [attachment, setAttachment] = useState<File | null>(null);
+  const [composerError, setComposerError] = useState<string | null>(null);
+  const [isSending, setIsSending] = useState(false);
+  const [isRefreshingSession, setIsRefreshingSession] = useState(false);
+  const [sessionRefreshError, setSessionRefreshError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<string[]>([]);
   const [terminalSnapshot, setTerminalSnapshot] = useState<TerminalSnapshot | null>(
     null,
@@ -96,6 +109,17 @@ export function WebAccessSessionClient({
   const [viewportHeight, setViewportHeight] = useState("100svh");
   const [viewportWidth, setViewportWidth] = useState(0);
   const attachmentName = attachment?.name ?? "";
+
+  useEffect(() => {
+    setSessionExpiresAt(expiresAt);
+  }, [expiresAt]);
+
+  function applySessionExpiresAt(nextExpiresAt: string) {
+    setSessionExpiresAt(nextExpiresAt);
+    if (browserToken) {
+      storeLocalWebAccessSession({ browserToken, expiresAt: nextExpiresAt, slug });
+    }
+  }
 
   useEffect(() => {
     const root = document.documentElement;
@@ -293,6 +317,63 @@ export function WebAccessSessionClient({
     };
   }, [client, connected, target]);
 
+  useEffect(() => {
+    if (!connected) {
+      return;
+    }
+    let cancelled = false;
+    let inFlight = false;
+
+    async function refreshSessionIfNeeded() {
+      if (inFlight) {
+        return;
+      }
+      const expiresAtMs = Date.parse(sessionExpiresAt);
+      if (!Number.isFinite(expiresAtMs) || expiresAtMs - Date.now() > sessionRefreshLeadMs) {
+        return;
+      }
+      inFlight = true;
+      try {
+        const refreshed = await client.refreshWebAccessSession();
+        if (!cancelled && typeof refreshed.expiresAt === "string") {
+          applySessionExpiresAt(refreshed.expiresAt);
+        }
+      } catch {
+        // The status and terminal polling loops keep surfacing connection state.
+      } finally {
+        inFlight = false;
+      }
+    }
+
+    void refreshSessionIfNeeded();
+    const interval = globalThis.setInterval(
+      () => void refreshSessionIfNeeded(),
+      sessionRefreshPollMs,
+    );
+    return () => {
+      cancelled = true;
+      globalThis.clearInterval(interval);
+    };
+  }, [client, connected, sessionExpiresAt]);
+
+  async function refreshSessionManually() {
+    if (!connected || isRefreshingSession) {
+      return;
+    }
+    setSessionRefreshError(null);
+    setIsRefreshingSession(true);
+    try {
+      const refreshed = await client.refreshWebAccessSession();
+      if (typeof refreshed.expiresAt === "string") {
+        applySessionExpiresAt(refreshed.expiresAt);
+      }
+    } catch {
+      setSessionRefreshError(copy.refreshSessionFailed);
+    } finally {
+      setIsRefreshingSession(false);
+    }
+  }
+
   async function refreshTerminalScreen(capturedTarget: MobileTerminalTarget) {
     try {
       const replay = await client.replayTerminal(capturedTarget);
@@ -305,39 +386,55 @@ export function WebAccessSessionClient({
   async function sendComposer() {
     const text = composer.trimEnd();
     const capturedAttachment = attachment;
-    if (!target || (!text && !capturedAttachment)) {
+    if (!target || isSending || (!text && !capturedAttachment)) {
       return;
     }
     const capturedTarget = target;
-    if (capturedAttachment) {
-      const payload = await imagePayloadFromFile(capturedAttachment);
-      await client.pasteImage(capturedTarget, payload.base64, payload.format);
+    setComposerError(null);
+    setIsSending(true);
+    try {
+      if (capturedAttachment) {
+        const payload = await imagePayloadFromFile(capturedAttachment);
+        await client.pasteImage(capturedTarget, payload.base64, payload.format);
+      }
+      if (text) {
+        await client.pasteText(capturedTarget, text, {
+          submitKey: "return",
+        });
+      }
+      setComposer((current) => (current.trimEnd() === text ? "" : current));
+      setAttachment((current) => (current === capturedAttachment ? null : current));
+      setTranscript((current) => [
+        ...current,
+        `${capturedTarget.surfaceId} $ ${text || capturedAttachment?.name || ""}`,
+      ]);
+      void refreshTerminalScreen(capturedTarget);
+    } catch {
+      setComposerError(copy.sendFailed);
+    } finally {
+      setIsSending(false);
     }
-    if (text) {
-      await client.pasteText(capturedTarget, text, {
-        submitKey: "return",
-      });
-    }
-    setComposer((current) => (current.trimEnd() === text ? "" : current));
-    setAttachment((current) => (current === capturedAttachment ? null : current));
-    setTranscript((current) => [
-      ...current,
-      `${capturedTarget.surfaceId} $ ${text || capturedAttachment?.name || ""}`,
-    ]);
-    void refreshTerminalScreen(capturedTarget);
   }
 
   async function sendEnter() {
-    if (!target) {
+    if (!target || isSending) {
       return;
     }
     const capturedTarget = target;
-    await client.sendInput(capturedTarget, "\r");
-    setTranscript((current) => [
-      ...current,
-      `${capturedTarget.surfaceId} ${copy.enter}`,
-    ]);
-    void refreshTerminalScreen(capturedTarget);
+    setComposerError(null);
+    setIsSending(true);
+    try {
+      await client.sendInput(capturedTarget, "\r");
+      setTranscript((current) => [
+        ...current,
+        `${capturedTarget.surfaceId} ${copy.enter}`,
+      ]);
+      void refreshTerminalScreen(capturedTarget);
+    } catch {
+      setComposerError(copy.sendFailed);
+    } finally {
+      setIsSending(false);
+    }
   }
 
   function openWorkspace(workspace: MobileWorkspacePreview) {
@@ -363,6 +460,12 @@ export function WebAccessSessionClient({
     if (!file) {
       return;
     }
+    if (file.size > maxImageAttachmentBytes) {
+      setAttachment(null);
+      setComposerError(copy.attachmentTooLarge);
+      return;
+    }
+    setComposerError(null);
     setAttachment(file);
   }
 
@@ -381,9 +484,11 @@ export function WebAccessSessionClient({
   const showWorkspacePicker = workspacePickerOpen || !selectedWorkspace || !selectedTerminal;
   const activeNotice = signInRequired
     ? copy.signInRequired
-    : connected
-      ? ""
-      : copy.waiting;
+    : sessionRefreshError
+      ? sessionRefreshError
+      : connected
+        ? ""
+        : copy.waiting;
   const skillCommands = ["/review", "/test", "/mcp", "/release-note"];
   const forceMobileReadableTerminal = viewportWidth === 0 || viewportWidth <= 768;
 
@@ -419,10 +524,20 @@ export function WebAccessSessionClient({
               <h1 className="truncate text-lg font-semibold tracking-normal">{copy.title}</h1>
               <div className="mt-0.5 truncate text-xs text-[#a8a8a8]">{connected ? copy.connected : copy.waiting}</div>
             </div>
-            <span className="inline-flex min-h-7 items-center gap-1.5 rounded-full border border-[#2a2a2a] bg-[#0d0d0d] px-2.5 text-xs text-[#a8a8a8]">
-              <span className={connected ? "h-1.5 w-1.5 rounded-full bg-emerald-400" : "h-1.5 w-1.5 rounded-full bg-amber-400"} />
-              {workspaces.length} {copy.workspaceList}
-            </span>
+            <div className="flex min-w-0 items-center gap-2">
+              <button
+                className="h-8 max-w-24 truncate rounded-full border border-[#2a2a2a] bg-[#101010] px-2.5 text-xs font-semibold text-[#f2f2f2] disabled:opacity-45"
+                disabled={!connected || isRefreshingSession}
+                onClick={() => void refreshSessionManually()}
+                type="button"
+              >
+                {isRefreshingSession ? copy.refreshingSession : copy.refreshSession}
+              </button>
+              <span className="inline-flex min-h-7 items-center gap-1.5 rounded-full border border-[#2a2a2a] bg-[#0d0d0d] px-2.5 text-xs text-[#a8a8a8]">
+                <span className={connected ? "h-1.5 w-1.5 rounded-full bg-emerald-400" : "h-1.5 w-1.5 rounded-full bg-amber-400"} />
+                {workspaces.length} {copy.workspaceList}
+              </span>
+            </div>
           </header>
 
           {signInRequired ? (
@@ -478,14 +593,24 @@ export function WebAccessSessionClient({
                 ‹
               </button>
               <div className="min-w-0 truncate text-sm font-semibold tracking-normal">{selectedWorkspace?.title}</div>
-              <button
-                className="max-w-32 truncate rounded-full border border-[#2a2a2a] bg-[#101010] px-2 py-1 text-xs text-[#a8a8a8] disabled:opacity-70"
-                disabled={(selectedWorkspace?.terminals.length ?? 0) < 2}
-                onClick={cycleTerminal}
-                type="button"
-              >
-                {selectedTerminal?.title ?? copy.terminal}
-              </button>
+              <div className="flex min-w-0 items-center gap-1">
+                <button
+                  className="h-8 max-w-24 truncate rounded-full border border-[#2a2a2a] bg-[#101010] px-2 text-xs font-semibold text-[#f2f2f2] disabled:opacity-45"
+                  disabled={!connected || isRefreshingSession}
+                  onClick={() => void refreshSessionManually()}
+                  type="button"
+                >
+                  {isRefreshingSession ? copy.refreshingSession : copy.refreshSession}
+                </button>
+                <button
+                  className="h-8 max-w-28 truncate rounded-full border border-[#2a2a2a] bg-[#101010] px-2 py-1 text-xs text-[#a8a8a8] disabled:opacity-70"
+                  disabled={(selectedWorkspace?.terminals.length ?? 0) < 2}
+                  onClick={cycleTerminal}
+                  type="button"
+                >
+                  {selectedTerminal?.title ?? copy.terminal}
+                </button>
+              </div>
             </div>
 
             <div
@@ -514,6 +639,11 @@ export function WebAccessSessionClient({
             </div>
 
             <div className="web-access-no-x border-t border-[#1f1f1f] bg-[#0a0a0a] px-2 pb-[max(6px,env(safe-area-inset-bottom))] pt-1.5">
+              {composerError ? (
+                <div className="mb-1.5 rounded-lg border border-[#5a2d2d] bg-[#211010] px-2 py-1.5 text-xs leading-4 text-[#ffb6b6]">
+                  {composerError}
+                </div>
+              ) : null}
               {attachmentName ? (
                 <div className="mb-1.5 flex min-w-0 items-center gap-2 overflow-hidden rounded-lg border border-[#2a2a2a] bg-[#151515] px-2 py-1 text-xs text-[#a8a8a8]">
                   <span className="h-5 w-5 shrink-0 rounded bg-gradient-to-br from-[#77a8ff] to-[#59d185]" />
@@ -551,6 +681,7 @@ export function WebAccessSessionClient({
                 />
                 <button
                   className="grid h-[34px] w-[34px] place-items-center rounded-lg border border-[#2a2a2a] bg-[#0b0b0b] text-base font-semibold"
+                  disabled={isSending}
                   onClick={() => fileInputRef.current?.click()}
                   type="button"
                 >
@@ -558,6 +689,7 @@ export function WebAccessSessionClient({
                 </button>
                 <button
                   className="grid h-[34px] w-[34px] place-items-center rounded-lg border border-[#2a2a2a] bg-[#0b0b0b] text-base font-semibold"
+                  disabled={isSending}
                   onClick={() => setSkillPickerOpen(true)}
                   type="button"
                 >
@@ -579,7 +711,7 @@ export function WebAccessSessionClient({
                 <button
                   aria-label={copy.send}
                   className="grid h-[34px] w-[38px] place-items-center rounded-lg bg-[#f5f5f5] text-base font-extrabold text-[#080808] disabled:opacity-40"
-                  disabled={!target}
+                  disabled={!target || isSending}
                   type="submit"
                 >
                   ↵

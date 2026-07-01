@@ -17,7 +17,11 @@ final class MobileWebAccessClient {
     private var relayTask: Task<Void, Never>?
     private var didRestorePersistedServer = false
 
-    private init() {}
+    private init() {
+        webConnectServer.onUnexpectedTermination = { [weak self] in
+            self?.handleWebConnectServerTerminated()
+        }
+    }
 
     /// Injects auth at the app composition root.
     func configure(auth: AuthCoordinator) {
@@ -109,7 +113,7 @@ final class MobileWebAccessClient {
             var emptyPollCount = 0
             while !Task.isCancelled {
                 guard let self else { return }
-                guard Date() < expiresAt else {
+                guard Date() < self.currentExpirationDate(slug: slug, fallback: expiresAt) else {
                     self.clearSession(slug: slug)
                     return
                 }
@@ -127,7 +131,7 @@ final class MobileWebAccessClient {
             let clock = ContinuousClock()
             while !Task.isCancelled {
                 guard let self else { return }
-                guard Date() < expiresAt else {
+                guard Date() < self.currentExpirationDate(slug: slug, fallback: expiresAt) else {
                     self.clearSession(slug: slug)
                     return
                 }
@@ -148,6 +152,10 @@ final class MobileWebAccessClient {
         clearCurrentSession()
     }
 
+    private func currentExpirationDate(slug: String, fallback: Date) -> Date {
+        current?.slug == slug ? current?.expiresAt ?? fallback : fallback
+    }
+
     private func clearCurrentSession() {
         current = nil
         currentHostToken = nil
@@ -160,9 +168,18 @@ final class MobileWebAccessClient {
         }
     }
 
+    private func handleWebConnectServerTerminated() {
+        Self.setWebConnectServerEnabled(false)
+        clearCurrentSession()
+    }
+
     /// Starts or stops the local Web Connect server using a user-selected port.
     func setServerEnabled(_ enabled: Bool, port: Int) async -> MobileWebAccessServerControlResult {
         let baseURL = Self.webConnectBaseURL(port: port)
+        if enabled, WebConnectServerController.canAutoStart(baseURL: baseURL), Self.tailscalePublicOrigin(baseURL: baseURL) == nil {
+            Self.setWebConnectServerEnabled(false)
+            return .tailscaleUnavailable
+        }
         let result = await webConnectServer.setEnabled(enabled, baseURL: baseURL)
         switch result {
         case .running:
@@ -171,7 +188,7 @@ final class MobileWebAccessClient {
         case .stopped:
             Self.setWebConnectServerEnabled(false)
             clearCurrentSession()
-        case .invalidPort, .portInUse, .runtimeMissing, .failed:
+        case .invalidPort, .portInUse, .tailscaleUnavailable, .runtimeMissing, .failed:
             break
         }
         return result
@@ -231,6 +248,11 @@ final class MobileWebAccessClient {
     }
 
     private func handleRelayRequest(_ relayRequest: RelayRPCRequest, slug: String, hostToken: String) async {
+        if relayRequest.method == "web_access.session.refresh" {
+            let result = await refreshSessionForRelay(slug: slug, hostToken: hostToken)
+            await completeRelayRequest(id: relayRequest.id, result: result, slug: slug, hostToken: hostToken)
+            return
+        }
         let rpcRequest = MobileHostRPCRequest(
             id: relayRequest.id,
             method: relayRequest.method,
@@ -239,6 +261,41 @@ final class MobileWebAccessClient {
         )
         let result = await TerminalController.shared.mobileHostHandleRPC(rpcRequest)
         await completeRelayRequest(id: relayRequest.id, result: result, slug: slug, hostToken: hostToken)
+    }
+
+    private func refreshSessionForRelay(slug: String, hostToken: String) async -> MobileHostRPCResult {
+        guard let url = Self.apiURL(path: "/api/mobile/web-access/sessions/\(slug)") else {
+            return .failure(MobileHostRPCError(code: "invalid_endpoint", message: "Missing Web Connect session endpoint"))
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 10
+        request.setValue(hostToken, forHTTPHeaderField: "X-Cmux-Web-Access-Host-Token")
+        request.setValue("application/json", forHTTPHeaderField: "content-type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: ["action": "refresh"])
+
+        do {
+            let (data, response) = try await session.data(for: request)
+            guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+                return .failure(MobileHostRPCError(code: "refresh_failed", message: "Web Connect session refresh was rejected"))
+            }
+            guard let expiresAtRaw = Self.parseRefreshExpiresAt(data),
+                  let expiresAt = Self.parseDate(expiresAtRaw)
+            else {
+                return .failure(MobileHostRPCError(code: "invalid_response", message: "Web Connect session refresh response was invalid"))
+            }
+            if let existing = current, existing.slug == slug {
+                current = MobileWebAccessSessionSnapshot(
+                    slug: existing.slug,
+                    publicURL: existing.publicURL,
+                    expiresAt: expiresAt,
+                    hostSeenAt: Date()
+                )
+            }
+            return .ok(["expiresAt": expiresAtRaw])
+        } catch {
+            return .failure(MobileHostRPCError(code: "refresh_failed", message: "Could not refresh Web Connect session"))
+        }
     }
 
     private func completeRelayRequest(
@@ -415,6 +472,16 @@ final class MobileWebAccessClient {
             return nil
         }
         return parseDate(hostSeenAtRaw)
+    }
+
+    private static func parseRefreshExpiresAt(_ data: Data) -> String? {
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let expiresAt = object["expiresAt"] as? String,
+              parseDate(expiresAt) != nil
+        else {
+            return nil
+        }
+        return expiresAt
     }
 
     private static func parseRelayRequests(_ data: Data) -> [RelayRPCRequest] {
