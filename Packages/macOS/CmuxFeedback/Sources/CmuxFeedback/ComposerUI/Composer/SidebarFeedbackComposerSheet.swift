@@ -65,7 +65,7 @@ public struct SidebarFeedbackComposerSheet: View {
             Text(
                 String(
                     localized: "sidebar.help.feedback.successBody",
-                    defaultValue: "You can also reach us at founders@manaflow.com.",
+                    defaultValue: "You can also reach us at jr@vector9.app.",
                     bundle: .module
                 )
             )
@@ -88,7 +88,7 @@ public struct SidebarFeedbackComposerSheet: View {
             Text(
                 String(
                     localized: "sidebar.help.feedback.note",
-                    defaultValue: "A human will read this! You can also reach us at founders@manaflow.com.",
+                    defaultValue: "A human will read this! You can also reach us at jr@vector9.app.",
                     bundle: .module
                 )
             )
@@ -352,7 +352,7 @@ public struct SidebarFeedbackComposerSheet: View {
         case .invalidEndpoint:
             return String(
                 localized: "sidebar.help.feedback.endpointError",
-                defaultValue: "Feedback is unavailable right now. Email founders@manaflow.com instead.",
+                defaultValue: "Feedback is unavailable right now. Email jr@vector9.app instead.",
                 bundle: .module
             )
         case .invalidResponse:
@@ -403,7 +403,7 @@ public struct SidebarFeedbackComposerSheet: View {
             case 500...599:
                 return String(
                     localized: "sidebar.help.feedback.endpointError",
-                    defaultValue: "Feedback is unavailable right now. Email founders@manaflow.com instead.",
+                    defaultValue: "Feedback is unavailable right now. Email jr@vector9.app instead.",
                     bundle: .module
                 )
             default:

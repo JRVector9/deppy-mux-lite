@@ -12,6 +12,12 @@
 
 ## deppy-mux-lite Release Script
 
+- deppy-lite keeps release version metadata separate from the upstream cmux app.
+- The lite version source of truth is `DEPPY_LITE_VERSION`.
+- `scripts/build-deppy-lite-arm64-release.sh` and `scripts/build-deppy-lite-universal-release.sh` read `DEPPY_LITE_VERSION` and pass `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` to Xcode at build time.
+- Current lite version: `0.0.1` build `1`.
+- Override for one build with `DEPPY_LITE_MARKETING_VERSION=<version>` and/or `DEPPY_LITE_BUILD_VERSION=<build>`.
+- Override the version file path with `DEPPY_LITE_VERSION_FILE=<path>`.
 - `scripts/build-deppy-lite-universal-release.sh` builds Intel + Apple Silicon `deppy-mux-lite-universal.app` and asserts both `arm64` and `x86_64` slices are present.
 - Final downloadable release packages must contain a real Ghostty CLI helper, not the `CMUX_SKIP_ZIG_BUILD=1` stub.
 - If no prebuilt helper is provided, the lite release scripts call `scripts/ensure-zig-required.sh` and use a pinned Zig 0.15.2 from `~/Library/Caches/deppy-mux/zig`, without changing the system Homebrew Zig.
