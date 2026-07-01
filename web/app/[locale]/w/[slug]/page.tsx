@@ -54,6 +54,7 @@ export default async function WebAccessPage({ params }: WebAccessPageProps) {
         workspaceList: pwaT("workspaceList"),
       }}
       authEnabled={isStackConfigured()}
+      expiresAt={session.expiresAt}
       initialConnected={session.connected}
       signInHref={signInHref}
       slug={slug}

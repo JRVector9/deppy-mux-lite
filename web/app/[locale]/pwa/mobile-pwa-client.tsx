@@ -27,6 +27,14 @@ type OwnerWebAccessSession = {
   publicPath: string;
 };
 
+type StoredLocalWebAccessSession = {
+  browserToken: string;
+  expiresAt: string;
+  slug: string;
+};
+
+const localWebAccessSessionStoragePrefix = "cmux:web-access:session:";
+
 type MobilePwaClientProps = {
   authEnabled: boolean;
   copy: PwaCopy;
@@ -167,19 +175,103 @@ async function loadSessions(): Promise<
       cache: "no-store",
     });
     if (response.status === 401) {
+      const localSessions = loadLocalWebAccessSessions();
+      if (localSessions.length > 0) {
+        return { ok: true, sessions: localSessions };
+      }
       return { ok: false, status: "unauthorized" };
     }
     if (!response.ok) {
+      const localSessions = loadLocalWebAccessSessions();
+      if (localSessions.length > 0) {
+        return { ok: true, sessions: localSessions };
+      }
       return { ok: false, status: "error" };
     }
     const payload = await response.json();
+    const remoteSessions = Array.isArray(payload?.sessions)
+      ? (payload.sessions as OwnerWebAccessSession[])
+      : [];
+    const localSessions = loadLocalWebAccessSessions();
     return {
       ok: true,
-      sessions: Array.isArray(payload?.sessions) ? payload.sessions : [],
+      sessions: mergeSessions(remoteSessions, localSessions),
     };
   } catch {
+    const localSessions = loadLocalWebAccessSessions();
+    if (localSessions.length > 0) {
+      return { ok: true, sessions: localSessions };
+    }
     return { ok: false, status: "error" };
   }
+}
+
+function loadLocalWebAccessSessions(): OwnerWebAccessSession[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+  const sessions: OwnerWebAccessSession[] = [];
+  const now = Date.now();
+  const keys = Array.from({ length: window.localStorage.length }, (_, index) =>
+    window.localStorage.key(index),
+  );
+  for (const key of keys) {
+    if (!key?.startsWith(localWebAccessSessionStoragePrefix)) {
+      continue;
+    }
+    try {
+      const raw = window.localStorage.getItem(key);
+      const stored = raw ? (JSON.parse(raw) as Partial<StoredLocalWebAccessSession>) : null;
+      const expiresAtMs =
+        typeof stored?.expiresAt === "string" ? Date.parse(stored.expiresAt) : NaN;
+      if (
+        !stored ||
+        typeof stored.slug !== "string" ||
+        !stored.slug ||
+        typeof stored.browserToken !== "string" ||
+        !stored.browserToken ||
+        typeof stored.expiresAt !== "string" ||
+        Number.isNaN(expiresAtMs) ||
+        expiresAtMs <= now
+      ) {
+        window.localStorage.removeItem(key);
+        continue;
+      }
+      sessions.push({
+        slug: stored.slug,
+        displayName: null,
+        deviceId: null,
+        createdAt: stored.expiresAt,
+        expiresAt: stored.expiresAt,
+        connected: false,
+        publicPath: localWebAccessPath(stored.slug, stored.browserToken),
+      });
+    } catch {
+      window.localStorage.removeItem(key);
+    }
+  }
+  return sessions.sort((left, right) => right.expiresAt.localeCompare(left.expiresAt));
+}
+
+function mergeSessions(
+  remoteSessions: OwnerWebAccessSession[],
+  localSessions: OwnerWebAccessSession[],
+): OwnerWebAccessSession[] {
+  const merged = new Map<string, OwnerWebAccessSession>();
+  for (const session of remoteSessions) {
+    merged.set(session.slug, session);
+  }
+  for (const session of localSessions) {
+    const remote = merged.get(session.slug);
+    merged.set(session.slug, remote ? { ...session, ...remote, publicPath: session.publicPath } : session);
+  }
+  return [...merged.values()];
+}
+
+function localWebAccessPath(slug: string, browserToken: string): string {
+  const firstPathSegment = window.location.pathname.split("/").filter(Boolean)[0];
+  const localePrefix = firstPathSegment && firstPathSegment !== "pwa" ? `/${firstPathSegment}` : "";
+  return `${localePrefix}/w/${encodeURIComponent(slug)}?access_token=${encodeURIComponent(browserToken)}`;
 }
 
 function statusLabel(

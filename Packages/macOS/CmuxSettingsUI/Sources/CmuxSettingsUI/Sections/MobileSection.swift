@@ -44,6 +44,7 @@ public struct MobileSection: View {
     /// Host bridge: opens the pairing window, applies the port (availability
     /// checked), and supplies the live pairing status and default display name.
     private let hostActions: SettingsHostActions
+    private let featureAvailability: SettingsFeatureAvailability
 
     private static let columnWidth: CGFloat = 196
 
@@ -57,7 +58,8 @@ public struct MobileSection: View {
     public init(
         defaultsStore: UserDefaultsSettingsStore,
         catalog: SettingCatalog,
-        hostActions: SettingsHostActions
+        hostActions: SettingsHostActions,
+        featureAvailability: SettingsFeatureAvailability = .all
     ) {
         _iOSPairingHost = State(initialValue: DefaultsValueModel(store: defaultsStore, key: catalog.mobile.iOSPairingHost))
         _port = State(initialValue: DefaultsValueModel(store: defaultsStore, key: catalog.mobile.iOSPairingPort))
@@ -69,6 +71,7 @@ public struct MobileSection: View {
         _status = State(initialValue: MobilePairingStatusModel(hostActions: hostActions))
         _webAccess = State(initialValue: MobileWebAccessSessionModel(hostActions: hostActions))
         self.hostActions = hostActions
+        self.featureAvailability = featureAvailability
     }
 
     /// The value shown in the field: the user's edit if any, otherwise the
@@ -114,13 +117,35 @@ public struct MobileSection: View {
         return false
     }
 
+    private var showsPairDevice: Bool {
+        featureAvailability.isSettingEntryVisible(section: .mobile, id: "pairDevice")
+    }
+
+    private var showsIOSPairingHost: Bool {
+        featureAvailability.isSettingEntryVisible(section: .mobile, id: "iOSPairingHost")
+    }
+
+    private var showsIOSPairingPort: Bool {
+        featureAvailability.isSettingEntryVisible(section: .mobile, id: "iOSPairingPort")
+    }
+
+    private var showsIOSPairingDisplayName: Bool {
+        featureAvailability.isSettingEntryVisible(section: .mobile, id: "iOSPairingDisplayName")
+    }
+
+    private var showsAnyIOSPairingSetting: Bool {
+        showsPairDevice || showsIOSPairingHost || showsIOSPairingPort || showsIOSPairingDisplayName
+    }
+
     /// The Mobile settings section content.
     public var body: some View {
         Group {
             SettingsSectionHeader(String(localized: "settings.section.mobile", defaultValue: "Mobile"), section: .mobile)
             SettingsCard {
-                pairDeviceRow
-                SettingsCardDivider()
+                if showsPairDevice {
+                    pairDeviceRow
+                    SettingsCardDivider()
+                }
                 webAccessRow
                 webAccessOptionsRow
                 if webConnectRuntimeRequired && (webConnectRuntimeInstallResult != nil || !isWebConnectRuntimeAvailable) {
@@ -132,21 +157,31 @@ public struct MobileSection: View {
                 if webAccess.current != nil || webAccess.lastError != nil {
                     webAccessStatusView
                 }
-                SettingsCardDivider()
-                iOSPairingHostRow
-                SettingsCardDivider()
-                portRow
-                boundPortStatusRow
-                SettingsCardDivider()
-                displayNameRow
-                if iOSPairingHost.current {
+                if showsAnyIOSPairingSetting {
                     SettingsCardDivider()
-                    diagnostics
+                    if showsIOSPairingHost {
+                        iOSPairingHostRow
+                    }
+                    if showsIOSPairingPort {
+                        if showsIOSPairingHost {
+                            SettingsCardDivider()
+                        }
+                        portRow
+                        boundPortStatusRow
+                    }
+                    if showsIOSPairingDisplayName {
+                        SettingsCardDivider()
+                        displayNameRow
+                    }
+                    if showsIOSPairingHost, iOSPairingHost.current {
+                        SettingsCardDivider()
+                        diagnostics
+                    }
+                    SettingsCardNote(String(
+                        localized: "settings.mobile.port.note",
+                        defaultValue: "Click Apply to change the port. deppy-mux checks the port is free first: if it's in use, the current listener keeps running untouched; if it's free, it rebinds and connected devices reconnect on the new port."
+                    ))
                 }
-                SettingsCardNote(String(
-                    localized: "settings.mobile.port.note",
-                    defaultValue: "Click Apply to change the port. deppy-mux checks the port is free first: if it's in use, the current listener keeps running untouched; if it's free, it rebinds and connected devices reconnect on the new port."
-                ))
             }
         }
         .task { startObservingSettings() }
@@ -159,9 +194,11 @@ public struct MobileSection: View {
             displayName,
             webConnectServerEnabled,
             webConnectPort,
-            status,
         ]
         models.forEach { $0.startObserving() }
+        if showsAnyIOSPairingSetting {
+            status.startObserving()
+        }
         refreshWebConnectRuntimeStatus()
         webAccess.refreshCurrentSession()
     }
