@@ -2333,6 +2333,7 @@
     "noWebAccessSessions": "No active Web Connect links",
     "expires": "Expires",
     "pwaListSavedMacs": "Saved Macs",
+    "savedMacList": "Saved Mac list",
     "pwaListLocalOnlyBadge": "Local only",
     "pwaListLocalOnlyTitle": "No central relay",
     "pwaListLocalOnlyBody": "Web Connect stays on this Mac and your private network. This PWA reads saved pairings from this browser only and stores the browser token locally.",

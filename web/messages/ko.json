@@ -1949,6 +1949,7 @@
     "workspaceUpdated": "워크스페이스 업데이트",
     "workspaceUpdatedBadge": "업데이트",
     "pwaListSavedMacs": "저장된 Mac",
+    "savedMacList": "저장된 Mac 목록",
     "pwaListLocalOnlyBadge": "로컬 전용",
     "pwaListLocalOnlyTitle": "로컬 전용 Web Connect",
     "pwaListLocalOnlyBody": "이 Mac에서 Web Connect QR을 스캔하거나 링크를 한 번 열면, 이 브라우저가 Mac을 로컬에 저장하고 중앙 relay 없이 다시 연결합니다.",
