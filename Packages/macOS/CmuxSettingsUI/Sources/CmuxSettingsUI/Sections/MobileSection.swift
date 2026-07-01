@@ -455,32 +455,48 @@ public struct MobileSection: View {
     @ViewBuilder
     private var webAccessStatusView: some View {
         if let session = webAccess.current {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(session.publicURL)
-                    .cmuxFont(.caption, design: .monospaced)
-                    .lineLimit(2)
-                    .textSelection(.enabled)
-                    .accessibilityIdentifier("SettingsMobileWebAccessURL")
-                HStack(spacing: 8) {
-                    Label(
+            HStack(alignment: .top, spacing: 12) {
+                WebConnectQRCodeView(url: session.publicURL)
+                    .frame(width: 112, height: 112)
+                    .accessibilityIdentifier("SettingsMobileWebAccessQRCode")
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(
                         String(
-                            localized: "settings.mobile.webAccess.activeUntil",
-                            defaultValue: "Active until \(session.expiresAt.formatted(date: .omitted, time: .shortened))"
-                        ),
-                        systemImage: "checkmark.circle.fill"
+                            localized: "settings.mobile.webAccess.scanQRCode",
+                            defaultValue: "Scan this QR code on your phone, or copy the link below."
+                        )
                     )
                     .foregroundStyle(.secondary)
-                    Spacer(minLength: 8)
-                    Button(webAccess.didCopyCurrentURL
-                        ? String(localized: "settings.mobile.webAccess.copied", defaultValue: "Copied")
-                        : String(localized: "settings.mobile.webAccess.copy", defaultValue: "Copy")
-                    ) {
-                        webAccess.copyCurrentURL()
+
+                    Text(session.publicURL)
+                        .cmuxFont(.caption, design: .monospaced)
+                        .lineLimit(3)
+                        .textSelection(.enabled)
+                        .accessibilityIdentifier("SettingsMobileWebAccessURL")
+
+                    HStack(spacing: 8) {
+                        Label(
+                            String(
+                                localized: "settings.mobile.webAccess.activeUntil",
+                                defaultValue: "Active until \(session.expiresAt.formatted(date: .omitted, time: .shortened))"
+                            ),
+                            systemImage: "checkmark.circle.fill"
+                        )
+                        .foregroundStyle(.secondary)
+                        Spacer(minLength: 8)
+                        Button(webAccess.didCopyCurrentURL
+                            ? String(localized: "settings.mobile.webAccess.copied", defaultValue: "Copied")
+                            : String(localized: "settings.mobile.webAccess.copy", defaultValue: "Copy")
+                        ) {
+                            webAccess.copyCurrentURL()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .accessibilityIdentifier("SettingsMobileWebAccessCopyButton")
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .accessibilityIdentifier("SettingsMobileWebAccessCopyButton")
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .cmuxFont(.caption)
             .frame(maxWidth: .infinity, alignment: .leading)
