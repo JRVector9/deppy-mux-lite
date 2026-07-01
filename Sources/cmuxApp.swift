@@ -306,6 +306,13 @@ struct cmuxApp: App {
             hideSetting(.betaFeatures, "remoteTmux")
         }
 
+        if DeppyLiteFeaturePolicy.isEnabled {
+            hideSetting(.mobile, "pairDevice")
+            hideSetting(.mobile, "iOSPairingHost")
+            hideSetting(.mobile, "iOSPairingPort")
+            hideSetting(.mobile, "iOSPairingDisplayName")
+        }
+
         if !DeppyLiteFeaturePolicy.paneMemoryPollingEnabled || !DeppyLiteFeaturePolicy.resourceDiagnosticsEnabled {
             hideSetting(.terminal, "memory-guardrail")
             hideSetting(.terminal, "memory-guardrail-threshold")

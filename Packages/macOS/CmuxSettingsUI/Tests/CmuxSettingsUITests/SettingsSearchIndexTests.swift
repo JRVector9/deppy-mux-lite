@@ -69,6 +69,7 @@ struct SettingsSearchIndexTests {
             hiddenSections: [.browser, .browserImport],
             hiddenSettingEntries: [
                 SettingsFeatureAvailability.settingEntryKey(section: .betaFeatures, id: "feed"),
+                SettingsFeatureAvailability.settingEntryKey(section: .mobile, id: "iOSPairingHost"),
             ],
             hiddenShortcutActions: [.openBrowser]
         )
@@ -79,6 +80,7 @@ struct SettingsSearchIndexTests {
         #expect(!index.match("browser settings").contains { $0.id.hasPrefix("setting:browser:") })
         #expect(!index.match("import browser data").contains { $0.id.hasPrefix("setting:browserImport:") })
         #expect(!index.match("feed").contains { $0.id == "setting:betaFeatures:feed" })
+        #expect(!index.match("ios pairing").contains { $0.id == "setting:mobile:iOSPairingHost" })
         #expect(!availability.visibleShortcutActions(from: ShortcutAction.settingsVisibleActions).contains(.openBrowser))
     }
 

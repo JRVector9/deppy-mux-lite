@@ -41,6 +41,7 @@ type WebAccessSessionCopy = {
 type WebAccessSessionClientProps = {
   authEnabled: boolean;
   copy: WebAccessSessionCopy;
+  expiresAt: string;
   initialConnected: boolean;
   signInHref: string;
   slug: string;
@@ -60,11 +61,12 @@ type TerminalSnapshot =
 export function WebAccessSessionClient({
   authEnabled,
   copy,
+  expiresAt,
   initialConnected,
   signInHref,
   slug,
 }: WebAccessSessionClientProps) {
-  const [browserToken] = useState(() => browserTokenFromLocation(slug));
+  const [browserToken] = useState(() => browserTokenFromLocation(slug, expiresAt));
   const client = useMemo(
     () =>
       new MobileRpcClient(
@@ -838,7 +840,15 @@ function terminalTarget(
   };
 }
 
-function browserTokenFromLocation(slug: string): string | null {
+type StoredLocalWebAccessSession = {
+  browserToken: string;
+  expiresAt: string;
+  slug: string;
+};
+
+const localWebAccessSessionStoragePrefix = "cmux:web-access:session:";
+
+function browserTokenFromLocation(slug: string, expiresAt: string): string | null {
   if (typeof window === "undefined") {
     return null;
   }
@@ -846,10 +856,56 @@ function browserTokenFromLocation(slug: string): string | null {
   const fromUrl = tokenFromUrl(window.location.href);
   if (fromUrl) {
     window.sessionStorage.setItem(storageKey, fromUrl);
+    storeLocalWebAccessSession({ browserToken: fromUrl, expiresAt, slug });
     removeTokenFromLocation();
     return fromUrl;
   }
-  return window.sessionStorage.getItem(storageKey);
+  const fromSessionStorage = window.sessionStorage.getItem(storageKey);
+  if (fromSessionStorage) {
+    storeLocalWebAccessSession({ browserToken: fromSessionStorage, expiresAt, slug });
+    return fromSessionStorage;
+  }
+  return storedLocalWebAccessSession(slug)?.browserToken ?? null;
+}
+
+function storeLocalWebAccessSession(session: StoredLocalWebAccessSession) {
+  try {
+    window.localStorage.setItem(
+      `${localWebAccessSessionStoragePrefix}${session.slug}`,
+      JSON.stringify(session),
+    );
+  } catch {
+    return;
+  }
+}
+
+function storedLocalWebAccessSession(slug: string): StoredLocalWebAccessSession | null {
+  try {
+    const raw = window.localStorage.getItem(`${localWebAccessSessionStoragePrefix}${slug}`);
+    if (!raw) {
+      return null;
+    }
+    const session = JSON.parse(raw) as Partial<StoredLocalWebAccessSession>;
+    const expiresAtMs = typeof session.expiresAt === "string" ? Date.parse(session.expiresAt) : NaN;
+    if (
+      session.slug !== slug ||
+      typeof session.browserToken !== "string" ||
+      !session.browserToken ||
+      typeof session.expiresAt !== "string" ||
+      Number.isNaN(expiresAtMs) ||
+      expiresAtMs <= Date.now()
+    ) {
+      window.localStorage.removeItem(`${localWebAccessSessionStoragePrefix}${slug}`);
+      return null;
+    }
+    return {
+      browserToken: session.browserToken,
+      expiresAt: session.expiresAt,
+      slug,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function removeTokenFromLocation() {

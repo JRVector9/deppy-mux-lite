@@ -38,8 +38,14 @@ final class MobileWebAccessClient {
         guard let url = Self.apiURL(path: "/api/mobile/web-access/sessions", baseURL: baseURL) else {
             return .failed
         }
-        guard let publicOrigin = Self.tailscalePublicOrigin(baseURL: baseURL) else {
-            return .tailscaleUnavailable
+        let publicOrigin: URL?
+        if requiresLocalServer {
+            guard let tailscaleOrigin = Self.tailscalePublicOrigin(baseURL: baseURL) else {
+                return .tailscaleUnavailable
+            }
+            publicOrigin = tailscaleOrigin
+        } else {
+            publicOrigin = nil
         }
         let serverResult = await webConnectServer.ensureStarted(baseURL: baseURL)
         if case .runtimeMissing = serverResult {
@@ -54,10 +60,6 @@ final class MobileWebAccessClient {
             }
             return .webServerStartFailed
         }
-        if requiresLocalServer {
-            Self.setWebConnectServerEnabled(true)
-        }
-
         let tokens = requiresLocalServer ? nil : try? await auth?.currentTokens()
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -104,16 +106,17 @@ final class MobileWebAccessClient {
         relayTask?.cancel()
         relayTask = Task { [weak self] in
             let clock = ContinuousClock()
+            var emptyPollCount = 0
             while !Task.isCancelled {
                 guard let self else { return }
                 guard Date() < expiresAt else {
                     self.clearSession(slug: slug)
                     return
                 }
-                await self.pollRelay(slug: slug, hostToken: hostToken)
-                // Browser Web Connect is interactive terminal I/O; keep relay
-                // pickup noticeably below a second while the session is active.
-                guard (try? await clock.sleep(for: .milliseconds(250))) != nil else { return }
+                let didHandleRequests = await self.pollRelay(slug: slug, hostToken: hostToken)
+                emptyPollCount = didHandleRequests ? 0 : min(emptyPollCount + 1, 7)
+                let delayMs = didHandleRequests ? 100 : min(2_000, 250 + (emptyPollCount * 250))
+                guard (try? await clock.sleep(for: .milliseconds(Int64(delayMs)))) != nil else { return }
             }
         }
     }
@@ -207,8 +210,8 @@ final class MobileWebAccessClient {
         }
     }
 
-    private func pollRelay(slug: String, hostToken: String) async {
-        guard let url = Self.apiURL(path: "/api/mobile/web-access/sessions/\(slug)/host-rpc") else { return }
+    private func pollRelay(slug: String, hostToken: String) async -> Bool {
+        guard let url = Self.apiURL(path: "/api/mobile/web-access/sessions/\(slug)/host-rpc") else { return false }
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.timeoutInterval = 10
@@ -216,12 +219,14 @@ final class MobileWebAccessClient {
 
         do {
             let (data, response) = try await session.data(for: request)
-            guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else { return }
-            for relayRequest in Self.parseRelayRequests(data) {
+            guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else { return false }
+            let relayRequests = Self.parseRelayRequests(data)
+            for relayRequest in relayRequests {
                 await handleRelayRequest(relayRequest, slug: slug, hostToken: hostToken)
             }
+            return !relayRequests.isEmpty
         } catch {
-            return
+            return false
         }
     }
 
@@ -349,11 +354,13 @@ final class MobileWebAccessClient {
         UserDefaults.standard.set(enabled, forKey: key.userDefaultsKey)
     }
 
-    private static func createSessionBody(publicOrigin: URL) -> Data? {
+    private static func createSessionBody(publicOrigin: URL?) -> Data? {
         var body: [String: Any] = [
             "deviceId": MobileHostIdentity.deviceID(),
-            "publicOrigin": publicOrigin.absoluteString,
         ]
+        if let publicOrigin {
+            body["publicOrigin"] = publicOrigin.absoluteString
+        }
         if let displayName = MobileHostIdentity.displayName(), !displayName.isEmpty {
             body["displayName"] = displayName
         }

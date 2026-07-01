@@ -460,7 +460,12 @@ public struct SettingsWindowRoot: View {
         SleepyModeSection(hostActions: hostActions, store: hostActions.sleepyModeStore())
             .id(anchorID(for: .sleepyMode))
 
-        MobileSection(defaultsStore: defaultsStore, catalog: catalog, hostActions: hostActions)
+        MobileSection(
+            defaultsStore: defaultsStore,
+            catalog: catalog,
+            hostActions: hostActions,
+            featureAvailability: featureAvailability
+        )
             .id(anchorID(for: .mobile))
 
         SidebarSection(
