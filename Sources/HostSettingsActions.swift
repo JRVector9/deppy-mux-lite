@@ -182,6 +182,10 @@ final class HostSettingsActions: SettingsHostActions {
         await MobileWebAccessClient.shared.setServerEnabled(enabled, port: port)
     }
 
+    func stopMobileWebAccessServer(port: Int) async -> MobileWebAccessServerControlResult {
+        await MobileWebAccessClient.shared.stopServer(port: port)
+    }
+
     func mobileWebAccessRuntimeStatus() -> MobileWebAccessRuntimeStatus {
         WebConnectServerController.runtimeStatus()
     }

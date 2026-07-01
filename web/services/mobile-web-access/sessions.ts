@@ -19,6 +19,7 @@ export type WebAccessSession = {
 export type PublicWebAccessSession = {
   slug: string;
   displayName: string | null;
+  deviceId: string | null;
   createdAt: string;
   expiresAt: string;
   connected: boolean;
@@ -162,6 +163,7 @@ export async function getPublicWebAccessSession(
   return {
     slug: session.slug,
     displayName: session.displayName,
+    deviceId: session.deviceId,
     createdAt: session.createdAt,
     expiresAt: session.expiresAt,
     connected: isHostConnected(session, now),
@@ -203,6 +205,7 @@ export async function refreshWebAccessSession(
     ? {
       slug: session.slug,
       displayName: session.displayName,
+      deviceId: session.deviceId,
       createdAt: session.createdAt,
       expiresAt: session.expiresAt,
       connected: isHostConnected(session, now),

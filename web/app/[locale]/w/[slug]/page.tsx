@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { isStackConfigured } from "../../../lib/stack";
 import { getPublicWebAccessSession } from "@/services/mobile-web-access/sessions";
 import { webAccessSessionRepository } from "@/services/mobile-web-access/local";
 import { WebAccessSessionClient } from "./web-access-session-client";
@@ -44,11 +43,17 @@ export default async function WebAccessPage({ params }: WebAccessPageProps) {
         composerPlaceholder: pwaT("composerPlaceholder"),
         connected: pwaT("connected"),
         enter: pwaT("enter"),
+        fitWidth: pwaT("fitWidth"),
+        fontLarger: pwaT("fontLarger"),
+        fontSmaller: pwaT("fontSmaller"),
         menu: pwaT("menu"),
         refreshSession: pwaT("refreshSession"),
         refreshSessionFailed: pwaT("refreshSessionFailed"),
         refreshingSession: pwaT("refreshingSession"),
+        readableWrap: pwaT("readableWrap"),
+        reconnecting: pwaT("reconnecting"),
         sendFailed: pwaT("sendFailed"),
+        sessionExtended: pwaT("sessionExtended"),
         selected: pwaT("selected"),
         send: pwaT("send"),
         signIn: pwaT("signIn"),
@@ -59,8 +64,10 @@ export default async function WebAccessPage({ params }: WebAccessPageProps) {
         transcriptEmpty: pwaT("transcriptEmpty"),
         waiting: t("waiting"),
         workspaceList: pwaT("workspaceList"),
+        workspaceUpdated: pwaT("workspaceUpdated"),
+        workspaceUpdatedBadge: pwaT("workspaceUpdatedBadge"),
       }}
-      authEnabled={isStackConfigured()}
+      authEnabled={false}
       expiresAt={session.expiresAt}
       initialConnected={session.connected}
       signInHref={signInHref}

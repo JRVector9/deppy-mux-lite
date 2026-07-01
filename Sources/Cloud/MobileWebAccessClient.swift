@@ -185,10 +185,23 @@ final class MobileWebAccessClient {
         case .running:
             Self.setWebConnectPort(port)
             Self.setWebConnectServerEnabled(true)
-        case .stopped:
+        case .stopped, .externalProcess(_):
             Self.setWebConnectServerEnabled(false)
             clearCurrentSession()
         case .invalidPort, .portInUse, .tailscaleUnavailable, .runtimeMissing, .failed:
+            break
+        }
+        return result
+    }
+
+    /// Stops the local Web Connect server if this app launched it.
+    func stopServer(port: Int) async -> MobileWebAccessServerControlResult {
+        let result = await webConnectServer.stop(baseURL: Self.webConnectBaseURL(port: port))
+        switch result {
+        case .stopped, .externalProcess(_):
+            Self.setWebConnectServerEnabled(false)
+            clearCurrentSession()
+        case .invalidPort, .running, .portInUse, .tailscaleUnavailable, .runtimeMissing, .failed:
             break
         }
         return result

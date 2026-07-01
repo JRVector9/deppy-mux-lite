@@ -59,6 +59,12 @@ export type MobileWorkspacePreview = {
   title: string;
   currentDirectory?: string;
   isSelected: boolean;
+  isPinned?: boolean;
+  hasUnread?: boolean;
+  has_unread?: boolean;
+  preview?: string | null;
+  preview_at?: number | null;
+  last_activity_at?: number | null;
   terminals: MobileTerminalPreview[];
 };
 

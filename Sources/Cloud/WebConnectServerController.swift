@@ -51,8 +51,7 @@ final class WebConnectServerController {
     func setEnabled(_ enabled: Bool, baseURL: URL) async -> MobileWebAccessServerControlResult {
         let port = Self.port(baseURL: baseURL)
         guard enabled else {
-            stop()
-            return .stopped
+            return await stop(baseURL: baseURL)
         }
         guard (1...65535).contains(port) else {
             return .invalidPort(port: port)
@@ -218,7 +217,27 @@ final class WebConnectServerController {
         process = nil
         runningPort = nil
         closeLogFile()
-        onUnexpectedTermination?()
+    }
+
+    func stop(baseURL: URL) async -> MobileWebAccessServerControlResult {
+        let port = Self.port(baseURL: baseURL)
+        guard (1...65535).contains(port) else {
+            return .invalidPort(port: port)
+        }
+        clearFinishedProcess()
+        if process?.isRunning == true {
+            stop()
+            return .stopped
+        }
+        guard Self.canAutoStart(baseURL: baseURL) else {
+            return .stopped
+        }
+        switch await compatibilityProbe(baseURL: baseURL) {
+        case .compatible, .incompatible:
+            return .externalProcess(port: port)
+        case .unreachable:
+            return Self.canBindLocalPort(port) ? .stopped : .externalProcess(port: port)
+        }
     }
 
     private func processDidTerminate(_ finishedProcess: Process) {
@@ -228,6 +247,7 @@ final class WebConnectServerController {
         process = nil
         runningPort = nil
         closeLogFile()
+        onUnexpectedTermination?()
     }
 
     private func clearFinishedProcess() {

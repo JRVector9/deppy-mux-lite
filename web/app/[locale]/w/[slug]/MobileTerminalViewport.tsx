@@ -14,23 +14,28 @@ export type TerminalSnapshot =
 
 type MobileTerminalViewportProps = {
   copy: {
+    terminal: string;
     transcriptEmpty: string;
   };
-  forceReadableLayout: boolean;
+  fitWidthEnabled: boolean;
+  fontSizePx: number;
+  readableWrapEnabled: boolean;
   terminalSnapshot: TerminalSnapshot | null;
   terminalViewportRef: RefObject<HTMLDivElement | null>;
   terminalViewportWidth: number;
   transcript: string[];
 };
 
-const estimatedTerminalCellWidthPx = 7.2;
+const estimatedTerminalCellWidthEm = 0.62;
 const terminalLineHeightEm = 1.35;
 const webTerminalDefaultForeground = "#d8d8d8";
 const webTerminalDefaultBackground = "#050505";
 
 export function MobileTerminalViewport({
   copy,
-  forceReadableLayout,
+  fitWidthEnabled,
+  fontSizePx,
+  readableWrapEnabled,
   terminalSnapshot,
   terminalViewportRef,
   terminalViewportWidth,
@@ -38,23 +43,38 @@ export function MobileTerminalViewport({
 }: MobileTerminalViewportProps) {
   return (
     <div
-      className="web-access-scroll min-h-0 min-w-0 max-w-full flex-1 bg-[#030303] font-mono text-[15px] leading-6 text-[#e7e7e7]"
+      className="web-access-scroll min-h-0 min-w-0 max-w-full flex-1 bg-[#030303] font-mono text-[#e7e7e7]"
       ref={terminalViewportRef}
     >
       {terminalSnapshot?.kind === "render-grid" ? (
         <TerminalRenderGridView
-          forceReadableLayout={forceReadableLayout}
+          fitWidth={fitWidthEnabled}
+          fontSizePx={fontSizePx}
           frame={terminalSnapshot.frame}
+          readableWrap={readableWrapEnabled}
+          terminalLabel={copy.terminal}
           viewportWidth={terminalViewportWidth}
         />
       ) : terminalSnapshot?.kind === "text" && terminalSnapshot.text ? (
-        <pre className="min-w-0 max-w-full whitespace-pre-wrap break-words p-3 font-mono text-[15px] leading-6 [overflow-wrap:anywhere] [word-break:break-all]">
+        <pre
+          className="min-w-0 max-w-full whitespace-pre-wrap break-words p-3 font-mono [overflow-wrap:anywhere] [word-break:break-all]"
+          style={{
+            fontSize: `${fontSizePx}px`,
+            lineHeight: terminalLineHeightEm,
+          }}
+        >
           {terminalSnapshot.text}
         </pre>
       ) : transcript.length === 0 ? (
         <div className="p-3 text-sm text-[#8e8e8e]">{copy.transcriptEmpty}</div>
       ) : (
-        <div className="space-y-1 p-3 text-sm">
+        <div
+          className="space-y-1 p-3"
+          style={{
+            fontSize: `${fontSizePx}px`,
+            lineHeight: terminalLineHeightEm,
+          }}
+        >
           {transcript.map((line, index) => (
             <div key={line + ":" + index}>{line}</div>
           ))}
@@ -65,12 +85,18 @@ export function MobileTerminalViewport({
 }
 
 function TerminalRenderGridView({
-  forceReadableLayout,
+  fitWidth,
+  fontSizePx,
   frame,
+  readableWrap,
+  terminalLabel,
   viewportWidth,
 }: {
-  forceReadableLayout: boolean;
+  fitWidth: boolean;
+  fontSizePx: number;
   frame: MobileRenderGridFrame;
+  readableWrap: boolean;
+  terminalLabel: string;
   viewportWidth: number;
 }) {
   const stylesById = useMemo(() => {
@@ -87,20 +113,30 @@ function TerminalRenderGridView({
   const background = frame.terminalBackground ?? webTerminalDefaultBackground;
   const foreground = frame.terminalForeground ?? webTerminalDefaultForeground;
   const cursorColor = frame.terminalCursorColor ?? foreground;
-  const naturalWidthPx = Math.max(1, frame.columns * estimatedTerminalCellWidthPx);
-  const useReadableMobileLayout =
-    forceReadableLayout || (viewportWidth > 0 && viewportWidth < naturalWidthPx);
+  const fittedFontSizePx =
+    fitWidth && viewportWidth > 0
+      ? Math.min(
+          fontSizePx,
+          Math.max(
+            4,
+            (viewportWidth - 2) /
+              Math.max(1, frame.columns * estimatedTerminalCellWidthEm),
+          ),
+        )
+      : fontSizePx;
 
-  if (useReadableMobileLayout) {
+  if (readableWrap) {
     return (
       <TerminalReadableGridView
         background={background}
+        fontSizePx={fontSizePx}
         foreground={foreground}
         frame={frame}
         inheritedBackground={inheritedBackground}
         inheritedForeground={inheritedForeground}
         rows={rowsFromRenderGrid(frame, false)}
         stylesById={stylesById}
+        terminalLabel={terminalLabel}
       />
     );
   }
@@ -114,19 +150,20 @@ function TerminalRenderGridView({
       }}
     >
       <div
-        className="relative inline-block min-w-full overflow-hidden font-mono text-[12px] tracking-normal"
+        className="relative inline-block min-w-full max-w-full overflow-hidden font-mono tracking-normal"
         style={{
           backgroundColor: background,
           color: foreground,
           fontFamily:
             '"SF Mono", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace',
           fontVariantLigatures: "none",
+          fontSize: `${fittedFontSizePx}px`,
           lineHeight: terminalLineHeightEm,
           minHeight: `${frame.rows * terminalLineHeightEm}em`,
           width: `${frame.columns}ch`,
         }}
       >
-        <div aria-label={`terminal ${frame.columns} by ${frame.rows}`} role="img">
+        <div aria-label={`${terminalLabel} ${frame.columns} by ${frame.rows}`} role="img">
           {rows.map((row, index) => (
             <div
               className="h-[1.35em] whitespace-pre"
@@ -163,34 +200,40 @@ function TerminalRenderGridView({
 
 function TerminalReadableGridView({
   background,
+  fontSizePx,
   foreground,
   frame,
   inheritedBackground,
   inheritedForeground,
   rows,
   stylesById,
+  terminalLabel,
 }: {
   background: string;
+  fontSizePx: number;
   foreground: string;
   frame: MobileRenderGridFrame;
   inheritedBackground?: string;
   inheritedForeground?: string;
   rows: Array<Array<MobileRenderGridSpan>>;
   stylesById: Map<number, MobileRenderGridStyle>;
+  terminalLabel: string;
 }) {
   return (
     <div
-      className="web-access-no-x min-h-full font-mono text-[15px] leading-6 tracking-normal"
+      className="web-access-no-x min-h-full font-mono tracking-normal"
       style={{
         backgroundColor: background,
         color: foreground,
         fontFamily:
           '"SF Mono", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace',
         fontVariantLigatures: "none",
+        fontSize: `${fontSizePx}px`,
+        lineHeight: terminalLineHeightEm,
       }}
     >
       <div
-        aria-label={`terminal ${frame.columns} by ${frame.rows}`}
+        aria-label={`${terminalLabel} ${frame.columns} by ${frame.rows}`}
         className="web-access-no-x px-3 py-3"
         role="img"
       >
