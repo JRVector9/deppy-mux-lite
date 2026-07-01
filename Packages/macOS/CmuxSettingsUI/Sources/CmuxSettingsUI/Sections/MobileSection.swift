@@ -277,20 +277,6 @@ public struct MobileSection: View {
             subtitle: String(localized: "settings.mobile.webConnect.server.subtitle", defaultValue: "Run the local Web Connect server. If the port is busy, choose another port here.")
         ) {
             HStack(spacing: 8) {
-                Toggle("", isOn: Binding(
-                    get: { webConnectServerEnabled.current },
-                    set: { enabled in
-                        Task { await applyWebConnectServer(enabled: enabled, port: draftWebConnectPort) }
-                    }
-                ))
-                .labelsHidden()
-                .controlSize(.small)
-                .disabled(
-                    isApplyingWebConnectServer ||
-                    (!webConnectServerEnabled.current && (!isDraftWebConnectPortValid || !isWebConnectRuntimeAvailable))
-                )
-                .accessibilityIdentifier("SettingsMobileWebConnectServerToggle")
-
                 TextField(
                     "",
                     value: Binding(get: { draftWebConnectPort }, set: { editedWebConnectPort = $0 }),
@@ -303,7 +289,7 @@ public struct MobileSection: View {
                 .onSubmit { applyDraftWebConnectPort() }
                 .accessibilityIdentifier("SettingsMobileWebConnectPortField")
 
-                Button(String(localized: "settings.mobile.webConnect.port.apply", defaultValue: "Apply")) {
+                Button(String(localized: "settings.mobile.webConnect.server.start", defaultValue: "Start Server")) {
                     applyDraftWebConnectPort()
                 }
                 .buttonStyle(.bordered)
@@ -311,8 +297,7 @@ public struct MobileSection: View {
                 .disabled(
                     isApplyingWebConnectServer ||
                     !isWebConnectRuntimeAvailable ||
-                    !isDraftWebConnectPortValid ||
-                    draftWebConnectPort == webConnectPort.current
+                    !isDraftWebConnectPortValid
                 )
                 .accessibilityIdentifier("SettingsMobileWebConnectPortApplyButton")
 
@@ -335,9 +320,6 @@ public struct MobileSection: View {
     }
 
     private var webConnectRuntimeStatusMessage: String? {
-        if isInstallingWebConnectRuntime, let message = webConnectRuntimeInstallProgressMessage {
-            return message
-        }
         switch webConnectRuntimeInstallResult {
         case .installed:
             return String(
@@ -601,30 +583,7 @@ public struct MobileSection: View {
     private func applyDraftWebConnectPort() {
         let requested = draftWebConnectPort
         guard !isApplyingWebConnectServer, isDraftWebConnectPortValid else { return }
-        if requested == webConnectPort.current {
-            Task { await applyWebConnectServer(enabled: webConnectServerEnabled.current, port: requested) }
-            return
-        }
-        if webConnectServerEnabled.current {
-            Task {
-                let result = await controlWebConnectServer(enabled: true, port: requested)
-                if case .running = result {
-                    webConnectPort.set(requested)
-                    editedWebConnectPort = nil
-                    webConnectServerEnabled.set(true)
-                } else if case .portInUse = result {
-                    webConnectServerEnabled.set(true)
-                } else if case .externalProcess(_) = result {
-                    webConnectServerEnabled.set(false)
-                } else {
-                    webConnectServerEnabled.set(false)
-                }
-            }
-        } else {
-            webConnectPort.set(requested)
-            editedWebConnectPort = nil
-            webConnectServerResult = .stopped
-        }
+        Task { await applyWebConnectServer(enabled: true, port: requested) }
     }
 
     private func applyWebConnectServer(enabled: Bool, port: Int) async {
