@@ -15,7 +15,7 @@
 - deppy-lite keeps release version metadata separate from the upstream cmux app.
 - The lite version source of truth is `DEPPY_LITE_VERSION`.
 - `scripts/build-deppy-lite-arm64-release.sh` and `scripts/build-deppy-lite-universal-release.sh` read `DEPPY_LITE_VERSION` and pass `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` to Xcode at build time.
-- Current lite version: `0.1.0` build `1`.
+- Current lite version: `0.0.1` build `1`.
 - Override for one build with `DEPPY_LITE_MARKETING_VERSION=<version>` and/or `DEPPY_LITE_BUILD_VERSION=<build>`.
 - Override the version file path with `DEPPY_LITE_VERSION_FILE=<path>`.
 

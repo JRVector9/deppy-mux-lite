@@ -12829,6 +12829,24 @@ private struct SidebarHelpMenuButton: View {
         return KeyboardShortcutSettings.shortcut(for: .sendFeedback).displayString
     }
 
+    private var appVersionDisplay: String {
+        let info = Bundle.main.infoDictionary
+        let version = (info?["CFBundleShortVersionString"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let build = (info?["CFBundleVersion"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        switch (version?.isEmpty == false ? version : nil, build?.isEmpty == false ? build : nil) {
+        case let (version?, build?):
+            return "v\(version) (\(build))"
+        case let (version?, nil):
+            return "v\(version)"
+        case let (nil, build?):
+            return "(\(build))"
+        case (nil, nil):
+            return ""
+        }
+    }
+
     var body: some View {
         Button {
             isPopoverPresented.toggle()
@@ -12928,6 +12946,18 @@ private struct SidebarHelpMenuButton: View {
                 accessibilityIdentifier: "SidebarHelpMenuOptionCheckForUpdates",
                 isExternalLink: false
             )
+            if !appVersionDisplay.isEmpty {
+                Divider()
+                    .padding(.vertical, 3)
+                Text(appVersionDisplay)
+                    .cmuxFont(size: 10, weight: .regular, design: .rounded)
+                    .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
+                    .monospacedDigit()
+                    .padding(.horizontal, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(height: 18)
+                    .accessibilityIdentifier("SidebarHelpMenuVersion")
+            }
         }
         .padding(8)
         .frame(minWidth: 200)

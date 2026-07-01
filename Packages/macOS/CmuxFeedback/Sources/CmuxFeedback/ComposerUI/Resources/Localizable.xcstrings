@@ -298,25 +298,25 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Feedback is unavailable right now. Email founders@manaflow.com instead."
+            "value": "Feedback is unavailable right now. Email jr@vector9.app instead."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "現在フィードバックを送信できません。代わりに founders@manaflow.com までメールしてください。"
+            "value": "現在フィードバックを送信できません。代わりに jr@vector9.app までメールしてください。"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Відгуки зараз недоступні. Напишіть на founders@manaflow.com."
+            "value": "Відгуки зараз недоступні. Напишіть на jr@vector9.app."
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "현재 피드백을 사용할 수 없습니다. 대신 founders@manaflow.com으로 이메일을 보내주세요."
+            "value": "현재 피드백을 사용할 수 없습니다. 대신 jr@vector9.app으로 이메일을 보내주세요."
           }
         }
       }
@@ -501,25 +501,25 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You can also reach us at founders@manaflow.com."
+            "value": "You can also reach us at jr@vector9.app."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "founders@manaflow.com 宛てに直接ご連絡いただくこともできます。"
+            "value": "jr@vector9.app 宛てに直接ご連絡いただくこともできます。"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ви також можете написати нам на founders@manaflow.com."
+            "value": "Ви також можете написати нам на jr@vector9.app."
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "founders@manaflow.com으로도 연락하실 수 있습니다."
+            "value": "jr@vector9.app으로도 연락하실 수 있습니다."
           }
         }
       }
@@ -617,25 +617,25 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You can also reach us at founders@manaflow.com."
+            "value": "You can also reach us at jr@vector9.app."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "founders@manaflow.com 宛てに直接ご連絡いただくこともできます。"
+            "value": "jr@vector9.app 宛てに直接ご連絡いただくこともできます。"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ви також можете написати нам на founders@manaflow.com."
+            "value": "Ви також можете написати нам на jr@vector9.app."
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "founders@manaflow.com으로도 연락하실 수 있습니다."
+            "value": "jr@vector9.app으로도 연락하실 수 있습니다."
           }
         }
       }

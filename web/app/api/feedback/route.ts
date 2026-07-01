@@ -9,7 +9,7 @@ import { recordSpanError, setSpanAttributes, withApiRouteSpan } from "../../../s
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const feedbackRecipient = "feedback@manaflow.com";
+const feedbackRecipient = "jr@vector9.app";
 const maxAttachmentCount = 10;
 const maxAttachmentBytes = 4 * 1024 * 1024;
 // Keep multipart requests below Vercel Functions' 4.5 MB request-body limit.
