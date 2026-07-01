@@ -473,9 +473,13 @@ export function WebAccessSessionClient({
         await client.pasteImage(capturedTarget, payload.base64, payload.format);
       }
       if (text) {
-        await client.pasteText(capturedTarget, text, {
-          submitKey: "return",
-        });
+        if (!capturedAttachment && shouldSendRawInteractiveInput(text)) {
+          await client.sendInput(capturedTarget, `${text}\r`);
+        } else {
+          await client.pasteText(capturedTarget, text, {
+            submitKey: "return",
+          });
+        }
       }
       setComposer((current) => (current.trimEnd() === text ? "" : current));
       setAttachment((current) => (current === capturedAttachment ? null : current));
@@ -510,6 +514,10 @@ export function WebAccessSessionClient({
     } finally {
       setIsSending(false);
     }
+  }
+
+  function shouldSendRawInteractiveInput(text: string): boolean {
+    return /^[0-9]$/.test(text);
   }
 
   function openWorkspace(workspace: MobileWorkspacePreview) {

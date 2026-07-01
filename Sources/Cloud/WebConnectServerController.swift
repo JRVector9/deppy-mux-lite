@@ -233,14 +233,15 @@ final class WebConnectServerController {
         }
         switch await compatibilityProbe(baseURL: baseURL) {
         case .compatible:
-            return await stopLocalRuntimeListener(port: port) ? .stopped : .externalProcess(port: port)
+            return await stopLocalRuntimeListeners(port: port) ? .stopped : .externalProcess(port: port)
         case .incompatible:
             return .externalProcess(port: port)
         case .unreachable:
+            let stoppedRuntime = await stopLocalRuntimeListeners(port: port)
             if Self.canBindLocalPort(port) {
                 return .stopped
             }
-            return await stopLocalRuntimeListener(port: port) ? .stopped : .externalProcess(port: port)
+            return stoppedRuntime ? .stopped : .externalProcess(port: port)
         }
     }
 
@@ -280,21 +281,23 @@ final class WebConnectServerController {
         return Self.canBindLocalPort(port)
     }
 
-    private func stopLocalRuntimeListener(port: Int) async -> Bool {
+    private func stopLocalRuntimeListeners(port: Int) async -> Bool {
         let environment = ProcessInfo.processInfo.environment
         let runtimePath = Self.runtimeDirectory(environment: environment)?.path
-        let pids = Self.listenerPIDs(port: port).filter { pid in
+        let listenerPIDs = Self.listenerPIDs(port: port).filter { pid in
             Self.isWebConnectRuntimeCommandLine(Self.commandLine(pid: pid), runtimePath: runtimePath)
         }
+        let runtimePIDs = Self.runtimeServerPIDs(runtimePath: runtimePath)
+        let pids = Array(Set(listenerPIDs + runtimePIDs))
         guard !pids.isEmpty else {
-            return false
+            return Self.canBindLocalPort(port)
         }
         for pid in pids {
             _ = Self.sendSignal("TERM", pid: pid)
         }
         let clock = ContinuousClock()
         for _ in 0..<20 {
-            if Self.canBindLocalPort(port) {
+            if Self.canBindLocalPort(port), pids.allSatisfy({ !Self.isProcessRunning($0) }) {
                 return true
             }
             // Bounded shutdown grace period after SIGTERM for a same-runtime server.
@@ -302,6 +305,12 @@ final class WebConnectServerController {
         }
         for pid in pids {
             _ = Self.sendSignal("KILL", pid: pid)
+        }
+        for _ in 0..<10 {
+            if Self.canBindLocalPort(port), pids.allSatisfy({ !Self.isProcessRunning($0) }) {
+                return true
+            }
+            try? await clock.sleep(for: .milliseconds(100))
         }
         return Self.canBindLocalPort(port)
     }
@@ -367,6 +376,25 @@ final class WebConnectServerController {
         .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private static func runtimeServerPIDs(runtimePath: String?) -> [Int32] {
+        commandOutput(
+            executable: "/bin/ps",
+            arguments: ["-axo", "pid=,command="]
+        )
+        .split(whereSeparator: \.isNewline)
+        .compactMap { line -> Int32? in
+            let raw = String(line).trimmingCharacters(in: .whitespacesAndNewlines)
+            let pieces = raw.split(maxSplits: 1, whereSeparator: \.isWhitespace)
+            guard let pidText = pieces.first,
+                  let pid = Int32(pidText)
+            else {
+                return nil
+            }
+            let commandLine = pieces.count > 1 ? String(pieces[1]) : ""
+            return isWebConnectRuntimeCommandLine(commandLine, runtimePath: runtimePath) ? pid : nil
+        }
+    }
+
     private static func isWebConnectRuntimeCommandLine(_ commandLine: String, runtimePath: String?) -> Bool {
         guard commandLine.contains("server.js") else {
             return false
@@ -379,6 +407,13 @@ final class WebConnectServerController {
 
     private static func sendSignal(_ signal: String, pid: Int32) -> Bool {
         runCommand(executable: "/bin/kill", arguments: ["-\(signal)", String(pid)]).exitCode == 0
+    }
+
+    private static func isProcessRunning(_ pid: Int32) -> Bool {
+        if Darwin.kill(pid, 0) == 0 {
+            return true
+        }
+        return errno == EPERM
     }
 
     private static func commandOutput(executable: String, arguments: [String]) -> String {
