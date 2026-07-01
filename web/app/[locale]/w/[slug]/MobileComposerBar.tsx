@@ -12,6 +12,7 @@ type MobileComposerBarProps = {
   attachmentName: string;
   composer: string;
   composerError: string | null;
+  composerInputRef: RefObject<HTMLInputElement | null>;
   copy: MobileComposerBarCopy;
   disabled: boolean;
   fileInputRef: RefObject<HTMLInputElement | null>;
@@ -27,6 +28,7 @@ export function MobileComposerBar({
   attachmentName,
   composer,
   composerError,
+  composerInputRef,
   copy,
   disabled,
   fileInputRef,
@@ -104,6 +106,7 @@ export function MobileComposerBar({
             }
           }}
           placeholder={copy.composerPlaceholder}
+          ref={composerInputRef}
           value={composer}
         />
         <button

@@ -49,6 +49,10 @@ type WebAccessSessionCopy = {
   workspaceList: string;
   workspaceUpdated?: string;
   workspaceUpdatedBadge?: string;
+  commandSection: string;
+  modelCommand: string;
+  modelSection: string;
+  skillPickerTitle: string;
 };
 
 type WebMobileWorkspacePreview = MobileWorkspacePreview & {
@@ -125,6 +129,7 @@ export function WebAccessSessionClient({
   const activeTerminalTargetKeyRef = useRef("");
   const terminalViewportRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const composerInputRef = useRef<HTMLInputElement | null>(null);
   const [terminalViewportWidth, setTerminalViewportWidth] = useState(0);
   const [terminalFontSize, setTerminalFontSize] = useState(() =>
     readStoredNumber(
@@ -527,6 +532,7 @@ export function WebAccessSessionClient({
         : command + " " + current;
     });
     setSkillPickerOpen(false);
+    focusComposerSoon();
   }
 
   function selectImageAttachment(fileList: FileList | null) {
@@ -579,6 +585,11 @@ export function WebAccessSessionClient({
     );
   }
 
+  function focusComposerSoon() {
+    composerInputRef.current?.focus();
+    globalThis.setTimeout(() => composerInputRef.current?.focus(), 0);
+  }
+
   const showWorkspacePicker = workspacePickerOpen || !selectedWorkspace || !selectedTerminal;
   const connectionStatusLabel = connected
     ? copy.connected
@@ -598,6 +609,7 @@ export function WebAccessSessionClient({
         : connected
           ? ""
           : connectionStatusLabel;
+  const modelCommands = ["/model"];
   const skillCommands = ["/review", "/test", "/mcp", "/release-note"];
   const selectedWorkspaceHasUnread = selectedWorkspace
     ? workspaceAppearsComplete(selectedWorkspace)
@@ -714,10 +726,10 @@ export function WebAccessSessionClient({
       ) : (
         <section className="web-access-no-x relative flex min-h-0 flex-1 flex-col bg-[#030303]">
           <div className="web-access-no-x flex min-h-0 flex-1 flex-col bg-[#030303]">
-            <div className="grid min-h-12 grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-2 border-b border-[#1f1f1f] bg-[#0d0d0d] px-2 pb-2 pt-[max(8px,env(safe-area-inset-top))]">
+            <div className="grid min-h-10 grid-cols-[30px_minmax(0,1fr)_auto] items-center gap-2 border-b border-[#1f1f1f] bg-[#0d0d0d] px-2 pb-1.5 pt-[max(5px,env(safe-area-inset-top))]">
               <button
                 aria-label={copy.workspaceList}
-                className="grid h-9 w-9 place-items-center rounded-xl border border-[#2a2a2a] bg-[#0b0b0b] text-lg font-semibold"
+                className="grid h-7 w-7 place-items-center rounded-lg border border-[#2a2a2a] bg-[#0b0b0b] text-base font-semibold"
                 onClick={() => setWorkspacePickerOpen(true)}
                 type="button"
               >
@@ -740,7 +752,7 @@ export function WebAccessSessionClient({
               </div>
               <div className="flex min-w-0 items-center gap-1">
                 <button
-                  className="h-8 max-w-28 truncate rounded-full border border-[#2a2a2a] bg-[#101010] px-2 py-1 text-xs text-[#a8a8a8] disabled:opacity-70"
+                  className="h-7 max-w-24 truncate rounded-full border border-[#2a2a2a] bg-[#101010] px-2 py-0.5 text-[11px] text-[#a8a8a8] disabled:opacity-70"
                   disabled={(selectedWorkspace?.terminals.length ?? 0) < 2}
                   onClick={cycleTerminal}
                   type="button"
@@ -758,6 +770,7 @@ export function WebAccessSessionClient({
               }}
               fitWidthEnabled={fitWidthEnabled}
               fontSizePx={terminalFontSize}
+              onFocusComposer={focusComposerSoon}
               readableWrapEnabled={readableWrapEnabled}
               terminalSnapshot={terminalSnapshot}
               terminalViewportRef={terminalViewportRef}
@@ -769,6 +782,7 @@ export function WebAccessSessionClient({
               attachmentName={attachmentName}
               composer={composer}
               composerError={composerError}
+              composerInputRef={composerInputRef}
               copy={{
                 clear: copy.clear,
                 composerPlaceholder: copy.composerPlaceholder,
@@ -787,6 +801,7 @@ export function WebAccessSessionClient({
                 } else {
                   void sendEnter();
                 }
+                focusComposerSoon();
               }}
             />
           </div>
@@ -794,7 +809,7 @@ export function WebAccessSessionClient({
           {skillPickerOpen ? (
             <div className="absolute inset-x-0 bottom-0 z-20 max-h-[58%] overflow-hidden rounded-t-2xl border-t border-[#2a2a2a] bg-[#101010] shadow-2xl">
               <div className="flex items-center justify-between border-b border-[#2a2a2a] px-3 py-3">
-                <div className="text-sm font-semibold">/skill</div>
+                <div className="text-sm font-semibold">{copy.skillPickerTitle}</div>
                 <button
                   aria-label={copy.clear}
                   className="grid h-9 w-9 place-items-center rounded-xl border border-[#2a2a2a] bg-[#0b0b0b] text-lg font-semibold"
@@ -805,6 +820,28 @@ export function WebAccessSessionClient({
                 </button>
               </div>
               <div className="web-access-scroll grid max-h-80 gap-px bg-[#2a2a2a]">
+                <div className="bg-[#101010] px-3 py-2 text-[11px] font-semibold uppercase tracking-normal text-[#8e8e8e]">
+                  {copy.modelSection}
+                </div>
+                {modelCommands.map((command) => (
+                  <button
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 bg-[#101010] px-3 py-3 text-left"
+                    key={command}
+                    onClick={() => selectSkill(command)}
+                    type="button"
+                  >
+                    <span className="min-w-0">
+                      <span className="block font-mono text-sm">{command}</span>
+                      <span className="mt-0.5 block truncate text-xs text-[#8e8e8e]">
+                        {copy.modelCommand}
+                      </span>
+                    </span>
+                    <span className="rounded-full border border-[#2a2a2a] px-2 py-1 text-xs text-[#a8a8a8]">↵</span>
+                  </button>
+                ))}
+                <div className="bg-[#101010] px-3 py-2 text-[11px] font-semibold uppercase tracking-normal text-[#8e8e8e]">
+                  {copy.commandSection}
+                </div>
                 {skillCommands.map((command) => (
                   <button
                     className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 bg-[#101010] px-3 py-3 text-left"
