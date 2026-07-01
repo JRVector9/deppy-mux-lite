@@ -53,6 +53,7 @@ html.web-access-viewport-lock {
   width: 100%;
   max-width: 100vw;
   overflow: hidden;
+  scrollbar-gutter: auto;
   overscroll-behavior: none;
   background: #050505;
 }
@@ -64,17 +65,31 @@ body.web-access-viewport-lock {
   width: 100%;
   max-width: 100vw;
   overflow: hidden;
+  scrollbar-gutter: auto;
   overscroll-behavior: none;
   background: #050505;
+}
+
+html.web-access-viewport-lock *,
+body.web-access-viewport-lock * {
+  box-sizing: border-box;
 }
 
 .web-access-scroll {
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   overflow-x: clip;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
+}
+
+.web-access-no-x {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 ::selection {
