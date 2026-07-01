@@ -65,6 +65,7 @@ describe("mobile RPC web client", () => {
     ]);
     await client.replayTerminal(target);
     await client.updateViewport(target, { columns: 100, rows: 30 });
+    await client.refreshWebAccessSession();
     await client.sendInput(target, "\r");
     await client.pasteImage(target, "aW1hZ2U=", "png");
 
@@ -74,10 +75,11 @@ describe("mobile RPC web client", () => {
       "mobile.events.subscribe",
       "mobile.terminal.replay",
       "mobile.terminal.viewport",
+      "web_access.session.refresh",
       "terminal.input",
       "terminal.paste_image",
     ]);
-    expect(calls[5].params).toMatchObject({
+    expect(calls[6].params).toMatchObject({
       workspace_id: "workspace:1",
       surface_id: "surface:1",
       client_id: "web-client",

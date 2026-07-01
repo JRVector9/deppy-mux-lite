@@ -17,6 +17,7 @@ final class WebConnectServerController {
     private var runningPort: Int?
     private var logFile: FileHandle?
     private var terminationObserver: NSObjectProtocol?
+    var onUnexpectedTermination: (() -> Void)?
 
     init(session: URLSession = .shared) {
         self.session = session
@@ -217,6 +218,7 @@ final class WebConnectServerController {
         process = nil
         runningPort = nil
         closeLogFile()
+        onUnexpectedTermination?()
     }
 
     private func processDidTerminate(_ finishedProcess: Process) {

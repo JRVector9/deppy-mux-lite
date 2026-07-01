@@ -57,6 +57,12 @@ export type WebAccessSessionRepository = {
     hostTokenHash: string;
     now: Date;
   }): Promise<boolean>;
+  refreshHostSession(input: {
+    slug: string;
+    hostTokenHash: string;
+    now: Date;
+    expiresAt: Date;
+  }): Promise<StoredWebAccessSession | null>;
   findActiveByBrowserToken(input: {
     slug: string;
     browserTokenHash: string;
@@ -178,6 +184,32 @@ export async function markWebAccessHostSeen(
   });
 }
 
+export async function refreshWebAccessSession(
+  input: {
+    slug: string;
+    hostToken: string;
+    now?: Date;
+  },
+  repository: WebAccessSessionRepository = postgresWebAccessSessionRepository,
+): Promise<PublicWebAccessSession | null> {
+  const now = input.now ?? new Date();
+  const session = await repository.refreshHostSession({
+    slug: input.slug,
+    hostTokenHash: hashToken(input.hostToken),
+    now,
+    expiresAt: new Date(now.getTime() + SESSION_TTL_MS),
+  });
+  return session
+    ? {
+      slug: session.slug,
+      displayName: session.displayName,
+      createdAt: session.createdAt,
+      expiresAt: session.expiresAt,
+      connected: isHostConnected(session, now),
+    }
+    : null;
+}
+
 export async function listOwnerWebAccessSessions(
   input: {
     userId: string;
@@ -275,6 +307,19 @@ export function createMemoryWebAccessSessionRepository(): WebAccessSessionReposi
       session.lastHostSeenAt = input.now.toISOString();
       return true;
     },
+    async refreshHostSession(input) {
+      const session = sessions.get(input.slug);
+      if (
+        !session ||
+        session.hostTokenHash !== input.hostTokenHash ||
+        Date.parse(session.expiresAt) <= input.now.getTime()
+      ) {
+        return null;
+      }
+      session.expiresAt = input.expiresAt.toISOString();
+      session.lastHostSeenAt = input.now.toISOString();
+      return session;
+    },
     async findActiveByBrowserToken(input) {
       const session = sessions.get(input.slug);
       if (
@@ -319,6 +364,9 @@ export const postgresWebAccessSessionRepository: WebAccessSessionRepository = {
   },
   async findActiveByBrowserToken(input) {
     return createPostgresWebAccessSessionRepository(cloudDb()).findActiveByBrowserToken(input);
+  },
+  async refreshHostSession(input) {
+    return createPostgresWebAccessSessionRepository(cloudDb()).refreshHostSession(input);
   },
   async withOwnerMutation(input, operation) {
     return createPostgresWebAccessSessionRepository(cloudDb()).withOwnerMutation!(input, operation);
@@ -406,6 +454,23 @@ function createPostgresWebAccessSessionRepository(db: WebAccessDb): WebAccessSes
         )
         .returning({ slug: webAccessSessions.slug });
       return rows.length > 0;
+    },
+    async refreshHostSession(input) {
+      const rows = await db
+        .update(webAccessSessions)
+        .set({
+          expiresAt: input.expiresAt,
+          lastHostSeenAt: input.now,
+        })
+        .where(
+          and(
+            eq(webAccessSessions.slug, input.slug),
+            eq(webAccessSessions.hostTokenHash, input.hostTokenHash),
+            gt(webAccessSessions.expiresAt, input.now),
+          ),
+        )
+        .returning();
+      return rows[0] ? fromDbRow(rows[0]) : null;
     },
     async findActiveByBrowserToken(input) {
       const [row] = await db

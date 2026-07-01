@@ -8,6 +8,7 @@ import type {
   MobileTerminalTarget,
   MobileTerminalViewportResponse,
   MobileWorkspaceListResponse,
+  WebAccessSessionRefreshResponse,
 } from "./types";
 
 export class MobileRpcError extends Error {
@@ -74,6 +75,10 @@ export class MobileRpcClient {
       ...targetParams(target),
       clear: true,
     });
+  }
+
+  refreshWebAccessSession(): Promise<WebAccessSessionRefreshResponse> {
+    return this.request("web_access.session.refresh");
   }
 
   sendInput(target: MobileTerminalTarget, input: string): Promise<void> {

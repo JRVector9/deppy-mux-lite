@@ -11,6 +11,7 @@ const {
 } = await import("../app/api/mobile/web-access/sessions/route");
 const {
   GET: getSession,
+  POST: postSession,
 } = await import("../app/api/mobile/web-access/sessions/[slug]/route");
 const {
   POST: enqueueRpc,
@@ -258,6 +259,146 @@ describe("mobile web access route", () => {
       expect(statusResponse.status).toBe(200);
       expect(statusResponse.headers.get(WEB_CONNECT_COMPATIBILITY_HEADER)).toBe(WEB_CONNECT_COMPATIBILITY_VALUE);
       expect(statusBody).toEqual({ status: "completed", result: { accepted: true } });
+    } finally {
+      restoreLocalOnly(previousLocalOnly);
+      restoreLocalToken(previousToken);
+    }
+  });
+
+  test("accepts bounded browser image paste payloads", async () => {
+    const previousLocalOnly = process.env.CMUX_WEB_CONNECT_LOCAL_ONLY;
+    const previousToken = process.env.CMUX_WEB_CONNECT_LOCAL_TOKEN;
+    process.env.CMUX_WEB_CONNECT_LOCAL_ONLY = "1";
+    process.env.CMUX_WEB_CONNECT_LOCAL_TOKEN = "test-local-token";
+    try {
+      const origin = "http://localhost:49161";
+      const createResponse = await createSession(createSessionRequest(origin, "test-local-token", origin));
+      const created = await createResponse.json();
+      const slug = String(created.slug);
+      const browserToken = new URL(String(created.publicUrl)).searchParams.get("access_token") ?? "";
+
+      const enqueueResponse = await enqueueRpc(
+        new Request(`${origin}/api/mobile/web-access/sessions/${slug}/rpc`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            origin,
+            "x-cmux-web-access-browser-token": browserToken,
+          },
+          body: JSON.stringify({
+            method: "terminal.paste_image",
+            params: {
+              workspace_id: "workspace:1",
+              surface_id: "surface:1",
+              client_id: "web-access",
+              image_base64: "a".repeat(256 * 1024),
+              image_format: "png",
+            },
+          }),
+        }),
+        routeParams({ slug }),
+      );
+      const queued = await enqueueResponse.json();
+
+      expect(enqueueResponse.status).toBe(202);
+      expect(enqueueResponse.headers.get(WEB_CONNECT_COMPATIBILITY_HEADER)).toBe(WEB_CONNECT_COMPATIBILITY_VALUE);
+      expect(queued.requestId).toBeTruthy();
+    } finally {
+      restoreLocalOnly(previousLocalOnly);
+      restoreLocalToken(previousToken);
+    }
+  });
+
+  test("extends a browser session only after host-approved refresh", async () => {
+    const previousLocalOnly = process.env.CMUX_WEB_CONNECT_LOCAL_ONLY;
+    const previousToken = process.env.CMUX_WEB_CONNECT_LOCAL_TOKEN;
+    process.env.CMUX_WEB_CONNECT_LOCAL_ONLY = "1";
+    process.env.CMUX_WEB_CONNECT_LOCAL_TOKEN = "test-local-token";
+    try {
+      const origin = "http://localhost:49162";
+      const createResponse = await createSession(createSessionRequest(origin, "test-local-token", origin));
+      const created = await createResponse.json();
+      const slug = String(created.slug);
+      const hostToken = String(created.hostToken);
+      const browserToken = new URL(String(created.publicUrl)).searchParams.get("access_token") ?? "";
+
+      const enqueueResponse = await enqueueRpc(
+        new Request(`${origin}/api/mobile/web-access/sessions/${slug}/rpc`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            origin,
+            "x-cmux-web-access-browser-token": browserToken,
+          },
+          body: JSON.stringify({
+            method: "web_access.session.refresh",
+            params: {},
+          }),
+        }),
+        routeParams({ slug }),
+      );
+      const queued = await enqueueResponse.json();
+      expect(enqueueResponse.status).toBe(202);
+
+      const claimResponse = await claimHostRpc(
+        new Request(`${origin}/api/mobile/web-access/sessions/${slug}/host-rpc?limit=10`, {
+          headers: { "x-cmux-web-access-host-token": hostToken },
+        }),
+        routeParams({ slug }),
+      );
+      const claimed = await claimResponse.json();
+      expect(claimResponse.status).toBe(200);
+      expect(claimed.requests[0].method).toBe("web_access.session.refresh");
+
+      const refreshResponse = await postSession(
+        new Request(`${origin}/api/mobile/web-access/sessions/${slug}`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-cmux-web-access-host-token": hostToken,
+          },
+          body: JSON.stringify({ action: "refresh" }),
+        }),
+        routeParams({ slug }),
+      );
+      const refreshed = await refreshResponse.json();
+      expect(refreshResponse.status).toBe(200);
+      expect(typeof refreshed.expiresAt).toBe("string");
+      expect(Date.parse(refreshed.expiresAt)).toBeGreaterThanOrEqual(Date.parse(String(created.expiresAt)));
+
+      const completeResponse = await completeHostRpc(
+        new Request(`${origin}/api/mobile/web-access/sessions/${slug}/host-rpc`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-cmux-web-access-host-token": hostToken,
+          },
+          body: JSON.stringify({
+            requestId: queued.requestId,
+            ok: true,
+            result: { expiresAt: refreshed.expiresAt },
+          }),
+        }),
+        routeParams({ slug }),
+      );
+      expect(completeResponse.status).toBe(200);
+
+      const statusResponse = await getRpcStatus(
+        new Request(`${origin}/api/mobile/web-access/sessions/${slug}/rpc/${queued.requestId}`, {
+          headers: { "x-cmux-web-access-status-token": queued.statusToken },
+        }),
+        routeParams({ slug, requestId: queued.requestId }),
+      );
+      const statusBody = await statusResponse.json();
+      expect(statusResponse.status).toBe(200);
+      expect(statusBody).toEqual({ status: "completed", result: { expiresAt: refreshed.expiresAt } });
+
+      const publicResponse = await getSession(
+        new Request(`${origin}/api/mobile/web-access/sessions/${slug}`),
+        routeParams({ slug }),
+      );
+      const publicBody = await publicResponse.json();
+      expect(publicBody.session.expiresAt).toBe(refreshed.expiresAt);
     } finally {
       restoreLocalOnly(previousLocalOnly);
       restoreLocalToken(previousToken);

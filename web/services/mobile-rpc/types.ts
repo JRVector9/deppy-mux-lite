@@ -5,6 +5,7 @@ export type MobileRpcMethod =
   | "mobile.events.unsubscribe"
   | "mobile.terminal.replay"
   | "mobile.terminal.viewport"
+  | "web_access.session.refresh"
   | "terminal.input"
   | "terminal.paste"
   | "terminal.paste_image";
@@ -16,6 +17,7 @@ export const MOBILE_RPC_METHODS = [
   "mobile.events.unsubscribe",
   "mobile.terminal.replay",
   "mobile.terminal.viewport",
+  "web_access.session.refresh",
   "terminal.input",
   "terminal.paste",
   "terminal.paste_image",
@@ -87,6 +89,10 @@ export type MobileTerminalReplayResponse = {
   columns?: number;
   rows?: number;
   render_grid?: unknown;
+};
+
+export type WebAccessSessionRefreshResponse = {
+  expiresAt: string;
 };
 
 export type MobileRpcTransport = {

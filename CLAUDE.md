@@ -1,5 +1,9 @@
 # cmux agent notes
 
+## Branch sync policy
+
+For deppy-lite changes, apply common code, config, docs, release-script, and web-runtime changes to both `main` and the current working branch, especially `deppy-lite-arm64`, before calling the work complete. If a change is intentionally branch-specific or cannot be applied to both branches in the same pass, state the exception and the reason in the handoff.
+
 ## Initial setup
 
 Run the setup script to initialize submodules, build GhosttyKit, and install the pbxproj normalization pre-commit hook:
