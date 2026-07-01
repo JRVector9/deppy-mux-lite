@@ -226,8 +226,7 @@ final class WebConnectServerController {
         }
         clearFinishedProcess()
         if process?.isRunning == true {
-            stop()
-            return .stopped
+            return await stopOwnedProcessAndWait(port: port) ? .stopped : .externalProcess(port: port)
         }
         guard Self.canAutoStart(baseURL: baseURL) else {
             return .stopped
@@ -243,6 +242,42 @@ final class WebConnectServerController {
             }
             return await stopLocalRuntimeListener(port: port) ? .stopped : .externalProcess(port: port)
         }
+    }
+
+    private func stopOwnedProcessAndWait(port: Int) async -> Bool {
+        guard let process, process.isRunning else {
+            stop()
+            return Self.canBindLocalPort(port)
+        }
+        let pid = process.processIdentifier
+        process.terminate()
+        let clock = ContinuousClock()
+        for _ in 0..<20 {
+            if Self.canBindLocalPort(port) {
+                self.process = nil
+                runningPort = nil
+                closeLogFile()
+                return true
+            }
+            guard (try? await clock.sleep(for: .milliseconds(100))) != nil else {
+                return false
+            }
+        }
+        if process.isRunning {
+            _ = Self.sendSignal("KILL", pid: pid)
+        }
+        for _ in 0..<10 {
+            if Self.canBindLocalPort(port) {
+                self.process = nil
+                runningPort = nil
+                closeLogFile()
+                return true
+            }
+            guard (try? await clock.sleep(for: .milliseconds(100))) != nil else {
+                return false
+            }
+        }
+        return Self.canBindLocalPort(port)
     }
 
     private func stopLocalRuntimeListener(port: Int) async -> Bool {

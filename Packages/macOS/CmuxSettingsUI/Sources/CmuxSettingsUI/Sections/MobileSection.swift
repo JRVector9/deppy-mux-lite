@@ -593,8 +593,10 @@ public struct MobileSection: View {
             webConnectPort.set(port)
             editedWebConnectPort = nil
             webConnectServerEnabled.set(true)
+            await webAccess.start()
         case .stopped, .externalProcess(_):
             webConnectServerEnabled.set(false)
+            webAccess.refreshCurrentSession()
         case .portInUse where webConnectServerEnabled.current:
             webConnectServerEnabled.set(true)
         case .invalidPort, .portInUse, .tailscaleUnavailable, .runtimeMissing, .failed:
@@ -609,6 +611,7 @@ public struct MobileSection: View {
             let result = await controlWebConnectServer(enabled: false, port: requested)
             if case .invalidPort = result {} else {
                 webConnectServerEnabled.set(false)
+                webAccess.refreshCurrentSession()
             }
         }
     }
