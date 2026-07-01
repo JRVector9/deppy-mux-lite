@@ -874,6 +874,14 @@ if [[ -n "$DERIVED_DATA" ]]; then
     APP_PATH="${DERIVED_DATA}/Build/Products/Debug/${FALLBACK_APP_NAME}.app"
     APP_EXECUTABLE_NAME="$FALLBACK_APP_NAME"
   fi
+  if [[ ! -d "${APP_PATH}" && "$LITE_BUILD" -eq 1 ]]; then
+    LITE_UNIVERSAL_APP_NAME="deppy-mux-lite-universal"
+    if [[ "$SEARCH_APP_NAME" != "$LITE_UNIVERSAL_APP_NAME" && "$FALLBACK_APP_NAME" != "$LITE_UNIVERSAL_APP_NAME" ]]; then
+      APP_PATH="${DERIVED_DATA}/Build/Products/Debug/${LITE_UNIVERSAL_APP_NAME}.app"
+      APP_EXECUTABLE_NAME="$LITE_UNIVERSAL_APP_NAME"
+      SEARCH_APP_NAME="$LITE_UNIVERSAL_APP_NAME"
+    fi
+  fi
 else
   APP_BINARY="$(
     find "$HOME/Library/Developer/Xcode/DerivedData" -path "*/Build/Products/Debug/${SEARCH_APP_NAME}.app/Contents/MacOS/${SEARCH_APP_NAME}" -print0 \
@@ -896,6 +904,23 @@ else
     if [[ -n "${APP_BINARY}" ]]; then
       APP_PATH="$(dirname "$(dirname "$(dirname "$APP_BINARY")")")"
       APP_EXECUTABLE_NAME="$FALLBACK_APP_NAME"
+    fi
+  fi
+  if [[ -z "${APP_PATH}" && "$LITE_BUILD" -eq 1 ]]; then
+    LITE_UNIVERSAL_APP_NAME="deppy-mux-lite-universal"
+    if [[ "$SEARCH_APP_NAME" != "$LITE_UNIVERSAL_APP_NAME" && "$FALLBACK_APP_NAME" != "$LITE_UNIVERSAL_APP_NAME" ]]; then
+      APP_BINARY="$(
+        find "$HOME/Library/Developer/Xcode/DerivedData" -path "*/Build/Products/Debug/${LITE_UNIVERSAL_APP_NAME}.app/Contents/MacOS/${LITE_UNIVERSAL_APP_NAME}" -print0 \
+        | xargs -0 /usr/bin/stat -f "%m %N" 2>/dev/null \
+        | sort -nr \
+        | head -n 1 \
+        | cut -d' ' -f2-
+      )"
+      if [[ -n "${APP_BINARY}" ]]; then
+        APP_PATH="$(dirname "$(dirname "$(dirname "$APP_BINARY")")")"
+        APP_EXECUTABLE_NAME="$LITE_UNIVERSAL_APP_NAME"
+        SEARCH_APP_NAME="$LITE_UNIVERSAL_APP_NAME"
+      fi
     fi
   fi
 fi

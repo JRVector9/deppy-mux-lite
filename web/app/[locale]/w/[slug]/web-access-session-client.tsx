@@ -103,6 +103,8 @@ export function WebAccessSessionClient({
   const [terminalSnapshot, setTerminalSnapshot] = useState<TerminalSnapshot | null>(
     null,
   );
+  const terminalSnapshotCacheRef = useRef(new Map<string, TerminalSnapshot>());
+  const activeTerminalTargetKeyRef = useRef("");
   const terminalViewportRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [terminalViewportWidth, setTerminalViewportWidth] = useState(0);
@@ -238,6 +240,24 @@ export function WebAccessSessionClient({
         : null,
     [selectedWorkspace, selectedTerminal],
   );
+  const targetKey = useMemo(() => (target ? terminalTargetKey(target) : ""), [target]);
+
+  function applyCachedTerminalSnapshot(nextTarget: MobileTerminalTarget | null) {
+    if (!nextTarget) {
+      activeTerminalTargetKeyRef.current = "";
+      setTerminalSnapshot(null);
+      return;
+    }
+    const nextTargetKey = terminalTargetKey(nextTarget);
+    activeTerminalTargetKeyRef.current = nextTargetKey;
+    setTerminalSnapshot(
+      terminalSnapshotCacheRef.current.get(nextTargetKey) ?? null,
+    );
+  }
+
+  useEffect(() => {
+    activeTerminalTargetKeyRef.current = targetKey;
+  }, [targetKey]);
 
   useEffect(() => {
     if (!selectedWorkspaceId) {
@@ -284,8 +304,13 @@ export function WebAccessSessionClient({
       return;
     }
     const capturedTarget = target;
+    const capturedTargetKey = terminalTargetKey(capturedTarget);
     let cancelled = false;
     let inFlight = false;
+
+    setTerminalSnapshot(
+      terminalSnapshotCacheRef.current.get(capturedTargetKey) ?? null,
+    );
 
     async function refreshTerminalScreen() {
       if (inFlight) {
@@ -294,13 +319,17 @@ export function WebAccessSessionClient({
       inFlight = true;
       try {
         const replay = await client.replayTerminal(capturedTarget);
+        const nextSnapshot = terminalSnapshotFromReplay(replay);
+        updateTerminalSnapshotCache(
+          terminalSnapshotCacheRef.current,
+          capturedTargetKey,
+          nextSnapshot,
+        );
         if (!cancelled) {
-          setTerminalSnapshot(terminalSnapshotFromReplay(replay));
+          setTerminalSnapshot(nextSnapshot);
         }
       } catch {
-        if (!cancelled) {
-          setTerminalSnapshot(null);
-        }
+        // Keep the cached screen visible while relay replay retries.
       } finally {
         inFlight = false;
       }
@@ -377,7 +406,16 @@ export function WebAccessSessionClient({
   async function refreshTerminalScreen(capturedTarget: MobileTerminalTarget) {
     try {
       const replay = await client.replayTerminal(capturedTarget);
-      setTerminalSnapshot(terminalSnapshotFromReplay(replay));
+      const capturedTargetKey = terminalTargetKey(capturedTarget);
+      const nextSnapshot = terminalSnapshotFromReplay(replay);
+      updateTerminalSnapshotCache(
+        terminalSnapshotCacheRef.current,
+        capturedTargetKey,
+        nextSnapshot,
+      );
+      if (activeTerminalTargetKeyRef.current === capturedTargetKey) {
+        setTerminalSnapshot(nextSnapshot);
+      }
     } catch {
       // The polling effect will keep trying while the host remains connected.
     }
@@ -438,11 +476,14 @@ export function WebAccessSessionClient({
   }
 
   function openWorkspace(workspace: MobileWorkspacePreview) {
+    const nextTerminal = workspace.terminals[0] ?? null;
     setSelectedWorkspaceId(workspace.id);
-    setSelectedTerminalId(workspace.terminals[0]?.id ?? "");
+    setSelectedTerminalId(nextTerminal?.id ?? "");
     setWorkspacePickerOpen(false);
     setSkillPickerOpen(false);
-    setTerminalSnapshot(null);
+    applyCachedTerminalSnapshot(
+      nextTerminal ? terminalTarget(workspace, nextTerminal) : null,
+    );
   }
 
   function selectSkill(command: string) {
@@ -478,7 +519,9 @@ export function WebAccessSessionClient({
     );
     const nextTerminal = selectedWorkspace.terminals[(currentIndex + 1) % selectedWorkspace.terminals.length];
     setSelectedTerminalId(nextTerminal?.id ?? "");
-    setTerminalSnapshot(null);
+    applyCachedTerminalSnapshot(
+      nextTerminal ? terminalTarget(selectedWorkspace, nextTerminal) : null,
+    );
   }
 
   const showWorkspacePicker = workspacePickerOpen || !selectedWorkspace || !selectedTerminal;
@@ -1113,6 +1156,22 @@ function terminalTarget(
     surfaceId: terminal.id,
     clientId: webClientId,
   };
+}
+
+function terminalTargetKey(target: MobileTerminalTarget): string {
+  return JSON.stringify([target.workspaceId, target.surfaceId, target.clientId]);
+}
+
+function updateTerminalSnapshotCache(
+  cache: Map<string, TerminalSnapshot>,
+  targetKey: string,
+  snapshot: TerminalSnapshot | null,
+) {
+  if (snapshot) {
+    cache.set(targetKey, snapshot);
+  } else {
+    cache.delete(targetKey);
+  }
 }
 
 type StoredLocalWebAccessSession = {

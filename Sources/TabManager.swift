@@ -302,8 +302,13 @@ class TabManager: ObservableObject {
             ])
             let previousTabId = oldValue
             if let previousTabId,
-               let previousPanelId = focusedPanelId(for: previousTabId) {
+               let previousTab = workspacesById[previousTabId],
+               let previousPanelId = previousTab.focusedPanelId,
+               previousTab.panels[previousPanelId] != nil {
                 lastFocusedPanelByTab[previousTabId] = previousPanelId
+                replacePendingWorkspaceUnfocusTarget(
+                    with: (tabId: previousTabId, panelId: previousPanelId)
+                )
             }
             if shouldRecordFocusHistory {
                 if let previousTabId {
@@ -758,7 +763,7 @@ class TabManager: ObservableObject {
 
     var selectedWorkspace: Workspace? {
         guard let selectedTabId else { return nil }
-        return tabs.first(where: { $0.id == selectedTabId })
+        return workspacesById[selectedTabId]
     }
 
     // Keep selectedTab as convenience alias
@@ -2234,7 +2239,9 @@ class TabManager: ObservableObject {
 
     func setSidebarSelectedWorkspaceIds(_ workspaceIds: Set<UUID>) {
         let existingIds = Set(tabs.map(\.id))
-        sidebarMultiSelection.replaceSelection(with: workspaceIds.intersection(existingIds))
+        let nextSelection = workspaceIds.intersection(existingIds)
+        guard sidebarMultiSelection.selectedWorkspaceIds != nextSelection else { return }
+        sidebarMultiSelection.replaceSelection(with: nextSelection)
     }
 
     /// Marks the window's pending close as a tab/session close so a remote-tmux
@@ -2892,14 +2899,14 @@ class TabManager: ObservableObject {
     }
 
     func titleForTab(_ tabId: UUID) -> String? {
-        tabs.first(where: { $0.id == tabId })?.title
+        workspacesById[tabId]?.title
     }
 
     // MARK: - Panel/Surface ID Access
 
     /// Returns the focused panel ID for a tab (replaces focusedSurfaceId)
     func focusedPanelId(for tabId: UUID) -> UUID? {
-        tabs.first(where: { $0.id == tabId })?.focusedPanelId
+        workspacesById[tabId]?.focusedPanelId
     }
 
     /// Returns the focused panel if it's a BrowserPanel, nil otherwise
@@ -3106,7 +3113,7 @@ class TabManager: ObservableObject {
 
     func applyWindowBackgroundForSelectedTab() {
         guard let selectedTabId,
-              let tab = tabs.first(where: { $0.id == selectedTabId }),
+              let tab = workspacesById[selectedTabId],
               let terminalPanel = tab.focusedTerminalPanel else { return }
         terminalPanel.applyWindowBackgroundIfActive()
     }
@@ -3126,7 +3133,7 @@ class TabManager: ObservableObject {
 
     private func focusSelectedTabPanel(previousTabId: UUID?) {
         guard let selectedTabId,
-              let tab = tabs.first(where: { $0.id == selectedTabId }) else { return }
+              let tab = workspacesById[selectedTabId] else { return }
 
         let panelId: UUID
         if let restoredPanelId = lastFocusedPanelByTab[selectedTabId],
@@ -3142,7 +3149,7 @@ class TabManager: ObservableObject {
         // Defer unfocusing the previous workspace's panel until ContentView confirms handoff
         // completion (new workspace has focus or timeout fallback), to avoid a visible freeze gap.
         if let previousTabId,
-           let previousTab = tabs.first(where: { $0.id == previousTabId }),
+           let previousTab = workspacesById[previousTabId],
            let previousPanelId = previousTab.focusedPanelId,
            previousTab.panels[previousPanelId] != nil {
             replacePendingWorkspaceUnfocusTarget(
