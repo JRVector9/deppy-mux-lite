@@ -9,12 +9,10 @@ cd "$PROJECT_DIR"
 echo "==> Initializing submodules..."
 git submodule update --init --recursive
 
-echo "==> Checking for zig..."
-if ! command -v zig &> /dev/null; then
-    echo "Error: zig is not installed."
-    echo "Install via: brew install zig"
-    exit 1
-fi
+echo "==> Checking for pinned zig..."
+CMUX_ZIG="$("$SCRIPT_DIR/ensure-zig-required.sh")"
+export CMUX_ZIG
+echo "==> Using zig $("$CMUX_ZIG" version) at $CMUX_ZIG"
 
 "$SCRIPT_DIR/ensure-ghosttykit.sh"
 

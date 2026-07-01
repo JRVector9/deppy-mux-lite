@@ -58,11 +58,9 @@ if [[ ! -d "$PROJECT_DIR/ghostty" ]]; then
   exit 1
 fi
 
-if ! command -v zig >/dev/null 2>&1; then
-  echo "Error: zig is not installed." >&2
-  echo "Install via: brew install zig" >&2
-  exit 1
-fi
+CMUX_ZIG="$("$SCRIPT_DIR/ensure-zig-required.sh")"
+export CMUX_ZIG
+echo "==> Using zig $("$CMUX_ZIG" version) at $CMUX_ZIG"
 
 if [[ ! -f "$PROJECT_DIR/ghostty/include/ghostty.h" ]]; then
   echo "error: ghostty/include/ghostty.h is missing. Run ./scripts/setup.sh first." >&2
@@ -222,7 +220,7 @@ else
     echo "==> Building GhosttyKit.xcframework (this may take a few minutes)..."
     (
       cd ghostty
-      zig build -Dcrash-report-subdir="$GHOSTTYKIT_CRASH_REPORT_SUBDIR" -Demit-xcframework=true -Dxcframework-target=universal -Doptimize=ReleaseFast
+      "$CMUX_ZIG" build -Dcrash-report-subdir="$GHOSTTYKIT_CRASH_REPORT_SUBDIR" -Demit-xcframework=true -Dxcframework-target=universal -Doptimize=ReleaseFast
     )
     echo "$GHOSTTY_KEY" > "$LOCAL_KEY_STAMP"
     echo "$GHOSTTY_SHA" > "$LEGACY_LOCAL_SHA_STAMP"

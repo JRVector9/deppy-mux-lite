@@ -48,7 +48,6 @@ type WebAccessSessionClientProps = {
 };
 
 const webClientId = "web-access";
-const terminalBaseFontPx = 12;
 const estimatedTerminalCellWidthPx = 7.2;
 const terminalLineHeightEm = 1.35;
 const webTerminalDefaultForeground = "#d8d8d8";
@@ -94,7 +93,38 @@ export function WebAccessSessionClient({
   const terminalViewportRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [terminalViewportWidth, setTerminalViewportWidth] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState("100svh");
   const attachmentName = attachment?.name ?? "";
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+    root.classList.add("web-access-viewport-lock");
+    body.classList.add("web-access-viewport-lock");
+
+    const updateViewportHeight = () => {
+      const height = Math.floor(window.visualViewport?.height ?? window.innerHeight);
+      if (height > 0) {
+        setViewportHeight((current) => {
+          const next = `${height}px`;
+          return current === next ? current : next;
+        });
+      }
+    };
+
+    updateViewportHeight();
+    window.visualViewport?.addEventListener("resize", updateViewportHeight);
+    window.visualViewport?.addEventListener("scroll", updateViewportHeight);
+    window.addEventListener("orientationchange", updateViewportHeight);
+
+    return () => {
+      root.classList.remove("web-access-viewport-lock");
+      body.classList.remove("web-access-viewport-lock");
+      window.visualViewport?.removeEventListener("resize", updateViewportHeight);
+      window.visualViewport?.removeEventListener("scroll", updateViewportHeight);
+      window.removeEventListener("orientationchange", updateViewportHeight);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -350,7 +380,10 @@ export function WebAccessSessionClient({
   const skillCommands = ["/review", "/test", "/mcp", "/release-note"];
 
   return (
-    <main className="relative flex h-svh min-h-0 flex-col overflow-hidden bg-[#050505] text-[#f2f2f2]">
+    <main
+      className="fixed inset-0 flex min-h-0 w-dvw flex-col overflow-hidden overscroll-none bg-[#050505] text-[#f2f2f2] [height:var(--web-access-viewport-height)]"
+      style={{ "--web-access-viewport-height": viewportHeight } as CSSProperties}
+    >
       <div className="pointer-events-none absolute left-3 right-3 top-[max(12px,env(safe-area-inset-top))] z-30 grid gap-2">
         {activeNotice ? (
           <div className="flex items-center gap-2 rounded-xl border border-white/15 bg-[#121212]/95 px-3 py-2 text-sm shadow-2xl backdrop-blur">
@@ -385,7 +418,7 @@ export function WebAccessSessionClient({
             </a>
           ) : null}
 
-          <div className="mt-3 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pb-1">
+          <div className="web-access-scroll mt-3 flex min-h-0 flex-1 flex-col gap-2 pb-1">
             {workspaces.length === 0 ? (
               <div className="rounded-xl border border-[#2a2a2a] bg-[#101010] p-4 text-sm text-[#a8a8a8]">
                 {connected ? copy.transcriptEmpty : copy.waiting}
@@ -443,7 +476,7 @@ export function WebAccessSessionClient({
             </div>
 
             <div
-              className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#030303] font-mono text-[12px] leading-[1.35] text-[#e7e7e7]"
+              className="web-access-scroll min-h-0 flex-1 overflow-x-hidden bg-[#030303] font-mono text-[15px] leading-6 text-[#e7e7e7]"
               ref={terminalViewportRef}
             >
               {terminalSnapshot?.kind === "render-grid" ? (
@@ -452,13 +485,13 @@ export function WebAccessSessionClient({
                   viewportWidth={terminalViewportWidth}
                 />
               ) : terminalSnapshot?.kind === "text" && terminalSnapshot.text ? (
-                <pre className="whitespace-pre-wrap break-words p-2 font-mono text-xs">
+                <pre className="whitespace-pre-wrap break-words p-3 font-mono text-[15px] leading-6 [overflow-wrap:anywhere]">
                   {terminalSnapshot.text}
                 </pre>
               ) : transcript.length === 0 ? (
-                <div className="p-2 text-[#8e8e8e]">{copy.transcriptEmpty}</div>
+                <div className="p-3 text-sm text-[#8e8e8e]">{copy.transcriptEmpty}</div>
               ) : (
-                <div className="space-y-1 p-2">
+                <div className="space-y-1 p-3 text-sm">
                   {transcript.map((line, index) => (
                     <div key={line + ":" + index}>{line}</div>
                   ))}
@@ -554,7 +587,7 @@ export function WebAccessSessionClient({
                   ×
                 </button>
               </div>
-              <div className="grid max-h-80 gap-px overflow-y-auto bg-[#2a2a2a]">
+              <div className="web-access-scroll grid max-h-80 gap-px bg-[#2a2a2a]">
                 {skillCommands.map((command) => (
                   <button
                     className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 bg-[#101010] px-3 py-3 text-left"
@@ -634,20 +667,32 @@ function TerminalRenderGridView({
   const foreground = frame.terminalForeground ?? webTerminalDefaultForeground;
   const cursorColor = frame.terminalCursorColor ?? foreground;
   const naturalWidthPx = Math.max(1, frame.columns * estimatedTerminalCellWidthPx);
-  const naturalHeightPx = frame.rows * terminalBaseFontPx * terminalLineHeightEm;
-  const scale = viewportWidth > 0 ? Math.min(1, viewportWidth / naturalWidthPx) : 1;
+  const useReadableMobileLayout = viewportWidth > 0 && viewportWidth < naturalWidthPx;
+
+  if (useReadableMobileLayout) {
+    return (
+      <TerminalReadableGridView
+        background={background}
+        foreground={foreground}
+        frame={frame}
+        inheritedBackground={inheritedBackground}
+        inheritedForeground={inheritedForeground}
+        rows={rowsFromRenderGrid(frame, false)}
+        stylesById={stylesById}
+      />
+    );
+  }
 
   return (
     <div
-      className="w-full overflow-hidden font-mono text-[12px] tracking-normal"
+      className="min-h-full w-full overflow-hidden font-mono text-[12px] tracking-normal"
       style={{
         backgroundColor: background,
         color: foreground,
-        height: `${naturalHeightPx * scale}px`,
       }}
     >
       <div
-        className="relative overflow-hidden font-mono text-[12px] tracking-normal"
+        className="relative inline-block min-w-full overflow-hidden font-mono text-[12px] tracking-normal"
         style={{
           backgroundColor: background,
           color: foreground,
@@ -656,8 +701,6 @@ function TerminalRenderGridView({
           fontVariantLigatures: "none",
           lineHeight: terminalLineHeightEm,
           minHeight: `${frame.rows * terminalLineHeightEm}em`,
-          transform: `scale(${scale})`,
-          transformOrigin: "top left",
           width: `${frame.columns}ch`,
         }}
       >
@@ -691,6 +734,65 @@ function TerminalRenderGridView({
             cursor={frame.cursor}
           />
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+function TerminalReadableGridView({
+  background,
+  foreground,
+  frame,
+  inheritedBackground,
+  inheritedForeground,
+  rows,
+  stylesById,
+}: {
+  background: string;
+  foreground: string;
+  frame: MobileRenderGridFrame;
+  inheritedBackground?: string;
+  inheritedForeground?: string;
+  rows: Array<Array<MobileRenderGridSpan>>;
+  stylesById: Map<number, MobileRenderGridStyle>;
+}) {
+  return (
+    <div
+      className="min-h-full w-full font-mono text-[15px] leading-6 tracking-normal"
+      style={{
+        backgroundColor: background,
+        color: foreground,
+        fontFamily:
+          '"SF Mono", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace',
+        fontVariantLigatures: "none",
+      }}
+    >
+      <div
+        aria-label={`terminal ${frame.columns} by ${frame.rows}`}
+        className="px-3 py-3"
+        role="img"
+      >
+        {rows.map((row, index) => (
+          <div
+            className="min-h-6 whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
+            key={`${frame.surfaceId}:${frame.stateSeq}:readable:${index}`}
+          >
+            {row.length === 0 ? "\u00A0" : row.map((span, spanIndex) => (
+              <span
+                key={`${span.column}:${spanIndex}`}
+                style={styleForRenderSpan(
+                  stylesById.get(span.styleId),
+                  foreground,
+                  background,
+                  inheritedForeground,
+                  inheritedBackground,
+                )}
+              >
+                {displayTextForReadableSpan(span)}
+              </span>
+            ))}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -752,7 +854,10 @@ function TerminalCursor({
   );
 }
 
-function rowsFromRenderGrid(frame: MobileRenderGridFrame) {
+function rowsFromRenderGrid(
+  frame: MobileRenderGridFrame,
+  fillTrailingCells = true,
+) {
   const rows: Array<Array<MobileRenderGridSpan>> = Array.from(
     { length: frame.rows },
     () => [],
@@ -777,19 +882,21 @@ function rowsFromRenderGrid(frame: MobileRenderGridFrame) {
     }
     row.push(span);
   }
-  for (const [rowIndex, row] of rows.entries()) {
-    const end = row.reduce(
-      (max, span) => Math.max(max, span.column + span.cellWidth),
-      0,
-    );
-    if (end < frame.columns) {
-      row.push({
-        row: rowIndex,
-        column: end,
-        styleId: 0,
-        text: " ".repeat(frame.columns - end),
-        cellWidth: frame.columns - end,
-      });
+  if (fillTrailingCells) {
+    for (const [rowIndex, row] of rows.entries()) {
+      const end = row.reduce(
+        (max, span) => Math.max(max, span.column + span.cellWidth),
+        0,
+      );
+      if (end < frame.columns) {
+        row.push({
+          row: rowIndex,
+          column: end,
+          styleId: 0,
+          text: " ".repeat(frame.columns - end),
+          cellWidth: frame.columns - end,
+        });
+      }
     }
   }
   return rows;
@@ -800,6 +907,13 @@ function displayTextForSpan(span: MobileRenderGridSpan): string {
     return span.text;
   }
   return span.text + " ".repeat(span.cellWidth - span.text.length);
+}
+
+function displayTextForReadableSpan(span: MobileRenderGridSpan): string {
+  if (span.text.length > 0) {
+    return span.text;
+  }
+  return span.cellWidth > 0 ? " ".repeat(span.cellWidth) : "";
 }
 
 function styleForRenderSpan(

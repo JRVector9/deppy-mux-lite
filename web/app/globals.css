@@ -48,6 +48,22 @@ body {
   color: var(--foreground);
 }
 
+html.web-access-viewport-lock,
+body.web-access-viewport-lock {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: #050505;
+}
+
+.web-access-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
 ::selection {
   background: #3b82f620;
 }
