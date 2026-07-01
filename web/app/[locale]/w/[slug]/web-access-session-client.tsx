@@ -48,11 +48,11 @@ type WebAccessSessionClientProps = {
 };
 
 const webClientId = "web-access";
+const terminalBaseFontPx = 12;
+const estimatedTerminalCellWidthPx = 7.2;
 const terminalLineHeightEm = 1.35;
 const webTerminalDefaultForeground = "#d8d8d8";
 const webTerminalDefaultBackground = "#050505";
-const estimatedTerminalFontPx = 12;
-const estimatedTerminalCellWidthPx = 7.2;
 
 type TerminalSnapshot =
   | { kind: "render-grid"; frame: MobileRenderGridFrame }
@@ -93,7 +93,7 @@ export function WebAccessSessionClient({
   );
   const terminalViewportRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [viewport, setViewport] = useState({ columns: 80, rows: 24 });
+  const [terminalViewportWidth, setTerminalViewportWidth] = useState(0);
   const attachmentName = attachment?.name ?? "";
 
   useEffect(() => {
@@ -198,33 +198,22 @@ export function WebAccessSessionClient({
 
   useEffect(() => {
     const element = terminalViewportRef.current;
-    if (!element || typeof ResizeObserver === "undefined") {
+    if (!element) {
       return;
     }
 
-    const updateViewport = () => {
-      const rect = element.getBoundingClientRect();
-      const columns = Math.max(
-        32,
-        Math.min(160, Math.floor(rect.width / estimatedTerminalCellWidthPx)),
-      );
-      const rows = Math.max(
-        12,
-        Math.min(
-          60,
-          Math.floor(rect.height / (estimatedTerminalFontPx * terminalLineHeightEm)),
-        ),
-      );
-      setViewport((current) =>
-        current.columns === columns && current.rows === rows
-          ? current
-          : { columns, rows },
-      );
+    const updateViewportWidth = () => {
+      const width = Math.floor(element.getBoundingClientRect().width);
+      setTerminalViewportWidth((current) => (current === width ? current : width));
     };
 
-    const observer = new ResizeObserver(updateViewport);
+    updateViewportWidth();
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const observer = new ResizeObserver(updateViewportWidth);
     observer.observe(element);
-    updateViewport();
     return () => observer.disconnect();
   }, [selectedTerminalId, workspacePickerOpen]);
 
@@ -256,9 +245,6 @@ export function WebAccessSessionClient({
       }
     }
 
-    void client
-      .updateViewport(capturedTarget, viewport)
-      .catch(() => {});
     void refreshTerminalScreen();
     const interval = globalThis.setInterval(
       () => void refreshTerminalScreen(),
@@ -268,7 +254,7 @@ export function WebAccessSessionClient({
       cancelled = true;
       globalThis.clearInterval(interval);
     };
-  }, [client, connected, target, viewport]);
+  }, [client, connected, target]);
 
   async function refreshTerminalScreen(capturedTarget: MobileTerminalTarget) {
     try {
@@ -293,7 +279,6 @@ export function WebAccessSessionClient({
     if (text) {
       await client.pasteText(capturedTarget, text, {
         submitKey: "return",
-        viewport,
       });
     }
     setComposer((current) => (current.trimEnd() === text ? "" : current));
@@ -435,9 +420,9 @@ export function WebAccessSessionClient({
           </div>
         </section>
       ) : (
-        <section className="relative flex min-h-0 flex-1 flex-col px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-[max(8px,env(safe-area-inset-top))]">
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-[#1f1f1f] bg-[#030303]">
-            <div className="grid min-h-10 grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-2 border-b border-[#1f1f1f] bg-[#0d0d0d] px-2">
+        <section className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#030303]">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#030303]">
+            <div className="grid min-h-10 grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-2 border-b border-[#1f1f1f] bg-[#0d0d0d] px-2 pb-2 pt-[max(8px,env(safe-area-inset-top))]">
               <button
                 aria-label={copy.workspaceList}
                 className="grid h-9 w-9 place-items-center rounded-xl border border-[#2a2a2a] bg-[#0b0b0b] text-lg font-semibold"
@@ -458,19 +443,22 @@ export function WebAccessSessionClient({
             </div>
 
             <div
-              className="min-h-0 flex-1 overflow-auto bg-[#030303] p-2 font-mono text-[12px] leading-[1.35] text-[#e7e7e7]"
+              className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#030303] font-mono text-[12px] leading-[1.35] text-[#e7e7e7]"
               ref={terminalViewportRef}
             >
               {terminalSnapshot?.kind === "render-grid" ? (
-                <TerminalRenderGridView frame={terminalSnapshot.frame} />
+                <TerminalRenderGridView
+                  frame={terminalSnapshot.frame}
+                  viewportWidth={terminalViewportWidth}
+                />
               ) : terminalSnapshot?.kind === "text" && terminalSnapshot.text ? (
-                <pre className="whitespace-pre-wrap break-words font-mono text-xs">
+                <pre className="whitespace-pre-wrap break-words p-2 font-mono text-xs">
                   {terminalSnapshot.text}
                 </pre>
               ) : transcript.length === 0 ? (
-                <div className="text-[#8e8e8e]">{copy.transcriptEmpty}</div>
+                <div className="p-2 text-[#8e8e8e]">{copy.transcriptEmpty}</div>
               ) : (
-                <div className="space-y-1">
+                <div className="space-y-1 p-2">
                   {transcript.map((line, index) => (
                     <div key={line + ":" + index}>{line}</div>
                   ))}
@@ -478,7 +466,7 @@ export function WebAccessSessionClient({
               )}
             </div>
 
-            <div className="border-t border-[#1f1f1f] bg-[#0a0a0a] p-2">
+            <div className="border-t border-[#1f1f1f] bg-[#0a0a0a] px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2">
               {attachmentName ? (
                 <div className="mb-2 flex min-w-0 items-center gap-2 overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#151515] px-2 py-1.5 text-xs text-[#a8a8a8]">
                   <span className="h-6 w-6 shrink-0 rounded-md bg-gradient-to-br from-[#77a8ff] to-[#59d185]" />
@@ -624,7 +612,13 @@ function terminalSnapshotFromReplay(
   return text ? { kind: "text", text } : null;
 }
 
-function TerminalRenderGridView({ frame }: { frame: MobileRenderGridFrame }) {
+function TerminalRenderGridView({
+  frame,
+  viewportWidth,
+}: {
+  frame: MobileRenderGridFrame;
+  viewportWidth: number;
+}) {
   const stylesById = useMemo(() => {
     const map = new Map<number, MobileRenderGridStyle>();
     for (const style of frame.styles) {
@@ -639,51 +633,65 @@ function TerminalRenderGridView({ frame }: { frame: MobileRenderGridFrame }) {
   const background = frame.terminalBackground ?? webTerminalDefaultBackground;
   const foreground = frame.terminalForeground ?? webTerminalDefaultForeground;
   const cursorColor = frame.terminalCursorColor ?? foreground;
+  const naturalWidthPx = Math.max(1, frame.columns * estimatedTerminalCellWidthPx);
+  const naturalHeightPx = frame.rows * terminalBaseFontPx * terminalLineHeightEm;
+  const scale = viewportWidth > 0 ? Math.min(1, viewportWidth / naturalWidthPx) : 1;
 
   return (
     <div
-      className="relative inline-block min-w-full overflow-hidden font-mono text-[12px] tracking-normal"
+      className="w-full overflow-hidden font-mono text-[12px] tracking-normal"
       style={{
         backgroundColor: background,
         color: foreground,
-        fontFamily:
-          '"SF Mono", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace',
-        fontVariantLigatures: "none",
-        lineHeight: terminalLineHeightEm,
-        minHeight: `${frame.rows * terminalLineHeightEm}em`,
-        minWidth: `${frame.columns}ch`,
+        height: `${naturalHeightPx * scale}px`,
       }}
     >
-      <div aria-label={`terminal ${frame.columns} by ${frame.rows}`} role="img">
-        {rows.map((row, index) => (
-          <div
-            className="h-[1.35em] whitespace-pre"
-            key={`${frame.surfaceId}:${frame.stateSeq}:${index}`}
-          >
-            {row.length === 0 ? " " : row.map((span, spanIndex) => (
-              <span
-                key={`${span.column}:${spanIndex}`}
-                style={styleForRenderSpan(
-                  stylesById.get(span.styleId),
-                  foreground,
-                  background,
-                  inheritedForeground,
-                  inheritedBackground,
-                )}
-              >
-                {displayTextForSpan(span)}
-              </span>
-            ))}
-          </div>
-        ))}
+      <div
+        className="relative overflow-hidden font-mono text-[12px] tracking-normal"
+        style={{
+          backgroundColor: background,
+          color: foreground,
+          fontFamily:
+            '"SF Mono", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace',
+          fontVariantLigatures: "none",
+          lineHeight: terminalLineHeightEm,
+          minHeight: `${frame.rows * terminalLineHeightEm}em`,
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+          width: `${frame.columns}ch`,
+        }}
+      >
+        <div aria-label={`terminal ${frame.columns} by ${frame.rows}`} role="img">
+          {rows.map((row, index) => (
+            <div
+              className="h-[1.35em] whitespace-pre"
+              key={`${frame.surfaceId}:${frame.stateSeq}:${index}`}
+            >
+              {row.length === 0 ? " " : row.map((span, spanIndex) => (
+                <span
+                  key={`${span.column}:${spanIndex}`}
+                  style={styleForRenderSpan(
+                    stylesById.get(span.styleId),
+                    foreground,
+                    background,
+                    inheritedForeground,
+                    inheritedBackground,
+                  )}
+                >
+                  {displayTextForSpan(span)}
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+        {frame.cursor?.visible ? (
+          <TerminalCursor
+            background={background}
+            color={cursorColor}
+            cursor={frame.cursor}
+          />
+        ) : null}
       </div>
-      {frame.cursor?.visible ? (
-        <TerminalCursor
-          background={background}
-          color={cursorColor}
-          cursor={frame.cursor}
-        />
-      ) : null}
     </div>
   );
 }

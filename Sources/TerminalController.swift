@@ -163,6 +163,7 @@ class TerminalController {
         var sticky: Bool = false
     }
     private static let mobileViewportReportTTL: TimeInterval = 5
+    private static let webAccessMobileClientID = "web-access"
     private var mobileViewportReportsBySurfaceID: [UUID: [String: MobileViewportReport]] = [:]
     private var mobileViewportReportCleanupTimersBySurfaceID: [UUID: DispatchSourceTimer] = [:]
 #if DEBUG
@@ -13749,6 +13750,9 @@ class TerminalController {
         guard let clientID = v2String(params, "client_id"),
               let rawColumns = v2Int(params, "viewport_columns"),
               let rawRows = v2Int(params, "viewport_rows") else {
+            return
+        }
+        if DeppyLiteFeaturePolicy.isEnabled, clientID == Self.webAccessMobileClientID {
             return
         }
 
