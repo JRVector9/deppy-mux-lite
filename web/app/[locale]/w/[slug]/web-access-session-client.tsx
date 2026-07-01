@@ -1,17 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
 import { MobileRpcClient } from "@/services/mobile-rpc/client";
-import type {
-  MobileRenderGridFrame,
-  MobileRenderGridSpan,
-  MobileRenderGridStyle,
-} from "@/services/mobile-rpc/render-grid";
-import {
-  parseMobileRenderGridFrame,
-  sortedRowSpans,
-} from "@/services/mobile-rpc/render-grid";
+import { parseMobileRenderGridFrame } from "@/services/mobile-rpc/render-grid";
 import { terminalReplayToText } from "@/services/mobile-rpc/terminal-screen";
 import type {
   MobileTerminalPreview,
@@ -20,13 +11,20 @@ import type {
   MobileWorkspacePreview,
 } from "@/services/mobile-rpc/types";
 import { WebAccessRelayTransport } from "@/services/mobile-rpc/web-access-relay-transport";
+import { MobileComposerBar } from "./MobileComposerBar";
+import { MobileTerminalViewport, type TerminalSnapshot } from "./MobileTerminalViewport";
+import { MobileTopMenuButton, MobileTopMenuPanel } from "./MobileTopMenu";
+import { MobileWebAccessShell } from "./MobileWebAccessShell";
+import { useVisualViewportLock } from "./useVisualViewportLock";
 
 type WebAccessSessionCopy = {
   attachmentTooLarge: string;
+  appVersion: string;
   clear: string;
   composerPlaceholder: string;
   connected: string;
   enter: string;
+  menu: string;
   refreshSession: string;
   refreshSessionFailed: string;
   refreshingSession: string;
@@ -53,17 +51,9 @@ type WebAccessSessionClientProps = {
 };
 
 const webClientId = "web-access";
-const estimatedTerminalCellWidthPx = 7.2;
-const terminalLineHeightEm = 1.35;
-const webTerminalDefaultForeground = "#d8d8d8";
-const webTerminalDefaultBackground = "#050505";
 const maxImageAttachmentBytes = 256 * 1024;
 const sessionRefreshLeadMs = 10 * 60 * 1000;
 const sessionRefreshPollMs = 60 * 1000;
-
-type TerminalSnapshot =
-  | { kind: "render-grid"; frame: MobileRenderGridFrame }
-  | { kind: "text"; text: string };
 
 export function WebAccessSessionClient({
   authEnabled,
@@ -98,6 +88,7 @@ export function WebAccessSessionClient({
   const [composerError, setComposerError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [isRefreshingSession, setIsRefreshingSession] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [sessionRefreshError, setSessionRefreshError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<string[]>([]);
   const [terminalSnapshot, setTerminalSnapshot] = useState<TerminalSnapshot | null>(
@@ -108,8 +99,7 @@ export function WebAccessSessionClient({
   const terminalViewportRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [terminalViewportWidth, setTerminalViewportWidth] = useState(0);
-  const [viewportHeight, setViewportHeight] = useState("100svh");
-  const [viewportWidth, setViewportWidth] = useState(0);
+  const viewport = useVisualViewportLock();
   const attachmentName = attachment?.name ?? "";
 
   useEffect(() => {
@@ -122,42 +112,6 @@ export function WebAccessSessionClient({
       storeLocalWebAccessSession({ browserToken, expiresAt: nextExpiresAt, slug });
     }
   }
-
-  useEffect(() => {
-    const root = document.documentElement;
-    const body = document.body;
-    root.classList.add("web-access-viewport-lock");
-    body.classList.add("web-access-viewport-lock");
-
-    const updateViewportSize = () => {
-      const height = Math.floor(window.visualViewport?.height ?? window.innerHeight);
-      const width = Math.floor(window.visualViewport?.width ?? window.innerWidth);
-      if (height > 0) {
-        setViewportHeight((current) => {
-          const next = `${height}px`;
-          return current === next ? current : next;
-        });
-      }
-      if (width > 0) {
-        setViewportWidth((current) => (current === width ? current : width));
-      }
-    };
-
-    updateViewportSize();
-    window.visualViewport?.addEventListener("resize", updateViewportSize);
-    window.visualViewport?.addEventListener("scroll", updateViewportSize);
-    window.addEventListener("orientationchange", updateViewportSize);
-    window.addEventListener("resize", updateViewportSize);
-
-    return () => {
-      root.classList.remove("web-access-viewport-lock");
-      body.classList.remove("web-access-viewport-lock");
-      window.visualViewport?.removeEventListener("resize", updateViewportSize);
-      window.visualViewport?.removeEventListener("scroll", updateViewportSize);
-      window.removeEventListener("orientationchange", updateViewportSize);
-      window.removeEventListener("resize", updateViewportSize);
-    };
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -481,6 +435,7 @@ export function WebAccessSessionClient({
     setSelectedTerminalId(nextTerminal?.id ?? "");
     setWorkspacePickerOpen(false);
     setSkillPickerOpen(false);
+    setMenuOpen(false);
     applyCachedTerminalSnapshot(
       nextTerminal ? terminalTarget(workspace, nextTerminal) : null,
     );
@@ -533,33 +488,32 @@ export function WebAccessSessionClient({
         ? ""
         : copy.waiting;
   const skillCommands = ["/review", "/test", "/mcp", "/release-note"];
-  const forceMobileReadableTerminal = viewportWidth === 0 || viewportWidth <= 768;
+  const forceMobileReadableTerminal = viewport.width === 0 || viewport.width <= 768;
+  const menuButton = (
+    <MobileTopMenuButton
+      label={copy.menu}
+      onToggle={() => setMenuOpen((open) => !open)}
+      open={menuOpen}
+    />
+  );
 
   return (
-    <main
-      className="web-access-no-x fixed inset-0 flex min-h-0 max-w-[100vw] flex-col overscroll-none bg-[#050505] text-[#f2f2f2] [height:var(--web-access-viewport-height)] [width:var(--web-access-viewport-width)]"
-      style={
-        {
-          "--web-access-viewport-height": viewportHeight,
-          "--web-access-viewport-width": viewportWidth > 0 ? `${viewportWidth}px` : "100vw",
-        } as CSSProperties
+    <MobileWebAccessShell
+      activeNotice={activeNotice}
+      attachmentName={attachmentName}
+      menuPanel={
+        <MobileTopMenuPanel
+          appVersion={copy.appVersion}
+          connected={connected}
+          isRefreshingSession={isRefreshingSession}
+          onRefreshSession={() => void refreshSessionManually()}
+          open={menuOpen}
+          refreshLabel={copy.refreshSession}
+          refreshingLabel={copy.refreshingSession}
+        />
       }
+      viewport={viewport}
     >
-      <div className="pointer-events-none absolute left-3 right-3 top-[max(12px,env(safe-area-inset-top))] z-30 grid gap-2">
-        {activeNotice ? (
-          <div className="flex items-center gap-2 rounded-xl border border-white/15 bg-[#121212]/95 px-3 py-2 text-sm shadow-2xl backdrop-blur">
-            <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400" />
-            <span className="min-w-0 truncate">{activeNotice}</span>
-          </div>
-        ) : null}
-        {attachmentName ? (
-          <div className="flex items-center gap-2 rounded-xl border border-white/15 bg-[#121212]/95 px-3 py-2 text-sm shadow-2xl backdrop-blur">
-            <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" />
-            <span className="min-w-0 truncate">{attachmentName}</span>
-          </div>
-        ) : null}
-      </div>
-
       {showWorkspacePicker ? (
         <section className="web-access-no-x flex min-h-0 flex-1 flex-col px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-[max(14px,env(safe-area-inset-top))]">
           <header className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-0.5">
@@ -568,18 +522,11 @@ export function WebAccessSessionClient({
               <div className="mt-0.5 truncate text-xs text-[#a8a8a8]">{connected ? copy.connected : copy.waiting}</div>
             </div>
             <div className="flex min-w-0 items-center gap-2">
-              <button
-                className="h-8 max-w-24 truncate rounded-full border border-[#2a2a2a] bg-[#101010] px-2.5 text-xs font-semibold text-[#f2f2f2] disabled:opacity-45"
-                disabled={!connected || isRefreshingSession}
-                onClick={() => void refreshSessionManually()}
-                type="button"
-              >
-                {isRefreshingSession ? copy.refreshingSession : copy.refreshSession}
-              </button>
               <span className="inline-flex min-h-7 items-center gap-1.5 rounded-full border border-[#2a2a2a] bg-[#0d0d0d] px-2.5 text-xs text-[#a8a8a8]">
                 <span className={connected ? "h-1.5 w-1.5 rounded-full bg-emerald-400" : "h-1.5 w-1.5 rounded-full bg-amber-400"} />
                 {workspaces.length} {copy.workspaceList}
               </span>
+              {menuButton}
             </div>
           </header>
 
@@ -638,14 +585,6 @@ export function WebAccessSessionClient({
               <div className="min-w-0 truncate text-sm font-semibold tracking-normal">{selectedWorkspace?.title}</div>
               <div className="flex min-w-0 items-center gap-1">
                 <button
-                  className="h-8 max-w-24 truncate rounded-full border border-[#2a2a2a] bg-[#101010] px-2 text-xs font-semibold text-[#f2f2f2] disabled:opacity-45"
-                  disabled={!connected || isRefreshingSession}
-                  onClick={() => void refreshSessionManually()}
-                  type="button"
-                >
-                  {isRefreshingSession ? copy.refreshingSession : copy.refreshSession}
-                </button>
-                <button
                   className="h-8 max-w-28 truncate rounded-full border border-[#2a2a2a] bg-[#101010] px-2 py-1 text-xs text-[#a8a8a8] disabled:opacity-70"
                   disabled={(selectedWorkspace?.terminals.length ?? 0) < 2}
                   onClick={cycleTerminal}
@@ -653,114 +592,43 @@ export function WebAccessSessionClient({
                 >
                   {selectedTerminal?.title ?? copy.terminal}
                 </button>
+                {menuButton}
               </div>
             </div>
 
-            <div
-              className="web-access-scroll min-h-0 min-w-0 max-w-full flex-1 bg-[#030303] font-mono text-[15px] leading-6 text-[#e7e7e7]"
-              ref={terminalViewportRef}
-            >
-              {terminalSnapshot?.kind === "render-grid" ? (
-                <TerminalRenderGridView
-                  forceReadableLayout={forceMobileReadableTerminal}
-                  frame={terminalSnapshot.frame}
-                  viewportWidth={terminalViewportWidth}
-                />
-              ) : terminalSnapshot?.kind === "text" && terminalSnapshot.text ? (
-                <pre className="min-w-0 max-w-full whitespace-pre-wrap break-words p-3 font-mono text-[15px] leading-6 [overflow-wrap:anywhere] [word-break:break-all]">
-                  {terminalSnapshot.text}
-                </pre>
-              ) : transcript.length === 0 ? (
-                <div className="p-3 text-sm text-[#8e8e8e]">{copy.transcriptEmpty}</div>
-              ) : (
-                <div className="space-y-1 p-3 text-sm">
-                  {transcript.map((line, index) => (
-                    <div key={line + ":" + index}>{line}</div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <MobileTerminalViewport
+              copy={{ transcriptEmpty: copy.transcriptEmpty }}
+              forceReadableLayout={forceMobileReadableTerminal}
+              terminalSnapshot={terminalSnapshot}
+              terminalViewportRef={terminalViewportRef}
+              terminalViewportWidth={terminalViewportWidth}
+              transcript={transcript}
+            />
 
-            <div className="web-access-no-x border-t border-[#1f1f1f] bg-[#0a0a0a] px-2 pb-[max(4px,env(safe-area-inset-bottom))] pt-1">
-              {composerError ? (
-                <div className="mb-1.5 rounded-lg border border-[#5a2d2d] bg-[#211010] px-2 py-1.5 text-xs leading-4 text-[#ffb6b6]">
-                  {composerError}
-                </div>
-              ) : null}
-              {attachmentName ? (
-                <div className="mb-1.5 flex min-w-0 items-center gap-2 overflow-hidden rounded-lg border border-[#2a2a2a] bg-[#151515] px-2 py-1 text-xs text-[#a8a8a8]">
-                  <span className="h-5 w-5 shrink-0 rounded bg-gradient-to-br from-[#77a8ff] to-[#59d185]" />
-                  <span className="min-w-0 flex-1 truncate">{attachmentName}</span>
-                  <button
-                    aria-label={copy.clear}
-                    className="grid h-6 w-6 shrink-0 place-items-center rounded-md border border-[#2a2a2a] bg-[#0b0b0b]"
-                    onClick={() => setAttachment(null)}
-                    type="button"
-                  >
-                    ×
-                  </button>
-                </div>
-              ) : null}
-              <form
-                className="grid min-w-0 grid-cols-[30px_30px_minmax(0,1fr)_34px] items-center gap-1"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (composer.trimEnd().length > 0 || attachment) {
-                    void sendComposer();
-                  } else {
-                    void sendEnter();
-                  }
-                }}
-              >
-                <input
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(event) => {
-                    selectImageAttachment(event.target.files);
-                    event.currentTarget.value = "";
-                  }}
-                  ref={fileInputRef}
-                  type="file"
-                />
-                <button
-                  className="grid h-[30px] w-[30px] place-items-center rounded-lg border border-[#2a2a2a] bg-[#0b0b0b] text-sm font-semibold"
-                  disabled={isSending}
-                  onClick={() => fileInputRef.current?.click()}
-                  type="button"
-                >
-                  +
-                </button>
-                <button
-                  className="grid h-[30px] w-[30px] place-items-center rounded-lg border border-[#2a2a2a] bg-[#0b0b0b] text-sm font-semibold"
-                  disabled={isSending}
-                  onClick={() => setSkillPickerOpen(true)}
-                  type="button"
-                >
-                  /
-                </button>
-                <input
-                  autoComplete="off"
-                  className="h-[30px] min-w-0 rounded-lg border border-[#2a2a2a] bg-[#050505] px-2 text-[14px] text-[#f2f2f2] outline-none focus:border-[#5b5b5b] disabled:opacity-60"
-                  disabled={!target}
-                  onChange={(event) => setComposer(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "/" && composer.length === 0) {
-                      setSkillPickerOpen(true);
-                    }
-                  }}
-                  placeholder={copy.composerPlaceholder}
-                  value={composer}
-                />
-                <button
-                  aria-label={copy.send}
-                  className="grid h-[30px] w-[34px] place-items-center rounded-lg bg-[#f5f5f5] text-sm font-extrabold text-[#080808] disabled:opacity-40"
-                  disabled={!target || isSending}
-                  type="submit"
-                >
-                  ↵
-                </button>
-              </form>
-            </div>
+            <MobileComposerBar
+              attachmentName={attachmentName}
+              composer={composer}
+              composerError={composerError}
+              copy={{
+                clear: copy.clear,
+                composerPlaceholder: copy.composerPlaceholder,
+                send: copy.send,
+              }}
+              disabled={!target}
+              fileInputRef={fileInputRef}
+              isSending={isSending}
+              onChangeComposer={setComposer}
+              onClearAttachment={() => setAttachment(null)}
+              onOpenSkillPicker={() => setSkillPickerOpen(true)}
+              onPickAttachment={selectImageAttachment}
+              onSubmit={() => {
+                if (composer.trimEnd().length > 0 || attachment) {
+                  void sendComposer();
+                } else {
+                  void sendEnter();
+                }
+              }}
+            />
           </div>
 
           {skillPickerOpen ? (
@@ -793,7 +661,7 @@ export function WebAccessSessionClient({
           ) : null}
         </section>
       )}
-    </main>
+    </MobileWebAccessShell>
   );
 }
 
@@ -832,319 +700,6 @@ function terminalSnapshotFromReplay(
   }
   const text = terminalReplayToText(replay);
   return text ? { kind: "text", text } : null;
-}
-
-function TerminalRenderGridView({
-  forceReadableLayout,
-  frame,
-  viewportWidth,
-}: {
-  forceReadableLayout: boolean;
-  frame: MobileRenderGridFrame;
-  viewportWidth: number;
-}) {
-  const stylesById = useMemo(() => {
-    const map = new Map<number, MobileRenderGridStyle>();
-    for (const style of frame.styles) {
-      map.set(style.id, style);
-    }
-    return map;
-  }, [frame.styles]);
-  const rows = useMemo(() => rowsFromRenderGrid(frame), [frame]);
-  const defaultStyle = stylesById.get(0);
-  const inheritedBackground = defaultStyle?.background;
-  const inheritedForeground = defaultStyle?.foreground;
-  const background = frame.terminalBackground ?? webTerminalDefaultBackground;
-  const foreground = frame.terminalForeground ?? webTerminalDefaultForeground;
-  const cursorColor = frame.terminalCursorColor ?? foreground;
-  const naturalWidthPx = Math.max(1, frame.columns * estimatedTerminalCellWidthPx);
-  const useReadableMobileLayout =
-    forceReadableLayout || (viewportWidth > 0 && viewportWidth < naturalWidthPx);
-
-  if (useReadableMobileLayout) {
-    return (
-      <TerminalReadableGridView
-        background={background}
-        foreground={foreground}
-        frame={frame}
-        inheritedBackground={inheritedBackground}
-        inheritedForeground={inheritedForeground}
-        rows={rowsFromRenderGrid(frame, false)}
-        stylesById={stylesById}
-      />
-    );
-  }
-
-  return (
-    <div
-      className="min-h-full w-full overflow-hidden font-mono text-[12px] tracking-normal"
-      style={{
-        backgroundColor: background,
-        color: foreground,
-      }}
-    >
-      <div
-        className="relative inline-block min-w-full overflow-hidden font-mono text-[12px] tracking-normal"
-        style={{
-          backgroundColor: background,
-          color: foreground,
-          fontFamily:
-            '"SF Mono", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace',
-          fontVariantLigatures: "none",
-          lineHeight: terminalLineHeightEm,
-          minHeight: `${frame.rows * terminalLineHeightEm}em`,
-          width: `${frame.columns}ch`,
-        }}
-      >
-        <div aria-label={`terminal ${frame.columns} by ${frame.rows}`} role="img">
-          {rows.map((row, index) => (
-            <div
-              className="h-[1.35em] whitespace-pre"
-              key={`${frame.surfaceId}:${frame.stateSeq}:${index}`}
-            >
-              {row.length === 0 ? " " : row.map((span, spanIndex) => (
-                <span
-                  key={`${span.column}:${spanIndex}`}
-                  style={styleForRenderSpan(
-                    stylesById.get(span.styleId),
-                    foreground,
-                    background,
-                    inheritedForeground,
-                    inheritedBackground,
-                  )}
-                >
-                  {displayTextForSpan(span)}
-                </span>
-              ))}
-            </div>
-          ))}
-        </div>
-        {frame.cursor?.visible ? (
-          <TerminalCursor
-            background={background}
-            color={cursorColor}
-            cursor={frame.cursor}
-          />
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function TerminalReadableGridView({
-  background,
-  foreground,
-  frame,
-  inheritedBackground,
-  inheritedForeground,
-  rows,
-  stylesById,
-}: {
-  background: string;
-  foreground: string;
-  frame: MobileRenderGridFrame;
-  inheritedBackground?: string;
-  inheritedForeground?: string;
-  rows: Array<Array<MobileRenderGridSpan>>;
-  stylesById: Map<number, MobileRenderGridStyle>;
-}) {
-  return (
-    <div
-      className="web-access-no-x min-h-full font-mono text-[15px] leading-6 tracking-normal"
-      style={{
-        backgroundColor: background,
-        color: foreground,
-        fontFamily:
-          '"SF Mono", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace',
-        fontVariantLigatures: "none",
-      }}
-    >
-      <div
-        aria-label={`terminal ${frame.columns} by ${frame.rows}`}
-        className="web-access-no-x px-3 py-3"
-        role="img"
-      >
-        {rows.map((row, index) => (
-          <div
-            className="web-access-no-x min-h-6 whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-all]"
-            key={`${frame.surfaceId}:${frame.stateSeq}:readable:${index}`}
-          >
-            {row.length === 0 ? "\u00A0" : row.map((span, spanIndex) => (
-              <span
-                className="[overflow-wrap:anywhere] [word-break:break-all]"
-                key={`${span.column}:${spanIndex}`}
-                style={styleForRenderSpan(
-                  stylesById.get(span.styleId),
-                  foreground,
-                  background,
-                  inheritedForeground,
-                  inheritedBackground,
-                )}
-              >
-                {displayTextForReadableSpan(span)}
-              </span>
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function TerminalCursor({
-  background,
-  color,
-  cursor,
-}: {
-  background: string;
-  color: string;
-  cursor: NonNullable<MobileRenderGridFrame["cursor"]>;
-}) {
-  const commonStyle = {
-    left: `${cursor.column}ch`,
-    top: `${cursor.row * terminalLineHeightEm}em`,
-    height: `${terminalLineHeightEm}em`,
-  };
-  const blinkClass = cursor.blinking ? "animate-pulse" : "";
-
-  if (cursor.style === "bar") {
-    return (
-      <span
-        aria-hidden="true"
-        className={`pointer-events-none absolute w-px ${blinkClass}`}
-        style={{ ...commonStyle, backgroundColor: color }}
-      />
-    );
-  }
-  if (cursor.style === "underline") {
-    return (
-      <span
-        aria-hidden="true"
-        className={`pointer-events-none absolute h-0.5 w-[1ch] ${blinkClass}`}
-        style={{
-          left: commonStyle.left,
-          top: `${cursor.row * terminalLineHeightEm + terminalLineHeightEm - 0.18}em`,
-          backgroundColor: color,
-        }}
-      />
-    );
-  }
-  if (cursor.style === "block_hollow") {
-    return (
-      <span
-        aria-hidden="true"
-        className={`pointer-events-none absolute w-[1ch] border ${blinkClass}`}
-        style={{ ...commonStyle, borderColor: color }}
-      />
-    );
-  }
-  return (
-    <span
-      aria-hidden="true"
-      className={`pointer-events-none absolute w-[1ch] opacity-80 mix-blend-difference ${blinkClass}`}
-      style={{ ...commonStyle, backgroundColor: color || background }}
-    />
-  );
-}
-
-function rowsFromRenderGrid(
-  frame: MobileRenderGridFrame,
-  fillTrailingCells = true,
-) {
-  const rows: Array<Array<MobileRenderGridSpan>> = Array.from(
-    { length: frame.rows },
-    () => [],
-  );
-  for (const span of sortedRowSpans(frame)) {
-    const row = rows[span.row];
-    if (!row) {
-      continue;
-    }
-    const previousEnd = row.reduce(
-      (end, current) => Math.max(end, current.column + current.cellWidth),
-      0,
-    );
-    if (span.column > previousEnd) {
-      row.push({
-        row: span.row,
-        column: previousEnd,
-        styleId: 0,
-        text: " ".repeat(span.column - previousEnd),
-        cellWidth: span.column - previousEnd,
-      });
-    }
-    row.push(span);
-  }
-  if (fillTrailingCells) {
-    for (const [rowIndex, row] of rows.entries()) {
-      const end = row.reduce(
-        (max, span) => Math.max(max, span.column + span.cellWidth),
-        0,
-      );
-      if (end < frame.columns) {
-        row.push({
-          row: rowIndex,
-          column: end,
-          styleId: 0,
-          text: " ".repeat(frame.columns - end),
-          cellWidth: frame.columns - end,
-        });
-      }
-    }
-  }
-  return rows;
-}
-
-function displayTextForSpan(span: MobileRenderGridSpan): string {
-  if (span.cellWidth <= span.text.length) {
-    return span.text;
-  }
-  return span.text + " ".repeat(span.cellWidth - span.text.length);
-}
-
-function displayTextForReadableSpan(span: MobileRenderGridSpan): string {
-  if (span.text.length > 0) {
-    if (/^\s+$/.test(span.text)) {
-      return " ".repeat(Math.min(span.text.length, 8));
-    }
-    return span.text;
-  }
-  return span.cellWidth > 0 ? " ".repeat(Math.min(span.cellWidth, 8)) : "";
-}
-
-function styleForRenderSpan(
-  style: MobileRenderGridStyle | undefined,
-  defaultForeground: string,
-  defaultBackground: string,
-  inheritedForeground?: string,
-  inheritedBackground?: string,
-): CSSProperties {
-  const foreground =
-    !style?.foreground || style.foreground === inheritedForeground
-      ? defaultForeground
-      : style.foreground;
-  const background =
-    !style?.background || style.background === inheritedBackground
-      ? "transparent"
-      : style.background;
-  const resolvedForeground = style?.inverse
-    ? (background === "transparent" ? defaultBackground : background)
-    : foreground;
-  const resolvedBackground = style?.inverse
-    ? foreground
-    : background;
-  return {
-    backgroundColor: resolvedBackground,
-    color: style?.invisible ? resolvedBackground : resolvedForeground,
-    fontStyle: style?.italic ? "italic" : undefined,
-    fontWeight: style?.bold ? 700 : undefined,
-    opacity: style?.faint ? 0.65 : undefined,
-    textDecorationLine: [
-      style?.underline ? "underline" : "",
-      style?.strikethrough ? "line-through" : "",
-      style?.overline ? "overline" : "",
-    ].filter(Boolean).join(" ") || undefined,
-  };
 }
 
 function terminalTarget(

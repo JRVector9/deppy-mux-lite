@@ -1901,6 +1901,8 @@
     "metaTitle": "deppy-mux-beta",
     "metaDescription": "브라우저에서 deppy-mux-beta 워크스페이스와 터미널에 연결합니다.",
     "title": "deppy-mux-beta",
+    "appVersion": "버전 0.0.1",
+    "menu": "메뉴",
     "subtitle": "데스크톱 앱에서 만든 활성 deppy-mux-beta Web Connect 링크를 열고, 브라우저에서 워크스페이스와 터미널에 연결합니다.",
     "mockBadge": "프리뷰 transport",
     "deviceList": "디바이스",

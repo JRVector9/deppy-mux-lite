@@ -271,6 +271,10 @@ final class WebConnectServerController {
     }
 
     private static func serverCommand(environment: [String: String]) -> ServerCommand? {
+        if shouldPreferSourceRuntime(environment: environment),
+           let webDirectory = webDirectory(environment: environment) {
+            return sourceServerCommand(environment: environment, webDirectory: webDirectory)
+        }
         if let runtimeDirectory = runtimeDirectory(environment: environment),
            let command = standaloneRuntimeCommand(environment: environment, runtimeDirectory: runtimeDirectory) {
             return ServerCommand(
@@ -282,12 +286,27 @@ final class WebConnectServerController {
         guard let webDirectory = webDirectory(environment: environment) else {
             return nil
         }
+        return sourceServerCommand(environment: environment, webDirectory: webDirectory)
+    }
+
+    private static func sourceServerCommand(
+        environment: [String: String],
+        webDirectory: URL
+    ) -> ServerCommand {
         let bun = bunCommand(environment: environment)
         return ServerCommand(
             executableURL: bun.executableURL,
             arguments: bun.arguments,
             workingDirectory: webDirectory
         )
+    }
+
+    private static func shouldPreferSourceRuntime(environment: [String: String]) -> Bool {
+        if directoryURL(environment["CMUX_WEB_CONNECT_WEB_DIR"]) != nil {
+            return true
+        }
+        let raw = environment["CMUX_WEB_CONNECT_PREFER_SOURCE"] ?? environment["DEPPY_WEB_CONNECT_PREFER_SOURCE"]
+        return raw == "1" || raw?.lowercased() == "true"
     }
 
     static func runtimeStatus(
