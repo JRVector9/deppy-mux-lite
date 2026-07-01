@@ -13,6 +13,8 @@
 # Optional env:
 #   CMUX_HELPER_ENTITLEMENTS  (default: cmux-helper.entitlements)
 #   CMUX_TIMESTAMP             set to "none" for un-timestamped local sigs
+#   CMUX_REQUIRE_WEBAUTHN_ENTITLEMENT
+#                            set to "0" for apps that do not ship WebAuthn
 #
 # Signs in the Apple-documented inside-out order:
 #   1. CLI helpers under Contents/Resources/bin/* with minimal
@@ -100,11 +102,13 @@ if [[ -n "$APP_ID" ]]; then
     exit 1
   }
 fi
-/usr/bin/codesign -d --entitlements :- "$APP_PATH" 2>&1 \
-  | grep -q "com.apple.developer.web-browser.public-key-credential" || {
-    echo "error: signed app missing web-browser entitlement" >&2
-    exit 1
-  }
+if [[ "${CMUX_REQUIRE_WEBAUTHN_ENTITLEMENT:-1}" != "0" ]]; then
+  /usr/bin/codesign -d --entitlements :- "$APP_PATH" 2>&1 \
+    | grep -q "com.apple.developer.web-browser.public-key-credential" || {
+      echo "error: signed app missing web-browser entitlement" >&2
+      exit 1
+    }
+fi
 
 # Helpers must NOT carry the main app's application-identifier.
 for helper in "$APP_PATH/Contents/Resources/bin"/*; do
