@@ -322,10 +322,7 @@ public struct MobileSection: View {
     private var webConnectRuntimeStatusMessage: String? {
         switch webConnectRuntimeInstallResult {
         case .installed:
-            return String(
-                localized: "settings.mobile.webConnect.runtime.installed",
-                defaultValue: "Web Connect Runtime is installed."
-            )
+            return nil
         case .missingSource:
             return String(
                 localized: "settings.mobile.webConnect.runtime.missingSource",
