@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DERIVED_DATA="${DERIVED_DATA:-${HOME}/Library/Developer/Xcode/DerivedData/deppy-lite-arm64-release}"
+SPARKLE_FEED_URL="${DEPPY_LITE_SPARKLE_FEED_URL:-https://github.com/JRVector9/deppy-mux-lite/releases/latest/download/appcast-arm64.xml}"
+SPARKLE_PUBLIC_KEY="${DEPPY_LITE_SPARKLE_PUBLIC_KEY:-ojk35wvax9SXb3G+4lpL83PRAS2FQzqs+4FsbE0otOA=}"
 APP_PATH="${DERIVED_DATA}/Build/Products/Release/deppy-mux-lite.app"
 APP_BIN="${APP_PATH}/Contents/MacOS/deppy-mux-lite"
 CLI_BIN="${APP_PATH}/Contents/Resources/bin/deppy-cli"
@@ -60,6 +62,8 @@ XCODEBUILD_ARGS=(
   CODE_SIGNING_ALLOWED=NO
   CODE_SIGNING_REQUIRED=NO
   ARCHS=arm64
+  SPARKLE_FEED_URL="$SPARKLE_FEED_URL"
+  SPARKLE_PUBLIC_KEY="$SPARKLE_PUBLIC_KEY"
   DEAD_CODE_STRIPPING=YES
   COMPILER_INDEX_STORE_ENABLE=NO
 )
