@@ -15,6 +15,8 @@ env:
   CREATE_DMG_VERSION: 8.0.0
   DEPPY_LITE_ARM64_DMG_ASSET: deppy-mux-lite-arm64.dmg
   DEPPY_LITE_UNIVERSAL_DMG_ASSET: deppy-mux-lite-universal.dmg
+  DEPPY_LITE_ARM64_APPCAST_ASSET: appcast-arm64.xml
+  DEPPY_LITE_UNIVERSAL_APPCAST_ASSET: appcast-universal.xml
   DEPPY_WEB_CONNECT_RUNTIME_ARM64_ASSET: deppy-web-connect-runtime-arm64.zip
   DEPPY_WEB_CONNECT_RUNTIME_X86_64_ASSET: deppy-web-connect-runtime-x86_64.zip
 
@@ -41,6 +43,8 @@ jobs:
             const immutableAssetNames = [
               process.env.DEPPY_LITE_ARM64_DMG_ASSET,
               process.env.DEPPY_LITE_UNIVERSAL_DMG_ASSET,
+              process.env.DEPPY_LITE_ARM64_APPCAST_ASSET,
+              process.env.DEPPY_LITE_UNIVERSAL_APPCAST_ASSET,
               process.env.DEPPY_WEB_CONNECT_RUNTIME_ARM64_ASSET,
               process.env.DEPPY_WEB_CONNECT_RUNTIME_X86_64_ASSET,
             ];
@@ -245,11 +249,13 @@ jobs:
             derived_data: build-deppy-lite-arm64
             app_path: build-deppy-lite-arm64/Build/Products/Release/deppy-mux-lite.app
             dmg_name: deppy-mux-lite-arm64.dmg
+            appcast_name: appcast-arm64.xml
           - variant: universal
             script: scripts/build-deppy-lite-universal-release.sh
             derived_data: build-deppy-lite-universal
             app_path: build-deppy-lite-universal/Build/Products/Release/deppy-mux-lite-universal.app
             dmg_name: deppy-mux-lite-universal.dmg
+            appcast_name: appcast-universal.xml
     steps:
       - name: Clear stale git locks
         shell: bash
@@ -451,11 +457,33 @@ jobs:
           xcrun stapler staple "$DMG_RELEASE"
           xcrun stapler validate "$DMG_RELEASE"
 
+      - name: Generate Sparkle appcast
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.DEPPY_LITE_SPARKLE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SPARKLE_PRIVATE_KEY:-}" ]; then
+            echo "Missing DEPPY_LITE_SPARKLE_PRIVATE_KEY secret" >&2
+            exit 1
+          fi
+          TAG="${GITHUB_REF_NAME:-deppy-lite-dry-run}"
+          DOWNLOAD_URL_PREFIX="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/" \
+            RELEASE_NOTES_URL="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}" \
+            ./scripts/sparkle_generate_appcast.sh "${{ matrix.dmg_name }}" "$TAG" "${{ matrix.appcast_name }}"
+          grep -q 'sparkle:edSignature' "${{ matrix.appcast_name }}"
+
       - name: Upload DMG artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: deppy-lite-${{ matrix.variant }}-dmg
           path: ${{ matrix.dmg_name }}
+          if-no-files-found: error
+
+      - name: Upload appcast artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: deppy-lite-${{ matrix.variant }}-appcast
+          path: ${{ matrix.appcast_name }}
           if-no-files-found: error
 
   publish:
@@ -473,6 +501,13 @@ jobs:
           path: release-assets
           merge-multiple: true
 
+      - name: Download appcast artifacts
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: deppy-lite-*-appcast
+          path: release-assets
+          merge-multiple: true
+
       - name: Download Web Connect runtime artifacts
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
@@ -486,6 +521,8 @@ jobs:
           files: |
             release-assets/deppy-mux-lite-arm64.dmg
             release-assets/deppy-mux-lite-universal.dmg
+            release-assets/appcast-arm64.xml
+            release-assets/appcast-universal.xml
             release-assets/deppy-web-connect-runtime-arm64.zip
             release-assets/deppy-web-connect-runtime-x86_64.zip
           generate_release_notes: true
