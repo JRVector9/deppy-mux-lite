@@ -75,9 +75,9 @@ enum StartupBreadcrumbLog {
     private static var logURL: URL {
         let logsDirectory = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)
             .first?
-            .appendingPathComponent("Logs/cmux", isDirectory: true)
+            .appendingPathComponent("Logs/deppy-mux", isDirectory: true)
             ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-                .appendingPathComponent("cmux-logs", isDirectory: true)
+                .appendingPathComponent("deppy-mux-logs", isDirectory: true)
         let sanitizedBundleIdentifier = logFileComponent(Bundle.main.bundleIdentifier ?? "unknown")
         return logsDirectory.appendingPathComponent("startup-\(sanitizedBundleIdentifier).log")
     }

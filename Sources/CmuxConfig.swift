@@ -629,7 +629,8 @@ enum CmuxButtonIcon: Codable, Sendable, Hashable {
 
     static func projectRoot(forConfigPath configPath: String) -> String {
         let configDir = (configPath as NSString).deletingLastPathComponent
-        if (configDir as NSString).lastPathComponent == ".cmux" {
+        let markerName = (configDir as NSString).lastPathComponent
+        if markerName == ".deppy-mux" || markerName == ".cmux" {
             return (configDir as NSString).deletingLastPathComponent
         }
         return configDir
@@ -1931,8 +1932,15 @@ final class CmuxConfigStore: ObservableObject {
     private let fileWatchingEnabled: Bool
 
     nonisolated private static func defaultGlobalConfigPath() -> String {
+        // Existence-based fallback so a process that runs before the one-time
+        // config migration (performed on app launch) still sees the user's config.
         let home = FileManager.default.homeDirectoryForCurrentUser.path
-        return (home as NSString).appendingPathComponent(".config/cmux/cmux.json")
+        let primary = (home as NSString).appendingPathComponent(".config/deppy-mux/deppy-mux.json")
+        let legacy = (home as NSString).appendingPathComponent(".config/cmux/cmux.json")
+        if !FileManager.default.fileExists(atPath: primary), FileManager.default.fileExists(atPath: legacy) {
+            return legacy
+        }
+        return primary
     }
 
     private struct ActionEntry {
@@ -2004,7 +2012,8 @@ final class CmuxConfigStore: ObservableObject {
 
     private static func searchDirectoryForLocalConfigPath(_ path: String) -> String {
         let configDirectory = (path as NSString).deletingLastPathComponent
-        if (configDirectory as NSString).lastPathComponent == ".cmux" {
+        let markerName = (configDirectory as NSString).lastPathComponent
+        if markerName == ".deppy-mux" || markerName == ".cmux" {
             return (configDirectory as NSString).deletingLastPathComponent
         }
         return configDirectory
@@ -2118,20 +2127,29 @@ final class CmuxConfigStore: ObservableObject {
     }
 
     private func defaultLocalConfigPath(startingFrom directory: String) -> String {
-        (((directory as NSString).appendingPathComponent(".cmux") as NSString)
-            .appendingPathComponent("cmux.json"))
+        (((directory as NSString).appendingPathComponent(".deppy-mux") as NSString)
+            .appendingPathComponent("deppy-mux.json"))
+    }
+
+    /// The per-directory project-config candidates, most specific first: the
+    /// `.deppy-mux` marker, then the pre-rebrand `.cmux` marker existing repos
+    /// still carry, then the bare file names.
+    nonisolated static func projectConfigCandidates(in directory: String) -> [String] {
+        [
+            ((directory as NSString).appendingPathComponent(".deppy-mux") as NSString)
+                .appendingPathComponent("deppy-mux.json"),
+            ((directory as NSString).appendingPathComponent(".cmux") as NSString)
+                .appendingPathComponent("cmux.json"),
+            (directory as NSString).appendingPathComponent("deppy-mux.json"),
+            (directory as NSString).appendingPathComponent("cmux.json"),
+        ]
     }
 
     private func findCmuxConfig(startingFrom directory: String) -> String? {
         var current = directory
         let fs = FileManager.default
         while true {
-            let candidates = [
-                ((current as NSString).appendingPathComponent(".cmux") as NSString)
-                    .appendingPathComponent("cmux.json"),
-                (current as NSString).appendingPathComponent("cmux.json")
-            ]
-            for candidate in candidates where fs.fileExists(atPath: candidate) {
+            for candidate in Self.projectConfigCandidates(in: current) where fs.fileExists(atPath: candidate) {
                 return candidate
             }
             let parent = (current as NSString).deletingLastPathComponent
@@ -2146,12 +2164,8 @@ final class CmuxConfigStore: ObservableObject {
         let fs = FileManager.default
         var paths: [String] = []
         while true {
-            let candidates = [
-                ((current as NSString).appendingPathComponent(".cmux") as NSString)
-                    .appendingPathComponent("cmux.json"),
-                (current as NSString).appendingPathComponent("cmux.json")
-            ]
-            if let candidate = candidates.first(where: { fs.fileExists(atPath: $0) }) {
+            if let candidate = Self.projectConfigCandidates(in: current)
+                .first(where: { fs.fileExists(atPath: $0) }) {
                 paths.append(candidate)
             }
             let parent = (current as NSString).deletingLastPathComponent

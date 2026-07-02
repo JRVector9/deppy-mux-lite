@@ -246,7 +246,7 @@ enum MobileHostIdentity {
         ) else {
             return nil
         }
-        let directory = appSupport.appendingPathComponent("cmux", isDirectory: true)
+        let directory = appSupport.appendingPathComponent(CmuxAppSupportDirectory.directoryName, isDirectory: true)
         if !fileManager.fileExists(atPath: directory.path) {
             try? fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         }

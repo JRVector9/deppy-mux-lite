@@ -321,7 +321,7 @@ working-directory = ~/code`}</CodeBlock>
       <DocsHeading level={2} id="cmux-json" className="scroll-mt-24">cmux.json</DocsHeading>
       <p>
         cmux keeps app-owned settings, shortcuts, actions, custom commands, and workspace layouts in{" "}
-        <code>~/.config/cmux/cmux.json</code>. Terminal rendering still lives in Ghostty config.
+        <code>~/.config/deppy-mux/deppy-mux.json</code>. Terminal rendering still lives in Ghostty config.
         On launch, if the file is missing, cmux writes a commented template there.
       </p>
       <p>
@@ -330,17 +330,17 @@ working-directory = ~/code`}</CodeBlock>
       </p>
       <ol>
         <li>
-          <code>~/.config/cmux/cmux.json</code>
+          <code>~/.config/deppy-mux/deppy-mux.json</code>
         </li>
         <li>
-          <code>.cmux/cmux.json</code> in a project for project-scoped actions and workspace commands
+          <code>.deppy-mux/deppy-mux.json</code> in a project for project-scoped actions and workspace commands
         </li>
       </ol>
       <Callout type="info">
-        <strong>Precedence:</strong> global <code>~/.config/cmux/cmux.json</code> settings override
-        values saved in the Settings window. Legacy <code>~/.config/cmux/settings.json</code> and
+        <strong>Precedence:</strong> global <code>~/.config/deppy-mux/deppy-mux.json</code> settings override
+        values saved in the Settings window. Legacy <code>~/.config/deppy-mux/settings.json</code> and
         Application Support settings files are read only as fallback for missing settings keys.
-        Project-local <code>.cmux/cmux.json</code> can override actions, commands, UI action
+        Project-local <code>.deppy-mux/deppy-mux.json</code> can override actions, commands, UI action
         wiring, and notification hooks, but not global app preferences.
       </Callout>
       <Callout type="info">
@@ -357,7 +357,7 @@ working-directory = ~/code`}</CodeBlock>
         at <a href={schemaUrl}>{schemaUrl}</a> and the source lives at{" "}
         <a href={schemaSourceUrl}>{schemaSourceUrl}</a>.
       </p>
-      <CodeBlock title="~/.config/cmux/cmux.json" lang="json">
+      <CodeBlock title="~/.config/deppy-mux/deppy-mux.json" lang="json">
         {buildSettingsFileExample(t)}
       </CodeBlock>
 

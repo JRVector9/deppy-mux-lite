@@ -15276,7 +15276,7 @@ struct CMUXCLI {
             Usage: cmux reload-config
 
             Run the same configuration reload as the Reload Configuration shortcut.
-            This reloads Ghostty config, re-reads ~/.config/cmux/cmux.json, and refreshes terminals.
+            This reloads Ghostty config, re-reads ~/.config/deppy-mux/deppy-mux.json, and refreshes terminals.
 
             Example:
               cmux reload-config
@@ -15942,7 +15942,7 @@ struct CMUXCLI {
         case "sidebar":
             return String(localized: "cli.sidebar.usage", defaultValue: """
             Usage: cmux sidebar <validate|reload|select|open> [name|--all] [--json]
-            Validate, reload, select, or open custom sidebars from ~/.config/cmux/sidebars.
+            Validate, reload, select, or open custom sidebars from ~/.config/deppy-mux/sidebars.
             Commands:
               validate [name]   Validate all custom sidebars, or one named sidebar
               reload [name]     Validate all sidebars, then reload every valid one
@@ -34519,7 +34519,7 @@ export default function cmuxPiSessionExtension(pi: ExtensionAPI) {
           Back up any existing cmux.json file to a timestamped .bak copy before editing.
           Use printed curl commands to fetch the latest docs/schema, and prefer Ghostty config for terminal behavior Ghostty already supports.
           Ghostty config lives at ~/.config/ghostty/config (controls terminal transparency, blur, font, theme, keybinds, etc.).
-          `cmux reload-config` reloads BOTH Ghostty config and ~/.config/cmux/cmux.json and refreshes terminals in place. No app restart needed.
+          `cmux reload-config` reloads BOTH Ghostty config and ~/.config/deppy-mux/deppy-mux.json and refreshes terminals in place. No app restart needed.
 
         Commands:
           welcome
@@ -34701,7 +34701,7 @@ export default function cmuxPiSessionExtension(pi: ExtensionAPI) {
           CMUX_TAB_ID         Optional alias used by `tab-action`/`rename-tab` as default --tab.
           CMUX_SURFACE_ID     Auto-set in cmux terminals. Used as default --surface.
           CMUX_SOCKET_PATH    Override the Unix socket path. Without this, the CLI defaults
-                              to ~/.local/state/cmux/cmux.sock and auto-discovers tagged/debug sockets.
+                              to ~/.local/state/deppy-mux/cmux.sock and auto-discovers tagged/debug sockets.
         """
         #endif
     }

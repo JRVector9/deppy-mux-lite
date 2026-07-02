@@ -33,8 +33,16 @@ final class CmuxSettingsFileStore {
     fileprivate static let socketPasswordBackupIdentifier = "automation.socketPassword"
 
     static var defaultPrimaryPath: String {
+        // Existence-based fallback so a process that runs before the one-time
+        // config migration (performed on app launch) still writes the user's
+        // real config instead of forking a second file.
         let home = FileManager.default.homeDirectoryForCurrentUser.path
-        return (home as NSString).appendingPathComponent(".config/cmux/cmux.json")
+        let primary = (home as NSString).appendingPathComponent(".config/deppy-mux/deppy-mux.json")
+        let legacy = (home as NSString).appendingPathComponent(".config/cmux/cmux.json")
+        if !FileManager.default.fileExists(atPath: primary), FileManager.default.fileExists(atPath: legacy) {
+            return legacy
+        }
+        return primary
     }
 
     static var defaultFallbackPath: String? {

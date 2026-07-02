@@ -1,4 +1,5 @@
 public import Foundation
+internal import CmuxSettings
 #if DEBUG
 internal import CMUXDebugLog
 #endif
@@ -164,7 +165,7 @@ public struct SessionSnapshotRepository<SnapshotValue: SessionSnapshotRepresenti
             options: .regularExpression
         )
         return resolvedAppSupport
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent(CmuxAppSupportDirectory.directoryName, isDirectory: true)
             .appendingPathComponent("session-\(safeBundleId)\(suffix).json", isDirectory: false)
     }
 }

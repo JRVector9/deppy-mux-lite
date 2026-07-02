@@ -130,7 +130,7 @@ extension CMUXCLI {
 
         Examples:
           cmux config doctor
-          cmux config doctor --path .cmux/cmux.json
+          cmux config doctor --path .deppy-mux/deppy-mux.json
           cmux config set sidebar-font-size 14
           cmux config sidebar-font-size 12.5
           cmux config set surface-tab-bar-font-size 13
@@ -536,8 +536,11 @@ extension CMUXCLI {
                 return nil
             }
             let candidates = [
+                ((current as NSString).appendingPathComponent(".deppy-mux") as NSString)
+                    .appendingPathComponent("deppy-mux.json"),
                 ((current as NSString).appendingPathComponent(".cmux") as NSString)
                     .appendingPathComponent("cmux.json"),
+                (current as NSString).appendingPathComponent("deppy-mux.json"),
                 (current as NSString).appendingPathComponent("cmux.json"),
             ]
             for candidate in candidates {

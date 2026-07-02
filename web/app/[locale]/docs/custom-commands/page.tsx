@@ -62,13 +62,13 @@ export default function CustomCommandsPage() {
       <p>{t("fileLocationsDesc")}</p>
       <ul>
         <li>
-          <strong>{t("localConfig")}</strong> <code>./.cmux/cmux.json</code> - {t("localConfigDesc")}
+          <strong>{t("localConfig")}</strong> <code>./.deppy-mux/deppy-mux.json</code> - {t("localConfigDesc")}
         </li>
         <li>
           <strong>{t("fallbackLocal")}</strong> <code>./cmux.json</code> - {t("fallbackLocalDesc")}
         </li>
         <li>
-          <strong>{t("globalConfig")}</strong> <code>~/.config/cmux/cmux.json</code> - {t("globalConfigDesc")}
+          <strong>{t("globalConfig")}</strong> <code>~/.config/deppy-mux/deppy-mux.json</code> - {t("globalConfigDesc")}
         </li>
       </ul>
       <Callout type="info">{t("precedenceNote")}</Callout>

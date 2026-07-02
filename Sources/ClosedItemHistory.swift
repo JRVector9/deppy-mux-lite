@@ -705,7 +705,7 @@ final class ClosedItemHistoryStore: ObservableObject {
             options: .regularExpression
         )
         return resolvedAppSupport
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent(CmuxAppSupportDirectory.directoryName, isDirectory: true)
             .appendingPathComponent("closed-item-history-\(safeBundleId).json", isDirectory: false)
     }
 

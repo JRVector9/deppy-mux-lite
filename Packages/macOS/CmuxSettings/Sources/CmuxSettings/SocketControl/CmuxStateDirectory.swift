@@ -17,9 +17,9 @@ public import Foundation
 /// Support made the prompt fire constantly
 /// (https://github.com/manaflow-ai/cmux/issues/5146).
 ///
-/// This directory therefore resolves to `~/.local/state/cmux`, a plain dotfolder
+/// This directory therefore resolves to `~/.local/state/deppy-mux`, a plain dotfolder
 /// macOS does **not** treat as protected app data. It is the sibling of the
-/// existing `~/.local/state/cmux/crash` breadcrumb directory.
+/// legacy `~/.local/state/cmux/crash` breadcrumb directory GhosttyKit writes to.
 ///
 /// ```swift
 /// // The stable control socket; app and CLI agree on the same path by passing
@@ -28,11 +28,17 @@ public import Foundation
 /// let socket = CmuxStateDirectory.url(homeDirectory: home).appendingPathComponent("cmux.sock")
 /// ```
 public enum CmuxStateDirectory {
-    /// The directory name segment under `~/.local/state` (and the legacy name
-    /// under `~/Library/Application Support`).
-    public static let directoryName = "cmux"
+    /// The directory name segment under `~/.local/state`.
+    public static let directoryName = "deppy-mux"
 
-    /// The cmux state directory: `<home>/.local/state/cmux`.
+    /// The pre-rebrand directory name (`~/.local/state/cmux`, and the legacy
+    /// name under `~/Library/Application Support`). Read to migrate existing
+    /// state; GhosttyKit still writes crash reports under this name (its
+    /// `crash-report-subdir` is baked in at build time), so crash pickup must
+    /// keep reading both directories.
+    public static let legacyDirectoryName = "cmux"
+
+    /// The deppy-mux state directory: `<home>/.local/state/deppy-mux`.
     ///
     /// The home directory is injected (no ambient `FileManager.default` default)
     /// so this stays a pure, testable function with no hidden global state.
@@ -65,6 +71,49 @@ public enum CmuxStateDirectory {
     ///   be resolved.
     public static func legacyApplicationSupportURL(fileManager: FileManager) -> URL? {
         fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
-            .appendingPathComponent(directoryName, isDirectory: true)
+            .appendingPathComponent(legacyDirectoryName, isDirectory: true)
+    }
+
+    /// The pre-rebrand state directory: `<home>/.local/state/cmux`.
+    /// - Parameter homeDirectory: The user's home directory.
+    public static func legacyURL(homeDirectory: URL) -> URL {
+        homeDirectory
+            .appendingPathComponent(".local", isDirectory: true)
+            .appendingPathComponent("state", isDirectory: true)
+            .appendingPathComponent(legacyDirectoryName, isDirectory: true)
+    }
+
+    /// Moves each child of the legacy `~/.local/state/cmux` directory into
+    /// `~/.local/state/deppy-mux`, once.
+    ///
+    /// A per-child merge (not a whole-directory rename) so re-runs are safe and
+    /// newer files are never overwritten. Ephemeral socket files (`*.sock`) are
+    /// skipped: a still-running pre-rename instance may be listening on them,
+    /// and every listener recreates its socket on launch anyway. The legacy
+    /// directory itself is intentionally left in place — GhosttyKit keeps
+    /// writing crash reports under it (path baked in at build time).
+    /// - Parameter fileManager: The file manager used for the moves.
+    public static func migrateLegacyStateDirectoryIfNeeded(fileManager: FileManager) {
+        let home = fileManager.homeDirectoryForCurrentUser
+        let legacy = legacyURL(homeDirectory: home)
+        let destination = url(homeDirectory: home)
+        guard legacy.standardizedFileURL != destination.standardizedFileURL,
+              fileManager.fileExists(atPath: legacy.path)
+        else {
+            return
+        }
+        let children = (try? fileManager.contentsOfDirectory(
+            at: legacy,
+            includingPropertiesForKeys: nil,
+            options: []
+        )) ?? []
+        guard !children.isEmpty else { return }
+        try? fileManager.createDirectory(at: destination, withIntermediateDirectories: true)
+        for child in children {
+            guard child.pathExtension != "sock" else { continue }
+            let target = destination.appendingPathComponent(child.lastPathComponent)
+            guard !fileManager.fileExists(atPath: target.path) else { continue }
+            try? fileManager.moveItem(at: child, to: target)
+        }
     }
 }

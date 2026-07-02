@@ -1,6 +1,6 @@
 # cmux.json settings
 
-Global app preferences live in `~/.config/cmux/cmux.json`.
+Global app preferences live in `~/.config/deppy-mux/deppy-mux.json`.
 
 ## `app.windowTitleTemplate`
 

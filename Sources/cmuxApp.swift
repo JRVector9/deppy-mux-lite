@@ -76,21 +76,32 @@ struct cmuxApp: App {
     }
 
     init() {
+        // One-time pre-rebrand data migrations, FIRST — before any location
+        // bundle or store below resolves a path. This App initializer is the
+        // composition root, so it is where the concrete `FileManager.default`
+        // is named for the packages' injected seams.
+        // 1. Application Support data (sessions, history, search index, auth
+        //    state): `cmux/` → `deppy-mux/`.
+        CmuxAppSupportDirectory.migrateLegacyDirectoryIfNeeded(fileManager: .default)
+        // 2. Runtime state directory (`~/.local/state/cmux` → `deppy-mux`):
+        //    socket password, socket-path markers, cached remote daemon binaries.
+        CmuxStateDirectory.migrateLegacyStateDirectoryIfNeeded(fileManager: .default)
+        // 3. User config (`~/.config/cmux` → `~/.config/deppy-mux`, with
+        //    `cmux.json` renamed to `deppy-mux.json`).
+        CmuxConfigLocation.migrateLegacyConfigDirectoryIfNeeded(fileManager: .default)
+        // 4. Relocate a pre-existing socket password out of the legacy
+        //    Application Support directory before any store reads it. The CLI
+        //    reads this file on every agent hook, and a cross-identity reach into
+        //    Application Support triggers the macOS Sequoia "access data from
+        //    other apps" prompt; the password lives in the non-protected state
+        //    directory (https://github.com/manaflow-ai/cmux/issues/5146).
+        SocketControlPasswordStore.migrateLegacyApplicationSupportPasswordFileIfNeeded(fileManager: .default)
+
         // Gather settings package dependencies once. The runtime itself
         // is assigned after the saved language override below, because
         // it owns localized search-index text for the process lifetime.
         let settingsCatalog = SettingCatalog()
         let configFileURL = CmuxConfigLocation().userConfigFile
-        // Relocate a pre-existing socket password out of the legacy
-        // Application Support directory before any store reads it. The CLI reads
-        // this file on every agent hook, and a cross-identity reach into
-        // Application Support triggers the macOS Sequoia "access data from other
-        // apps" prompt; the password now lives in the non-protected cmux state
-        // directory (https://github.com/manaflow-ai/cmux/issues/5146). The app
-        // owns its Application Support data, so it can perform this move silently.
-        // This App initializer is the composition root, so it is where the
-        // concrete `FileManager.default` is named for the package's injected seams.
-        SocketControlPasswordStore.migrateLegacyApplicationSupportPasswordFileIfNeeded(fileManager: .default)
         // Secrets live in their own 0600 files under the cmux state directory,
         // the same directory (and `socket-control-password` file) the socket
         // auth path reads via SocketControlPasswordStore, so the Settings UI

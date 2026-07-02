@@ -447,7 +447,7 @@ public struct SocketControlSettings {
 
     /// The directory holding the control socket and its marker files.
     ///
-    /// Resolves to ``CmuxStateDirectory`` (`~/.local/state/cmux`) rather than
+    /// Resolves to ``CmuxStateDirectory`` (`~/.local/state/deppy-mux`) rather than
     /// Application Support: the separately-signed `cmux` CLI connects to this
     /// socket on every agent hook, and a different-identity process reaching into
     /// the app's Application Support data triggers the macOS Sequoia "access data

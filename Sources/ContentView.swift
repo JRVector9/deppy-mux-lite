@@ -9731,8 +9731,16 @@ enum CmuxExtensionSidebarSelection {
         #if DEBUG
         if let override = customSidebarsDirectoryOverrideForTesting { return override }
         #endif
-        return FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".config/cmux/sidebars", isDirectory: true)
+        // Existence-based fallback so sidebars authored before the one-time
+        // config migration keep loading.
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let primary = home.appendingPathComponent(".config/deppy-mux/sidebars", isDirectory: true)
+        let legacy = home.appendingPathComponent(".config/cmux/sidebars", isDirectory: true)
+        if !FileManager.default.fileExists(atPath: primary.path),
+           FileManager.default.fileExists(atPath: legacy.path) {
+            return legacy
+        }
+        return primary
     }
 
     /// One provider descriptor per `<name>.swift`/`<name>.json` file in the
