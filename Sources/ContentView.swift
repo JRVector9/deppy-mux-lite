@@ -12818,8 +12818,8 @@ private enum SidebarHelpMenuAction {
 private struct SidebarHelpMenuButton: View {
     private let docsURL = URL(string: "https://cmux.com/docs")
     private let changelogURL = URL(string: "https://cmux.com/docs/changelog")
-    private let githubURL = URL(string: "https://github.com/manaflow-ai/cmux")
-    private let githubIssuesURL = URL(string: "https://github.com/manaflow-ai/cmux/issues")
+    private let githubURL = URL(string: "https://github.com/JRVector9/deppy-mux-lite")
+    private let githubIssuesURL = URL(string: "https://github.com/JRVector9/deppy-mux-lite/issues")
     private let discordURL = URL(string: "https://discord.gg/xsgFEVrWCZ")
     private let helpTitle = String(localized: "sidebar.help.button", defaultValue: "Help")
     private let buttonSize: CGFloat = 22
