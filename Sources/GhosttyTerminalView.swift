@@ -741,6 +741,12 @@ class GhosttyApp {
         initializeGhostty()
     }
 
+    deinit {
+        // Block-based observers are not auto-removed on dealloc.
+        appObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        appObservers.removeAll()
+    }
+
     #if DEBUG
     private static let initLogPath = "/tmp/cmux-ghostty-init.log"
 

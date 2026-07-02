@@ -122,7 +122,9 @@ final class MenuBarExtraController: NSObject, NSMenuDelegate {
         sleepyModeItem.action = #selector(sleepyModeAction)
         menu.addItem(sleepyModeItem)
 
+#if !DEPPY_LITE
         menu.addItem(MenuBarProfilingMenuItem.make())
+#endif
         menu.addItem(notificationListSeparator)
         notificationSectionSeparator.isHidden = true
         menu.addItem(notificationSectionSeparator)

@@ -1015,7 +1015,17 @@ class TerminalController {
                 await self?.authCoordinator?.awaitBootstrapped()
                 semaphore.signal()
             }
-            semaphore.wait()
+            if semaphore.wait(timeout: .now() + 10) == .timedOut {
+                // Bootstrap did not finish in time; the main actor may itself be
+                // the thing that is stalled, so answer with a static payload
+                // instead of v2AuthStatusPayload's main-thread snapshot.
+                return v2Ok(id: request.id, result: [
+                    "signed_in": false,
+                    "is_restoring_session": false,
+                    "is_loading": true,
+                    "timed_out": true,
+                ])
+            }
             return v2Ok(id: request.id, result: v2AuthStatusPayload(timedOut: false))
         case "auth.sign_in_url":
             var signInURL: String?

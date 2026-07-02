@@ -1489,69 +1489,89 @@ final class SessionIndexStore: ObservableObject {
         // Parallelize per-file work. Each file's read + parse is independent;
         // running them in a TaskGroup lets the cooperative pool fan I/O out
         // across cores instead of one-file-at-a-time blocking on disk.
+        @Sendable func inspectCandidate(
+            idx: Int, candidate: ClaudeSessionCandidate
+        ) -> (Int, SessionEntry?, Bool) {
+            // Cache hit
+            let cached = ClaudeMetadataCache.shared.get(url: candidate.url, mtime: candidate.mtime)
+            if let cached, needle.isEmpty || candidate.prefilteredByRipgrep {
+                if let cwdFilter, cached.cwd != cwdFilter { return (idx, nil, true) }
+                return (
+                    idx,
+                    cached.withClaudeConfigDirectoryForResume(candidate.resumeConfigDirectory),
+                    true
+                )
+            }
+            let head = readFileHead(url: candidate.url, byteCap: headByteCap)
+            let tail = readFileTail(url: candidate.url, byteCap: tailByteCap)
+            if !needle.isEmpty && !candidate.prefilteredByRipgrep {
+                let combined = head + "\n" + tail
+                if combined.range(of: needle, options: [.caseInsensitive, .literal]) == nil {
+                    return (idx, nil, false)
+                }
+            }
+            if let cached {
+                if let cwdFilter, cached.cwd != cwdFilter { return (idx, nil, true) }
+                return (
+                    idx,
+                    cached.withClaudeConfigDirectoryForResume(candidate.resumeConfigDirectory),
+                    true
+                )
+            }
+            let parsed = extractClaudeMetadata(head: head, tail: tail, projectDir: candidate.dirName)
+            if let cwdFilter, parsed.cwd != cwdFilter { return (idx, nil, false) }
+            let sid = candidate.url.deletingPathExtension().lastPathComponent
+            let entry = SessionEntry(
+                id: "claude:" + candidate.url.path,
+                agent: .claude,
+                sessionId: sid,
+                title: parsed.title,
+                cwd: parsed.cwd,
+                gitBranch: parsed.branch,
+                pullRequest: parsed.pr,
+                modified: candidate.mtime,
+                fileURL: candidate.url,
+                specifics: .claude(
+                    model: parsed.model,
+                    permissionMode: parsed.permissionMode,
+                    configDirectoryForResume: candidate.resumeConfigDirectory
+                )
+            )
+            if needle.isEmpty {
+                ClaudeMetadataCache.shared.put(
+                    url: candidate.url,
+                    mtime: candidate.mtime,
+                    entry: entry
+                )
+            }
+            return (idx, entry, false)
+        }
+
+        // Each child does blocking FileHandle reads; unbounded fan-out can
+        // park every cooperative-pool thread. Keep a small sliding window of
+        // in-flight children, enqueueing the next candidate per result.
+        let windowSize = max(4, min(8, ProcessInfo.processInfo.activeProcessorCount))
         let processed: [(Int, SessionEntry?, Bool)] = await withTaskGroup(
             of: (Int, SessionEntry?, Bool).self
         ) { group in
-            for (idx, candidate) in workCandidates.enumerated() {
-                group.addTask {
-                    // Cache hit
-                    let cached = ClaudeMetadataCache.shared.get(url: candidate.url, mtime: candidate.mtime)
-                    if let cached, needle.isEmpty || candidate.prefilteredByRipgrep {
-                        if let cwdFilter, cached.cwd != cwdFilter { return (idx, nil, true) }
-                        return (
-                            idx,
-                            cached.withClaudeConfigDirectoryForResume(candidate.resumeConfigDirectory),
-                            true
-                        )
-                    }
-                    let head = readFileHead(url: candidate.url, byteCap: headByteCap)
-                    let tail = readFileTail(url: candidate.url, byteCap: tailByteCap)
-                    if !needle.isEmpty && !candidate.prefilteredByRipgrep {
-                        let combined = head + "\n" + tail
-                        if combined.range(of: needle, options: [.caseInsensitive, .literal]) == nil {
-                            return (idx, nil, false)
-                        }
-                    }
-                    if let cached {
-                        if let cwdFilter, cached.cwd != cwdFilter { return (idx, nil, true) }
-                        return (
-                            idx,
-                            cached.withClaudeConfigDirectoryForResume(candidate.resumeConfigDirectory),
-                            true
-                        )
-                    }
-                    let parsed = extractClaudeMetadata(head: head, tail: tail, projectDir: candidate.dirName)
-                    if let cwdFilter, parsed.cwd != cwdFilter { return (idx, nil, false) }
-                    let sid = candidate.url.deletingPathExtension().lastPathComponent
-                    let entry = SessionEntry(
-                        id: "claude:" + candidate.url.path,
-                        agent: .claude,
-                        sessionId: sid,
-                        title: parsed.title,
-                        cwd: parsed.cwd,
-                        gitBranch: parsed.branch,
-                        pullRequest: parsed.pr,
-                        modified: candidate.mtime,
-                        fileURL: candidate.url,
-                        specifics: .claude(
-                            model: parsed.model,
-                            permissionMode: parsed.permissionMode,
-                            configDirectoryForResume: candidate.resumeConfigDirectory
-                        )
-                    )
-                    if needle.isEmpty {
-                        ClaudeMetadataCache.shared.put(
-                            url: candidate.url,
-                            mtime: candidate.mtime,
-                            entry: entry
-                        )
-                    }
-                    return (idx, entry, false)
-                }
+            var nextIndex = 0
+            while nextIndex < min(windowSize, workCandidates.count) {
+                let idx = nextIndex
+                let candidate = workCandidates[idx]
+                group.addTask { inspectCandidate(idx: idx, candidate: candidate) }
+                nextIndex += 1
             }
             var collected: [(Int, SessionEntry?, Bool)] = []
             collected.reserveCapacity(workCandidates.count)
-            for await item in group { collected.append(item) }
+            for await item in group {
+                collected.append(item)
+                if nextIndex < workCandidates.count {
+                    let idx = nextIndex
+                    let candidate = workCandidates[idx]
+                    group.addTask { inspectCandidate(idx: idx, candidate: candidate) }
+                    nextIndex += 1
+                }
+            }
             return collected
         }
         // Restore original mtime ordering (TaskGroup completes out-of-order).

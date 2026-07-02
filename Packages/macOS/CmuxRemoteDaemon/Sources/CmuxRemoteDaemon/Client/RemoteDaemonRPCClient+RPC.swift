@@ -353,7 +353,12 @@ extension RemoteDaemonRPCClient {
                 sendErrorBox.error = error
                 semaphore.signal()
             }
-            semaphore.wait()
+            if semaphore.wait(timeout: .now() + 30) == .timedOut {
+                stop(suppressTerminationCallback: false)
+                throw NSError(domain: "cmux.remote.daemon.rpc", code: 16, userInfo: [
+                    NSLocalizedDescriptionKey: "timed out writing daemon RPC request",
+                ])
+            }
             if let sendError = sendErrorBox.error {
                 stop(suppressTerminationCallback: false)
                 throw NSError(domain: "cmux.remote.daemon.rpc", code: 16, userInfo: [

@@ -7,7 +7,7 @@ import Bonsplit
 import CmuxSettings
 
 nonisolated private let terminalNotificationLogger = Logger(
-    subsystem: "com.cmuxterm.app",
+    subsystem: "com.deppy-mux.app",
     category: "notification"
 )
 
