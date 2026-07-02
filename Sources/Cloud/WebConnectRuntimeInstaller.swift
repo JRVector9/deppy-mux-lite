@@ -67,7 +67,9 @@ struct WebConnectRuntimeInstaller {
         }
     }
 
-    func uninstall() -> Bool {
+    /// Async so removing the large runtime tree runs off the caller's actor
+    /// (deleting thousands of files on the main thread beachballs the app).
+    func uninstall() async -> Bool {
         do {
             if fileManager.fileExists(atPath: installDirectory.path) {
                 try fileManager.removeItem(at: installDirectory)

@@ -204,8 +204,8 @@ final class HostSettingsActions: SettingsHostActions {
         await WebConnectRuntimeInstaller().install(progress: progress)
     }
 
-    func uninstallMobileWebAccessRuntime() -> Bool {
-        WebConnectRuntimeInstaller().uninstall()
+    func uninstallMobileWebAccessRuntime() async -> Bool {
+        await WebConnectRuntimeInstaller().uninstall()
     }
 
     func copyMobileWebAccessURL(_ url: String) {

@@ -473,6 +473,33 @@ final class ProcessSSHFileExplorerTransport: SSHFileExplorerTransport {
         let terminationStatus: Int32
     }
 
+    // Collects one pipe's output on a background queue so stdout and stderr
+    // drain concurrently: reading them sequentially deadlocks when the
+    // not-yet-read pipe fills its 64KB buffer and blocks the child.
+    private final class PipeDrainBox: @unchecked Sendable {
+        private let lock = NSLock()
+        private let group = DispatchGroup()
+        private var data = Data()
+
+        init(draining handle: FileHandle) {
+            group.enter()
+            DispatchQueue.global(qos: .utility).async { [self] in
+                let drained = handle.readDataToEndOfFileOrEmpty()
+                lock.lock()
+                data = drained
+                lock.unlock()
+                group.leave()
+            }
+        }
+
+        func wait() -> Data {
+            group.wait()
+            lock.lock()
+            defer { lock.unlock() }
+            return data
+        }
+    }
+
     // Keeps the child process reachable from the cancellation handler while
     // the blocking wait runs off Swift's cooperative executor.
     private final class SSHCommandProcess: @unchecked Sendable {
@@ -517,8 +544,9 @@ final class ProcessSSHFileExplorerTransport: SSHFileExplorerTransport {
                 process.terminate()
             }
 
+            let stderrDrain = PipeDrainBox(draining: errPipe.fileHandleForReading)
             let data = outPipe.fileHandleForReading.readDataToEndOfFileOrEmpty()
-            let stderrData = errPipe.fileHandleForReading.readDataToEndOfFileOrEmpty()
+            let stderrData = stderrDrain.wait()
             process.waitUntilExit()
             terminationGate.markFinished()
             lock.lock()
@@ -602,8 +630,9 @@ final class ProcessSSHFileExplorerTransport: SSHFileExplorerTransport {
                 process.terminate()
             }
 
+            let stderrDrain = PipeDrainBox(draining: errPipe.fileHandleForReading)
             try outPipe.fileHandleForReading.copyDataToEndOfFile(to: outputHandle)
-            let stderrData = errPipe.fileHandleForReading.readDataToEndOfFileOrEmpty()
+            let stderrData = stderrDrain.wait()
             process.waitUntilExit()
             terminationGate.markFinished()
             lock.lock()
