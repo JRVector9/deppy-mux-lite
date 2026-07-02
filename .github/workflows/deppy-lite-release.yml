@@ -13,6 +13,7 @@ permissions:
 env:
   CREATE_DMG_VERSION: 8.0.0
   DEPPY_LITE_DMG_ASSET: deppy-mux-lite-universal.dmg
+  DEPPY_LITE_APPCAST_ASSET: appcast-universal.xml
   DEPPY_WEB_CONNECT_RUNTIME_ARM64_ASSET: deppy-web-connect-runtime-arm64.zip
   DEPPY_WEB_CONNECT_RUNTIME_X86_64_ASSET: deppy-web-connect-runtime-x86_64.zip
 
@@ -38,6 +39,7 @@ jobs:
               : null;
             const immutableAssetNames = [
               process.env.DEPPY_LITE_DMG_ASSET,
+              process.env.DEPPY_LITE_APPCAST_ASSET,
               process.env.DEPPY_WEB_CONNECT_RUNTIME_ARM64_ASSET,
               process.env.DEPPY_WEB_CONNECT_RUNTIME_X86_64_ASSET,
             ];
@@ -531,6 +533,21 @@ jobs:
           xcrun stapler validate "$DEPPY_LITE_DMG_ASSET"
           du -sh "$DEPPY_LITE_DMG_ASSET" release-assets/*.zip
 
+      - name: Generate Sparkle appcast
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.DEPPY_LITE_SPARKLE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SPARKLE_PRIVATE_KEY" ]; then
+            echo "Missing DEPPY_LITE_SPARKLE_PRIVATE_KEY secret" >&2
+            exit 1
+          fi
+          TAG="${GITHUB_REF_NAME:-deppy-lite-dry-run}"
+          DOWNLOAD_URL_PREFIX="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/" \
+            RELEASE_NOTES_URL="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}" \
+            ./scripts/sparkle_generate_appcast.sh "$DEPPY_LITE_DMG_ASSET" "$TAG" "$DEPPY_LITE_APPCAST_ASSET"
+          grep -q 'sparkle:edSignature' "$DEPPY_LITE_APPCAST_ASSET"
+
       - name: Upload build artifacts (dry-run)
         if: needs.guard-release-assets.outputs.skip_upload != 'true' && github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -538,6 +555,7 @@ jobs:
           name: deppy-lite-release-dry-run
           path: |
             deppy-mux-lite-universal.dmg
+            appcast-universal.xml
             release-assets/deppy-web-connect-runtime-arm64.zip
             release-assets/deppy-web-connect-runtime-x86_64.zip
           if-no-files-found: error
@@ -548,6 +566,7 @@ jobs:
         with:
           files: |
             deppy-mux-lite-universal.dmg
+            appcast-universal.xml
             release-assets/deppy-web-connect-runtime-arm64.zip
             release-assets/deppy-web-connect-runtime-x86_64.zip
           generate_release_notes: true
