@@ -8,7 +8,7 @@ import OSLog
 import StackAuth
 import os
 
-private let mobileHostLog = Logger(subsystem: "dev.cmux", category: "mobile-host")
+private let mobileHostLog = Logger(subsystem: "com.deppy-mux.dev", category: "mobile-host")
 
 extension Notification.Name {
     static let mobileHostEventSubscriptionsDidChange = Notification.Name(

@@ -1929,12 +1929,12 @@ final class CmuxDiffViewerURLSchemeHandler: NSObject, WKURLSchemeHandler {
     private let lock = NSLock()
     private var sessions: [String: Session] = [:]
     private var activeSchemeTasks: [ObjectIdentifier: SchemeTaskState] = [:]
-    private let streamQueue = DispatchQueue(label: "com.manaflow.cmux.diff-viewer-stream", qos: .userInitiated)
+    private let streamQueue = DispatchQueue(label: "com.deppy-mux.diff-viewer-stream", qos: .userInitiated)
     // Branch picker routes shell out to the bundled CLI (git). Run them on a
     // dedicated concurrent queue, NOT the serial file-serving streamQueue, so a
     // slow/hung git invocation cannot stall restored diff-viewer file serving.
     private let pickerQueue = DispatchQueue(
-        label: "com.manaflow.cmux.diff-viewer-picker",
+        label: "com.deppy-mux.diff-viewer-picker",
         qos: .userInitiated,
         attributes: .concurrent
     )
@@ -2124,7 +2124,7 @@ final class CmuxDiffViewerURLSchemeHandler: NSObject, WKURLSchemeHandler {
 
         // Drain stdout concurrently with the wait so the child can never block on
         // a full pipe while we wait, and we still capture all output.
-        let drainQueue = DispatchQueue(label: "com.manaflow.cmux.diff-viewer-picker-drain")
+        let drainQueue = DispatchQueue(label: "com.deppy-mux.diff-viewer-picker-drain")
         var collected = Data()
         let drainDone = DispatchSemaphore(value: 0)
         let readHandle = stdoutPipe.fileHandleForReading

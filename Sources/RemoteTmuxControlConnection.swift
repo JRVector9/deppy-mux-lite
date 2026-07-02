@@ -340,7 +340,7 @@ final class RemoteTmuxControlConnection {
         proc.standardError = errPipe
         let stdinWriter = RemoteTmuxControlPipeWriter(
             handle: inPipe.fileHandleForWriting,
-            label: "com.cmux.remote-tmux.stdin.\(UUID().uuidString)",
+            label: "com.deppy-mux.remote-tmux.stdin.\(UUID().uuidString)",
             maxPendingBytes: Self.maxPendingStdinBytes,
             onFailure: { [weak self] in
                 self?.handleStdinWriteFailure()

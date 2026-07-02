@@ -48,7 +48,7 @@ internal import CMUXDebugLog
 public final class RemoteSessionCoordinator: @unchecked Sendable {
     // MARK: - Collaborators (immutable after init)
 
-    let queue = DispatchQueue(label: "com.cmux.remote-ssh.\(UUID().uuidString)", qos: .utility)
+    let queue = DispatchQueue(label: "com.deppy-mux.remote-ssh.\(UUID().uuidString)", qos: .utility)
     let queueKey = DispatchSpecificKey<Void>()
     /// One-way publish seam to the owning workspace model (the app adapter
     /// binds the controller ID and owns the main-queue hop).

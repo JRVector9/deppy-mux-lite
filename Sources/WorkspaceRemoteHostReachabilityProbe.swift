@@ -22,7 +22,7 @@ enum WorkspaceRemoteHostReachabilityProbe {
     static let defaultTimeout: TimeInterval = 2.5
     private static let sshResolveTimeout: TimeInterval = 3.0
     private static let probeQueue = DispatchQueue(
-        label: "com.cmux.remote-host-reachability",
+        label: "com.deppy-mux.remote-host-reachability",
         qos: .utility
     )
 

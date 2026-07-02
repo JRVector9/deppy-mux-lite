@@ -32,7 +32,7 @@ public final class RemoteCLIRelayServer: @unchecked Sendable {
     private let relayToken: Data
     private let commandRewriter: any RemoteRelayCommandRewriting
     private let clock: any RemoteProxyRetryClock
-    private let queue = DispatchQueue(label: "com.cmux.remote-ssh.cli-relay.\(UUID().uuidString)", qos: .utility)
+    private let queue = DispatchQueue(label: "com.deppy-mux.remote-ssh.cli-relay.\(UUID().uuidString)", qos: .utility)
 
     private var listener: NWListener?
     private var sessions: [UUID: Session] = [:]

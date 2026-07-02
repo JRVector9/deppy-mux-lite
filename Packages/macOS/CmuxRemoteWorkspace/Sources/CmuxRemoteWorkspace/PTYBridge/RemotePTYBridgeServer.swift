@@ -50,7 +50,7 @@ public final class RemotePTYBridgeServer: @unchecked Sendable {
     private let strings: any RemotePTYBridgeStrings
     private let clock: any RemoteProxyRetryClock
     private let token = UUID().uuidString.lowercased()
-    private let queue = DispatchQueue(label: "com.cmux.remote-ssh.pty-bridge.\(UUID().uuidString)", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.deppy-mux.remote-ssh.pty-bridge.\(UUID().uuidString)", qos: .userInitiated)
     private let onStop: () -> Void
 
     private var listener: NWListener?

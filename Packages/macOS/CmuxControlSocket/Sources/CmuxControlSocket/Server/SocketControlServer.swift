@@ -119,7 +119,7 @@ public final class SocketControlServer {
 
     /// Serial delivery queue for the accept read source and the path-monitor
     /// source. Event delivery only — it protects no state.
-    nonisolated let socketListenerQueue = DispatchQueue(label: "com.cmux.socket.listener")
+    nonisolated let socketListenerQueue = DispatchQueue(label: "com.deppy-mux.socket.listener")
 
     /// Stateless syscall surface (bind, locks, probes, client config).
     public nonisolated let transport: SocketTransport

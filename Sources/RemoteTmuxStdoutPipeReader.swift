@@ -29,7 +29,7 @@ final class RemoteTmuxStdoutPipeReader: @unchecked Sendable {
         self.stream = stream
         self.continuation = continuation
         self.queue = DispatchQueue(
-            label: "com.cmux.remote-tmux.stdout.\(UUID().uuidString)",
+            label: "com.deppy-mux.remote-tmux.stdout.\(UUID().uuidString)",
             qos: .userInitiated
         )
         self.maxPendingBytes = max(1, maxPendingBytes)
