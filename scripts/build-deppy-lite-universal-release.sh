@@ -40,6 +40,72 @@ if [[ -n "$PREBUILT_GHOSTTY_HELPER" ]]; then
   export CMUX_SKIP_ZIG_BUILD=1
 fi
 
+# --- Local fallback when the pinned Zig can't build the Ghostty helper --------
+# Zig builds its build-runner for the native host. On a macOS newer than the
+# pinned Zig knows about (e.g. macOS 26 + Zig 0.15.2, which lacks libSystem
+# stubs for that OS), that native link fails, so `zig build` of the helper can't
+# run at all. The functions below detect that case and reuse a valid prebuilt
+# helper instead of failing the whole release build.
+
+# Probe: can this Zig link a native macOS binary? Mirrors how the build-runner
+# is linked, so a failure here predicts the helper build failing the same way.
+zig_can_link_natively() {
+  local zig_bin="$1"
+  local probe_dir
+  probe_dir="$(mktemp -d "${TMPDIR:-/tmp}/cmux-zig-probe.XXXXXX")"
+  printf 'const std = @import("std");\npub fn main() void {\n    std.debug.print("", .{});\n}\n' \
+    >"$probe_dir/probe.zig"
+  local rc=0
+  ( cd "$probe_dir" && env -u SDKROOT "$zig_bin" build-exe probe.zig -femit-bin=probe ) \
+    >/dev/null 2>&1 || rc=1
+  rm -rf "$probe_dir"
+  return "$rc"
+}
+
+# Print a valid, non-stub prebuilt Ghostty helper that contains every requested
+# architecture, searching installed app bundles. Returns non-zero if none match.
+find_prebuilt_ghostty_helper() {
+  local candidate want ok
+  for candidate in \
+    "/Applications/deppy-mux-lite-universal.app/Contents/Resources/bin/ghostty" \
+    "/Applications/cmux.app/Contents/Resources/bin/ghostty" \
+    "/Applications/deppy-mux-lite.app/Contents/Resources/bin/ghostty"; do
+    [[ -x "$candidate" ]] || continue
+    ok=1
+    for want in "$@"; do
+      lipo -archs "$candidate" 2>/dev/null | tr ' ' '\n' | grep -qx "$want" || { ok=0; break; }
+    done
+    [[ "$ok" == "1" ]] || continue
+    /usr/bin/strings "$candidate" 2>/dev/null | grep -q "ghostty CLI helper stub" && continue
+    echo "$candidate"
+    return 0
+  done
+  return 1
+}
+
+# When no explicit helper was provided and the pinned Zig can't build here, fall
+# back to a prebuilt universal (arm64+x86_64) helper so local release builds still
+# succeed. On CI (older macOS) the probe passes and the source build runs as
+# usual. Disable with DEPPY_LITE_AUTO_GHOSTTY_HELPER=0.
+if [[ -z "$PREBUILT_GHOSTTY_HELPER" \
+      && "${CMUX_SKIP_ZIG_BUILD:-}" != "1" \
+      && "${DEPPY_LITE_AUTO_GHOSTTY_HELPER:-1}" == "1" ]]; then
+  probe_zig="${CMUX_ZIG:-$("$ROOT_DIR/scripts/ensure-zig-required.sh" 2>/dev/null || true)}"
+  if [[ -n "$probe_zig" && -x "$probe_zig" ]] && ! zig_can_link_natively "$probe_zig"; then
+    auto_helper="$(find_prebuilt_ghostty_helper arm64 x86_64 || true)"
+    if [[ -n "$auto_helper" ]]; then
+      echo "note: pinned Zig cannot build the Ghostty helper on this host; reusing prebuilt helper:" >&2
+      echo "      $auto_helper" >&2
+      echo "      (set DEPPY_LITE_AUTO_GHOSTTY_HELPER=0 to force a source build)" >&2
+      PREBUILT_GHOSTTY_HELPER="$auto_helper"
+      export CMUX_SKIP_ZIG_BUILD=1
+    else
+      echo "warning: pinned Zig cannot build the Ghostty helper here and no prebuilt universal (arm64+x86_64) helper was found." >&2
+      echo "         Provide one with DEPPY_LITE_GHOSTTY_HELPER_PATH=<path>." >&2
+    fi
+  fi
+fi
+
 if [[ "${CMUX_SKIP_ZIG_BUILD:-}" == "1" && -z "$PREBUILT_GHOSTTY_HELPER" && "${DEPPY_LITE_ALLOW_STUB_GHOSTTY_HELPER:-0}" != "1" ]]; then
   cat >&2 <<'EOF'
 error: CMUX_SKIP_ZIG_BUILD=1 would leave a Ghostty CLI helper stub in the app.
