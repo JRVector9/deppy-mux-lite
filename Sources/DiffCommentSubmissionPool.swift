@@ -38,6 +38,14 @@ final class DiffCommentSubmissionPool: ObservableObject {
         }
     }
 
+    /// Drops every pending entry for a closed workspace so the pool doesn't
+    /// retain entries for workspace ids that no longer exist. The comments
+    /// themselves stay in `DiffCommentStore` and repopulate the pool through
+    /// the comments bridge if the same repo's diff is opened again.
+    func removePending(workspaceId: UUID) {
+        entriesByWorkspace[workspaceId] = nil
+    }
+
     func pendingCount(workspaceId: UUID?) -> Int {
         guard let workspaceId else { return 0 }
         return entriesByWorkspace[workspaceId]?.count ?? 0

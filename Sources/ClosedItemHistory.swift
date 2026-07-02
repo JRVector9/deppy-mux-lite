@@ -5,7 +5,7 @@ import CmuxSettings
 import OSLog
 
 private let closedItemHistoryLogger = Logger(
-    subsystem: "com.cmuxterm.app",
+    subsystem: "com.deppy-mux.app",
     category: "ClosedItemHistory"
 )
 
@@ -441,7 +441,10 @@ final class ClosedItemHistoryStore: ObservableObject {
             )
             semaphore.signal()
         }
-        semaphore.wait()
+        // Quit-path persistence is best-effort: bound the wait so a hung disk
+        // can never hang the main thread. On timeout the detached save task
+        // still completes in the background.
+        _ = semaphore.wait(timeout: .now() + 5)
     }
 
     private func loadPersistedRecordsAsync(from fileURL: URL) {

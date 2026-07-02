@@ -3,7 +3,7 @@ import OSLog
 import CmuxTerminal
 
 private let mobileTerminalByteTeeLog = Logger(
-    subsystem: "dev.cmux",
+    subsystem: "com.deppy-mux.dev",
     category: "mobile-terminal-byte-tee"
 )
 

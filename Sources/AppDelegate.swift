@@ -1093,6 +1093,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
     private var lastSessionAutosaveFingerprint: Int?
     private var lastSessionAutosavePersistedAt: Date = .distantPast
+    /// Consecutive autosave ticks whose fingerprint matched the previous save.
+    /// Drives adaptive idle backoff of the fingerprint walk: the effective
+    /// tick interval stretches 8→16→32→60s while nothing changes. The timer
+    /// keeps firing at `SessionPersistencePolicy.autosaveInterval`; backed-off
+    /// ticks early-return before touching windows/workspaces/panels.
+    private var sessionAutosaveConsecutiveUnchangedTicks = 0
+    /// Earliest moment the next autosave tick may run its fingerprint walk.
+    /// Invariant: backoff only ever delays the fingerprint CHECK, never skips
+    /// a detected change, and the 60s cap keeps the crash-loss window bounded.
+    private var sessionAutosaveNextFingerprintCheckAt: Date = .distantPast
     /// Last `ProcessDetectedResumeIndexes` load reused by the autosave tick.
     /// A full load reads every hook-store file and runs one
     /// `sysctl(KERN_PROCARGS2)` per recorded session (350ms-1.8s), which is far
@@ -1828,6 +1838,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
     func applicationDidBecomeActive(_ notification: Notification) {
         PortScanner.shared.setTrackedAgentScanningPaused(false)
+        // The user is back: drop the autosave idle backoff so the next tick
+        // checks the fingerprint at the base 8s cadence again.
+        resetSessionAutosaveBackoff()
         let activationWindows = mainWindowsForVisibilityController()
         if mainWindowVisibilityController.finishPendingApplicationActivationRestore(windows: activationWindows, reason: .applicationDidBecomeActive) == nil, !hasVisibleMainTerminalWindow() {
             _ = mainWindowVisibilityController.restoreApplicationWindowsAfterActivation(windows: activationWindows, reason: .applicationDidBecomeActive)
@@ -2065,8 +2078,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         self.notificationStore = notificationStore
         self.sidebarState = sidebarState
         self.auth = auth
+#if !DEPPY_LITE
         VMClient.bootstrap(auth: auth.coordinator)
         RemotesClient.bootstrap(auth: auth.coordinator)
+#endif
         PhonePushClient.shared.configure(auth: auth.coordinator)
         MobileHostService.shared.configure(auth: auth.coordinator)
         DeviceRegistryClient.shared.configure(auth: auth.coordinator)
@@ -3874,6 +3889,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         sessionAutosaveTimer = nil
         sessionAutosaveTickInFlight = false
         sessionAutosaveDeferredRetryPending = false
+        resetSessionAutosaveBackoff()
     }
 
     private func installLifecycleSnapshotObserversIfNeeded() {
@@ -4223,6 +4239,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     private func runSessionAutosaveTick(source: String) {
         guard Self.shouldRunSessionAutosaveTick(isTerminatingApp: isTerminatingApp) else { return }
         guard !sessionAutosaveTickInFlight else { return }
+        // Adaptive idle backoff: skip the fingerprint walk until the deadline.
+        // This only delays the CHECK — it never skips a detected change — and
+        // the 60s cap keeps the crash-loss window bounded. Backoff resets on a
+        // changed fingerprint or when the app becomes active.
+        if Date() < sessionAutosaveNextFingerprintCheckAt {
+#if DEBUG
+            cmuxDebugLog(
+                "session.save.skipped reason=autosave_backoff includeScrollback=0 source=\(source) " +
+                "unchangedTicks=\(sessionAutosaveConsecutiveUnchangedTicks)"
+            )
+#endif
+            return
+        }
         if let remainingQuietPeriod = remainingSessionAutosaveTypingQuietPeriod() {
 #if DEBUG
             cmuxDebugLog(
@@ -4303,9 +4332,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
                 "session.save.skipped reason=unchanged_autosave_fingerprint includeScrollback=0 source=\(source)"
             )
 #endif
+            advanceSessionAutosaveBackoffAfterUnchangedTick(now: now)
             return
         }
 
+        let fingerprintChanged = autosaveFingerprint != lastSessionAutosaveFingerprint
 #if DEBUG
         let saveStart = ProcessInfo.processInfo.systemUptime
 #endif
@@ -4322,6 +4353,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             persistedAt: now,
             fingerprint: autosaveFingerprint
         )
+        // Backoff resets only on a real change; a forced max-age save with an
+        // unchanged fingerprint stays backed off (the walk found nothing new).
+        if fingerprintChanged {
+            resetSessionAutosaveBackoff()
+        } else {
+            advanceSessionAutosaveBackoffAfterUnchangedTick(now: now)
+        }
     }
 
     /// Returns resume indexes for the autosave tick, reusing the previous full
@@ -4422,6 +4460,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         guard !isTerminatingApp, !includeScrollback else { return }
         lastSessionAutosaveFingerprint = fingerprint
         lastSessionAutosavePersistedAt = persistedAt
+    }
+
+    /// Effective autosave check interval after `consecutiveUnchangedTicks`
+    /// unchanged-fingerprint ticks: 8→16→32→60s (capped at `maximumInterval`).
+    nonisolated static func sessionAutosaveBackoffInterval(
+        baseInterval: TimeInterval,
+        consecutiveUnchangedTicks: Int,
+        maximumInterval: TimeInterval = 60
+    ) -> TimeInterval {
+        guard consecutiveUnchangedTicks > 0, baseInterval > 0 else {
+            return min(baseInterval, maximumInterval)
+        }
+        let doublings = min(consecutiveUnchangedTicks, 8)
+        return min(baseInterval * TimeInterval(1 << doublings), maximumInterval)
+    }
+
+    private func advanceSessionAutosaveBackoffAfterUnchangedTick(now: Date) {
+        sessionAutosaveConsecutiveUnchangedTicks += 1
+        let interval = Self.sessionAutosaveBackoffInterval(
+            baseInterval: SessionPersistencePolicy.autosaveInterval,
+            consecutiveUnchangedTicks: sessionAutosaveConsecutiveUnchangedTicks
+        )
+        sessionAutosaveNextFingerprintCheckAt = now.addingTimeInterval(interval)
+    }
+
+    private func resetSessionAutosaveBackoff() {
+        sessionAutosaveConsecutiveUnchangedTicks = 0
+        sessionAutosaveNextFingerprintCheckAt = .distantPast
     }
 
     private nonisolated static func hashFrame(_ frame: NSRect, into hasher: inout Hasher) {

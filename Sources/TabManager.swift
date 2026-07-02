@@ -694,6 +694,13 @@ class TabManager: ObservableObject {
 
 
     private func sweepStaleAgentPIDs() {
+        // PID registration/unregistration lives in Workspace (recordAgentPID /
+        // clearAgentPID), so the timer can't be started/stopped from those
+        // points here; instead skip the kill(2) probes and port refresh in the
+        // common idle state where no workspace tracks any agent PID. The 30s
+        // cadence is unchanged while PIDs exist so staleness detection stays
+        // timely.
+        guard tabs.contains(where: { !$0.agentPIDs.isEmpty }) else { return }
         for tab in tabs {
             var keysToRemove: [String] = []
             for (key, pid) in tab.agentPIDs {
@@ -2053,6 +2060,7 @@ class TabManager: ObservableObject {
         invalidateFocusHistoryTarget(workspaceId: workspace.id, panelId: nil)
 
         AppDelegate.shared?.notificationStore?.clearNotifications(forTabId: workspace.id)
+        DiffCommentSubmissionPool.shared.removePending(workspaceId: workspace.id)
         workspace.withClosedPanelHistorySuppressed {
             workspace.teardownAllPanels()
         }

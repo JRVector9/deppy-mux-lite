@@ -41,7 +41,12 @@ final class DiffCommentStore {
     }
 
     private let directoryURL: URL?
+    /// In-memory cache over the per-repo JSON files; disk persistence stays
+    /// authoritative. Capped with insertion-order eviction so long sessions
+    /// that touch many repos don't grow it unboundedly.
     private var cacheByRepoKey: [String: RepoCommentsFile] = [:]
+    private var cachedRepoKeysInInsertionOrder: [String] = []
+    private static let cacheByRepoKeyLimit = 32
 
     init(directoryURL: URL? = DiffCommentStore.defaultDirectoryURL()) {
         self.directoryURL = directoryURL
@@ -100,16 +105,26 @@ final class DiffCommentStore {
         guard let fileURL = fileURL(forRepoKey: key),
               let data = try? Data(contentsOf: fileURL),
               let decoded = try? Self.decoder().decode(RepoCommentsFile.self, from: data) else {
-            cacheByRepoKey[key] = empty
+            cacheFile(empty, forRepoKey: key)
             return empty
         }
-        cacheByRepoKey[key] = decoded
+        cacheFile(decoded, forRepoKey: key)
         return decoded
+    }
+
+    private func cacheFile(_ file: RepoCommentsFile, forRepoKey key: String) {
+        if cacheByRepoKey.updateValue(file, forKey: key) == nil {
+            cachedRepoKeysInInsertionOrder.append(key)
+            if cachedRepoKeysInInsertionOrder.count > Self.cacheByRepoKeyLimit {
+                let evictedKey = cachedRepoKeysInInsertionOrder.removeFirst()
+                cacheByRepoKey.removeValue(forKey: evictedKey)
+            }
+        }
     }
 
     private func saveFile(_ file: RepoCommentsFile, repoRoot: String) {
         let key = Self.repoKey(forRepoRoot: repoRoot)
-        cacheByRepoKey[key] = file
+        cacheFile(file, forRepoKey: key)
         guard let fileURL = fileURL(forRepoKey: key) else { return }
         do {
             try FileManager.default.createDirectory(
