@@ -30,6 +30,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # Full history + tags so the version guard can compare
+          # DEPPY_LITE_VERSION against every previously tagged release.
+          fetch-depth: 0
+
+      - name: Guard deppy-lite version bump
+        if: startsWith(github.ref, 'refs/tags/')
+        run: ./scripts/deppy-lite-pretag-guard.sh
 
       - name: Guard immutable deppy-lite release assets
         id: guard
