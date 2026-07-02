@@ -101,7 +101,8 @@ public protocol SettingsHostActions: AnyObject {
     ) async -> MobileWebAccessRuntimeInstallResult
 
     /// Removes the user-installed local Web Connect runtime, if present.
-    func uninstallMobileWebAccessRuntime() -> Bool
+    /// Async so hosts can delete the large runtime tree off the main thread.
+    func uninstallMobileWebAccessRuntime() async -> Bool
 
     /// Copies a browser Web Connect URL using the host app's pasteboard bridge.
     func copyMobileWebAccessURL(_ url: String)
@@ -233,7 +234,7 @@ public extension SettingsHostActions {
         return await installMobileWebAccessRuntime()
     }
 
-    func uninstallMobileWebAccessRuntime() -> Bool { false }
+    func uninstallMobileWebAccessRuntime() async -> Bool { false }
 
     func copyMobileWebAccessURL(_ url: String) {}
 

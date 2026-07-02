@@ -606,10 +606,13 @@ extension RemoteSessionCoordinator {
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = ["-s"]
 
+        // stderr is unused; discard it so it can never fill a pipe nobody
+        // drains. The remaining stdout pipe is read to EOF BEFORE
+        // waitUntilExit so output larger than the pipe buffer cannot deadlock
+        // the child against the wait.
         let stdout = Pipe()
-        let stderr = Pipe()
         process.standardOutput = stdout
-        process.standardError = stderr
+        process.standardError = FileHandle.nullDevice
 
         do {
             try process.run()
@@ -617,9 +620,9 @@ extension RemoteSessionCoordinator {
             return ""
         }
 
+        let data = stdout.fileHandleForReading.readDataToEndOfFileOrEmpty()
         process.waitUntilExit()
         guard process.terminationStatus == 0 else { return "" }
-        let data = stdout.fileHandleForReading.readDataToEndOfFileOrEmpty()
         return String(data: data, encoding: .utf8) ?? ""
     }
 

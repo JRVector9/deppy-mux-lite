@@ -579,7 +579,6 @@ enum NotificationSoundSettings {
             try fileManager.removeItem(at: normalizedDestination)
         }
 
-        let outputPipe = Pipe()
         let errorPipe = Pipe()
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/afconvert")
@@ -589,12 +588,16 @@ enum NotificationSoundSettings {
             normalizedSource.path,
             normalizedDestination.path,
         ]
-        process.standardOutput = outputPipe
+        // stdout is unused; discard it so afconvert can never block on a pipe
+        // nobody drains. The remaining stderr pipe is read to EOF BEFORE
+        // waitUntilExit so output larger than the pipe buffer cannot deadlock
+        // the child against the wait.
+        process.standardOutput = FileHandle.nullDevice
         process.standardError = errorPipe
         try process.run()
+        let errorData = errorPipe.fileHandleForReading.readDataToEndOfFileOrEmpty()
         process.waitUntilExit()
         guard process.terminationStatus == 0 else {
-            let errorData = errorPipe.fileHandleForReading.readDataToEndOfFileOrEmpty()
             let errorOutput = String(data: errorData, encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             if fileManager.fileExists(atPath: normalizedDestination.path) {

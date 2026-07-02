@@ -1,4 +1,5 @@
 import AppKit
+import CmuxFoundation
 import CmuxSettingsUI
 import Darwin
 import Foundation
@@ -13,14 +14,16 @@ final class WebConnectServerController {
     nonisolated static let localControlToken: String = makeLocalControlToken()
 
     private let session: URLSession
+    private let commandRunner: any CommandRunning
     private var process: Process?
     private var runningPort: Int?
     private var logFile: FileHandle?
     private var terminationObserver: NSObjectProtocol?
     var onUnexpectedTermination: (() -> Void)?
 
-    init(session: URLSession = .shared) {
+    init(session: URLSession = .shared, commandRunner: any CommandRunning = CommandRunner()) {
         self.session = session
+        self.commandRunner = commandRunner
         terminationObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification,
             object: nil,
@@ -265,7 +268,7 @@ final class WebConnectServerController {
             }
         }
         if process.isRunning {
-            _ = Self.sendSignal("KILL", pid: pid)
+            _ = Self.sendSignal(SIGKILL, pid: pid)
         }
         for _ in 0..<10 {
             if Self.canBindLocalPort(port) {
@@ -284,16 +287,19 @@ final class WebConnectServerController {
     private func stopLocalRuntimeListeners(port: Int) async -> Bool {
         let environment = ProcessInfo.processInfo.environment
         let runtimePath = Self.runtimeDirectory(environment: environment)?.path
-        let listenerPIDs = Self.listenerPIDs(port: port).filter { pid in
-            Self.isWebConnectRuntimeCommandLine(Self.commandLine(pid: pid), runtimePath: runtimePath)
+        var runtimeListenerPIDs: [Int32] = []
+        for pid in await listenerPIDs(port: port) {
+            if Self.isWebConnectRuntimeCommandLine(await commandLine(pid: pid), runtimePath: runtimePath) {
+                runtimeListenerPIDs.append(pid)
+            }
         }
-        let runtimePIDs = Self.runtimeServerPIDs(runtimePath: runtimePath)
-        let pids = Array(Set(listenerPIDs + runtimePIDs))
+        let runtimePIDs = await runtimeServerPIDs(runtimePath: runtimePath)
+        let pids = Array(Set(runtimeListenerPIDs + runtimePIDs))
         guard !pids.isEmpty else {
             return Self.canBindLocalPort(port)
         }
         for pid in pids {
-            _ = Self.sendSignal("TERM", pid: pid)
+            _ = Self.sendSignal(SIGTERM, pid: pid)
         }
         let clock = ContinuousClock()
         for _ in 0..<20 {
@@ -304,7 +310,7 @@ final class WebConnectServerController {
             try? await clock.sleep(for: .milliseconds(100))
         }
         for pid in pids {
-            _ = Self.sendSignal("KILL", pid: pid)
+            _ = Self.sendSignal(SIGKILL, pid: pid)
         }
         for _ in 0..<10 {
             if Self.canBindLocalPort(port), pids.allSatisfy({ !Self.isProcessRunning($0) }) {
@@ -359,8 +365,8 @@ final class WebConnectServerController {
         return components.url
     }
 
-    private static func listenerPIDs(port: Int) -> [Int32] {
-        commandOutput(
+    private func listenerPIDs(port: Int) async -> [Int32] {
+        await commandOutput(
             executable: "/usr/sbin/lsof",
             arguments: ["-nP", "-tiTCP:\(port)", "-sTCP:LISTEN"]
         )
@@ -368,16 +374,16 @@ final class WebConnectServerController {
         .compactMap { Int32(String($0).trimmingCharacters(in: .whitespacesAndNewlines)) }
     }
 
-    private static func commandLine(pid: Int32) -> String {
-        commandOutput(
+    private func commandLine(pid: Int32) async -> String {
+        await commandOutput(
             executable: "/bin/ps",
             arguments: ["-p", String(pid), "-o", "command="]
         )
         .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private static func runtimeServerPIDs(runtimePath: String?) -> [Int32] {
-        commandOutput(
+    private func runtimeServerPIDs(runtimePath: String?) async -> [Int32] {
+        await commandOutput(
             executable: "/bin/ps",
             arguments: ["-axo", "pid=,command="]
         )
@@ -391,7 +397,7 @@ final class WebConnectServerController {
                 return nil
             }
             let commandLine = pieces.count > 1 ? String(pieces[1]) : ""
-            return isWebConnectRuntimeCommandLine(commandLine, runtimePath: runtimePath) ? pid : nil
+            return Self.isWebConnectRuntimeCommandLine(commandLine, runtimePath: runtimePath) ? pid : nil
         }
     }
 
@@ -405,8 +411,13 @@ final class WebConnectServerController {
         return commandLine.contains("/WebConnectRuntime/current/")
     }
 
-    private static func sendSignal(_ signal: String, pid: Int32) -> Bool {
-        runCommand(executable: "/bin/kill", arguments: ["-\(signal)", String(pid)]).exitCode == 0
+    private static func sendSignal(_ signal: Int32, pid: Int32) -> Bool {
+        // Direct syscall: pid must be positive so a parse glitch can never signal
+        // a whole process group (kill(0, …)) or arbitrary targets (kill(-1, …)).
+        guard pid > 0 else {
+            return false
+        }
+        return Darwin.kill(pid, signal) == 0
     }
 
     private static func isProcessRunning(_ pid: Int32) -> Bool {
@@ -416,26 +427,21 @@ final class WebConnectServerController {
         return errno == EPERM
     }
 
-    private static func commandOutput(executable: String, arguments: [String]) -> String {
-        let result = runCommand(executable: executable, arguments: arguments)
-        return result.exitCode == 0 ? result.output : ""
-    }
-
-    private static func runCommand(executable: String, arguments: [String]) -> (exitCode: Int32, output: String) {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: executable)
-        process.arguments = arguments
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = Pipe()
-        do {
-            try process.run()
-            process.waitUntilExit()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            return (process.terminationStatus, String(data: data, encoding: .utf8) ?? "")
-        } catch {
-            return (1, "")
+    /// Runs a short diagnostic command off the main actor, returning stdout on
+    /// success and "" otherwise. CommandRunner drains the pipes concurrently, so
+    /// large output (e.g. `ps -axo command=` > 64KB) cannot deadlock, and the
+    /// timeout bounds a slow `lsof`/`ps` instead of hanging the caller.
+    private func commandOutput(executable: String, arguments: [String]) async -> String {
+        let result = await commandRunner.run(
+            directory: "/",
+            executable: executable,
+            arguments: arguments,
+            timeout: 10
+        )
+        guard result.exitStatus == 0, !result.timedOut, result.executionError == nil else {
+            return ""
         }
+        return result.stdout ?? ""
     }
 
     private struct ServerCommand {

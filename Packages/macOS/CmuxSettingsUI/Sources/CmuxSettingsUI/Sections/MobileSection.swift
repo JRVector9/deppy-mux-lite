@@ -315,7 +315,7 @@ public struct MobileSection: View {
     @ViewBuilder
     private var webConnectRuntimeStatusView: some View {
         if let message = webConnectRuntimeStatusMessage {
-            SettingsCardNote(message)
+            SettingsCardNote(message, role: .warning)
         }
     }
 
@@ -380,7 +380,18 @@ public struct MobileSection: View {
     @ViewBuilder
     private var webAccessServerStatusView: some View {
         if let message = webAccessServerStatusMessage {
-            SettingsCardNote(message)
+            SettingsCardNote(message, role: isWebAccessServerStatusWarning ? .warning : .note)
+        }
+    }
+
+    /// Whether the current server status message reports a problem (vs. the
+    /// running/stopped confirmations, which stay as plain notes).
+    private var isWebAccessServerStatusWarning: Bool {
+        switch webConnectServerResult {
+        case .externalProcess, .invalidPort, .portInUse, .tailscaleUnavailable, .runtimeMissing, .failed:
+            return true
+        case .running, .stopped, nil:
+            return false
         }
     }
 
@@ -485,32 +496,32 @@ public struct MobileSection: View {
             SettingsCardNote(String(
                 localized: "settings.mobile.webAccess.notSignedIn",
                 defaultValue: "Sign in to deppy-mux before creating a Web Connect link."
-            ))
+            ), role: .warning)
         } else if webAccess.lastError == .tailscaleUnavailable {
             SettingsCardNote(String(
                 localized: "settings.mobile.webAccess.tailscaleUnavailable",
                 defaultValue: "Tailscale is required for Web Connect. Install or turn on Tailscale on this Mac, then create the link again."
-            ))
+            ), role: .warning)
         } else if webAccess.lastError == .runtimeMissing {
             SettingsCardNote(String(
                 localized: "settings.mobile.webAccess.runtimeMissing",
                 defaultValue: "Install Web Connect Runtime before creating a browser link."
-            ))
+            ), role: .warning)
         } else if webAccess.lastError == .webServerStartFailed {
             SettingsCardNote(String(
                 localized: "settings.mobile.webAccess.webServerStartFailed",
                 defaultValue: "Could not start the Web Connect server on the configured port. Free the port or set a different local Web Connect URL, then create the link again."
-            ))
+            ), role: .warning)
         } else if webAccess.lastError == .webEndpointUnavailable {
             SettingsCardNote(String(
                 localized: "settings.mobile.webAccess.webEndpointUnavailable",
                 defaultValue: "Could not reach a compatible Web Connect server. Check the deppy-mux web setup, then create the link again."
-            ))
+            ), role: .warning)
         } else if webAccess.lastError == .failed {
             SettingsCardNote(String(
                 localized: "settings.mobile.webAccess.failed",
                 defaultValue: "Could not create a Web Connect link. Check your connection and try again."
-            ))
+            ), role: .warning)
         }
     }
 
@@ -642,7 +653,7 @@ public struct MobileSection: View {
             let stopResult = await hostActions.stopMobileWebAccessServer(port: draftWebConnectPort)
             webConnectServerEnabled.set(false)
             webConnectServerResult = stopResult
-            let removed = hostActions.uninstallMobileWebAccessRuntime()
+            let removed = await hostActions.uninstallMobileWebAccessRuntime()
             webConnectRuntimeInstallResult = removed ? nil : .removeFailed
             refreshWebConnectRuntimeStatus()
             webConnectRuntimeInstallProgress = nil
