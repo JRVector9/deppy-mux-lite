@@ -163,27 +163,37 @@ This makes it visible in the GitHub PR UI (Commits tab, check statuses) that the
 
 ## Ghostty submodule workflow
 
-Ghostty changes must be committed in the `ghostty` submodule and pushed to the `manaflow-ai/ghostty` fork.
+The submodule now points at the deppy fork `JRVector9/ghostty` (forked from
+`manaflow-ai/ghostty`, which carries the cmux patches on top of
+`ghostty-org/ghostty`). Ghostty changes must be committed in the `ghostty`
+submodule and pushed to `JRVector9/ghostty`.
 Keep `docs/ghostty-fork.md` up to date with any fork changes and conflict notes.
 
 ```bash
 cd ghostty
-git remote -v  # origin = upstream, manaflow = fork
+git remote -v  # jrvector9 = deppy fork (push target), manaflow = cmux fork, origin/upstream = ghostty-org
 git checkout -b <branch>
 git add <files>
 git commit -m "..."
-git push manaflow <branch>
+git push jrvector9 <branch>
 ```
 
-To keep the fork up to date with upstream:
+To pull cmux-side ghostty updates from manaflow into the deppy fork:
 
 ```bash
 cd ghostty
-git fetch origin
+git fetch manaflow
 git checkout main
-git merge origin/main
-git push manaflow main
+git merge manaflow/main
+git push jrvector9 main
 ```
+
+Prebuilt GhosttyKit.xcframework archives are published as releases on
+`JRVector9/ghostty` (tag `xcframework-<sha>-crashsubdir-cmux-crash-v1`);
+`scripts/download-prebuilt-ghosttykit.sh` tries the deppy fork first and falls
+back to `manaflow-ai/ghostty` for SHAs not yet mirrored. After bumping the
+submodule, run the `build-ghosttykit.yml` workflow (or mirror the upstream
+asset) so the release pipeline stays independent of upstream.
 
 Then update the parent repo with the new submodule SHA:
 

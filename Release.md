@@ -191,3 +191,24 @@ Before announcing a release, verify:
 - Wrong provisioning profile bundle ID: codesign or entitlement validation fails.
 - Missing Intel runner for x86_64 runtime: universal release cannot publish both runtime archives.
 - Stub Ghostty helper: release script should fail unless explicitly allowed for local compile validation only.
+
+## deppy-lite Release Guardrails (2026-07)
+
+- **Tagging branch**: create `deppy-lite-v*` tags on `deppy-lite-arm64` branch commits. Its
+  workflow publishes ALL four immutable assets (arm64 + universal DMGs and appcasts) plus the
+  runtime zips, so `releases/latest/download/...` always resolves for both Sparkle feeds and the
+  runtime installer. Tagging a `main` commit runs main's universal-only workflow and would leave
+  `appcast-arm64.xml` missing from the latest release, breaking arm64 auto-update.
+- **Version bump guard**: `scripts/deppy-lite-pretag-guard.sh` fails when
+  `DEPPY_LITE_VERSION`'s `CURRENT_PROJECT_VERSION` is not strictly greater than every previously
+  tagged `deppy-lite-*` release (Sparkle only updates on a higher build). The release workflow
+  runs it in `guard-release-assets`; run it locally before tagging.
+- **GhosttyKit independence**: prebuilt `GhosttyKit.xcframework.tar.gz` archives are mirrored to
+  `JRVector9/ghostty` releases. `scripts/download-prebuilt-ghosttykit.sh` tries the deppy fork
+  first, then falls back to `manaflow-ai/ghostty`. `build-ghosttykit.yml` publishes to
+  `JRVector9/ghostty` (override with `GHOSTTYKIT_RELEASE_REPO`). The ghostty submodule URL is
+  `JRVector9/ghostty`.
+- **Runners**: workflow runner labels default to Blacksmith (upstream's CI provider). On this
+  fork set repository Actions variables `MACOS_RUNNER_15=macos-15`,
+  `MACOS_RUNNER_26_RELEASE=macos-26`, `LINUX_RUNNER=ubuntu-24.04`
+  (x86_64 runtime already defaults to GitHub's `macos-15-intel`).
