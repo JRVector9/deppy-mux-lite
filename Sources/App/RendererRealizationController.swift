@@ -16,7 +16,7 @@ import CmuxTerminal
 final class RendererRealizationController {
     static let shared = RendererRealizationController()
 
-    private let timerQueue = DispatchQueue(label: "com.cmux.renderer-realization", qos: .utility)
+    private let timerQueue = DispatchQueue(label: "com.deppy-mux.renderer-realization", qos: .utility)
     private var timer: DispatchSourceTimer?
     private var settingsObserver: NSObjectProtocol?
 

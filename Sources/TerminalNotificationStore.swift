@@ -18,7 +18,7 @@ nonisolated private let terminalNotificationLogger = Logger(
 // freeze the UI.
 extension UNUserNotificationCenter {
     private static let removalQueue = DispatchQueue(
-        label: "com.cmuxterm.notification-removal",
+        label: "com.deppy-mux.notification-removal",
         qos: .utility
     )
 

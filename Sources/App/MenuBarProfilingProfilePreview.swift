@@ -1,7 +1,7 @@
 import Foundation
 
 enum MenuBarProfilingProfilePreview {
-    static let recipient = "founders@manaflow.com"
+    static let recipient = "jr@vector9.app"
 
     static func text(outputURL: URL, email: String, summary: String) -> String {
         [

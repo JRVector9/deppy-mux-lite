@@ -79,8 +79,8 @@ public final class RemoteDaemonRPCClient: @unchecked Sendable {
     let remotePath: String
     let strings: RemoteDaemonStrings
     let onUnexpectedTermination: (String) -> Void
-    let writeQueue = DispatchQueue(label: "com.cmux.remote-ssh.daemon-rpc.write.\(UUID().uuidString)")
-    let stateQueue = DispatchQueue(label: "com.cmux.remote-ssh.daemon-rpc.state.\(UUID().uuidString)")
+    let writeQueue = DispatchQueue(label: "com.deppy-mux.remote-ssh.daemon-rpc.write.\(UUID().uuidString)")
+    let stateQueue = DispatchQueue(label: "com.deppy-mux.remote-ssh.daemon-rpc.state.\(UUID().uuidString)")
     let pendingCalls = RemoteDaemonPendingCallRegistry()
 
     var process: Process?

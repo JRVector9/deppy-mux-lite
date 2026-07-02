@@ -354,7 +354,7 @@ enum CmuxVaultAgentCWDPolicy: String, Codable, Hashable, Sendable {
 }
 
 struct CmuxVaultAgentRegistry: Sendable {
-    private static let logger = Logger(subsystem: "ai.manaflow.cmux", category: "VaultAgentRegistry")
+    private static let logger = Logger(subsystem: "com.deppy-mux.app", category: "VaultAgentRegistry")
 
     var registrations: [CmuxVaultAgentRegistration]
 

@@ -34,7 +34,7 @@ final class PaneMemoryGuardrail {
     @ObservationIgnored
     private var engine = PaneMemoryGuardrailEngine()
     @ObservationIgnored
-    private let timerQueue = DispatchQueue(label: "com.cmux.pane-memory-guardrail", qos: .utility)
+    private let timerQueue = DispatchQueue(label: "com.deppy-mux.pane-memory-guardrail", qos: .utility)
     @ObservationIgnored
     private var timer: DispatchSourceTimer?
     @ObservationIgnored

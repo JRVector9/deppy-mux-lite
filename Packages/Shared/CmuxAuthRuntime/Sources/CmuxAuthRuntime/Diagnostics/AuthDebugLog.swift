@@ -25,7 +25,7 @@ public struct AuthDebugLog: Sendable {
         #endif
     }
 
-    private static let logger = Logger(subsystem: "com.cmuxterm.app", category: "auth")
+    private static let logger = Logger(subsystem: "com.deppy-mux.app", category: "auth")
 
     #if DEBUG && os(macOS)
     private static let debugLogPath = "/tmp/cmux-auth-debug.log"

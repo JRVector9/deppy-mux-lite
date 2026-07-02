@@ -8691,7 +8691,7 @@ class TerminalController {
             semaphore.signal()
         }
 
-        let watcherQueue = DispatchQueue(label: "com.cmux.browser.download.wait.file")
+        let watcherQueue = DispatchQueue(label: "com.deppy-mux.browser.download.wait.file")
         let source = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: fd,
             eventMask: [.write, .extend, .attrib, .link, .rename],

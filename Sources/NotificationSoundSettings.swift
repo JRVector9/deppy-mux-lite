@@ -16,7 +16,7 @@ enum NotificationSoundSettings {
     static let defaultCustomFilePath = ""
     private static let stagedCustomSoundBaseName = "cmux-custom-notification-sound"
     private static let customSoundPreparationQueue = DispatchQueue(
-        label: "com.cmuxterm.notification-sound-preparation",
+        label: "com.deppy-mux.notification-sound-preparation",
         qos: .utility
     )
     private static let systemSoundBaseName = "cmux-system-notification-sound"
@@ -27,7 +27,7 @@ enum NotificationSoundSettings {
     private static var activePlaybackSounds: [ObjectIdentifier: NSSound] = [:]
     private static let activePlaybackSoundDelegate = ActivePlaybackSoundDelegate()
     private static let dndAssertionQueue = DispatchQueue(
-        label: "com.cmuxterm.notification-dnd-assertion",
+        label: "com.deppy-mux.notification-dnd-assertion",
         qos: .utility
     )
     private static let notificationSoundSupportedExtensions: Set<String> = [
@@ -665,7 +665,7 @@ enum NotificationSoundSettings {
     }
 
     private static let customCommandQueue = DispatchQueue(
-        label: "com.cmuxterm.notification-custom-command",
+        label: "com.deppy-mux.notification-custom-command",
         qos: .utility
     )
 

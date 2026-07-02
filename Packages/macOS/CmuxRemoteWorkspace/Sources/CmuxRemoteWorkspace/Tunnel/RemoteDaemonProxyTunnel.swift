@@ -28,7 +28,7 @@ public final class RemoteDaemonProxyTunnel: @unchecked Sendable {
     private let ptyBridgeStrings: any RemotePTYBridgeStrings
     private let clock: any RemoteProxyRetryClock
     private let onFatalError: (String) -> Void
-    private let queue = DispatchQueue(label: "com.cmux.remote-ssh.daemon-tunnel.\(UUID().uuidString)", qos: .utility)
+    private let queue = DispatchQueue(label: "com.deppy-mux.remote-ssh.daemon-tunnel.\(UUID().uuidString)", qos: .utility)
 
     private var listener: NWListener?
     private var rpcClient: RemoteDaemonRPCClient?

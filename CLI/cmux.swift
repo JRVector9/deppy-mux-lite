@@ -2439,7 +2439,7 @@ final class SocketClient {
             throw CLIError(message: "cmux app did not start in time (socket not found at \(path))")
         }
 
-        let queue = DispatchQueue(label: "com.cmux.cli.socket-watch.\(UUID().uuidString)")
+        let queue = DispatchQueue(label: "com.deppy-mux.cli.socket-watch.\(UUID().uuidString)")
         let semaphore = DispatchSemaphore(value: 0)
         var connected = false
         let source = DispatchSource.makeFileSystemObjectSource(
@@ -2490,7 +2490,7 @@ final class SocketClient {
             throw CLIError(message: "Timed out waiting for \(path)")
         }
 
-        let queue = DispatchQueue(label: "com.cmux.cli.path-watch.\(UUID().uuidString)")
+        let queue = DispatchQueue(label: "com.deppy-mux.cli.path-watch.\(UUID().uuidString)")
         let semaphore = DispatchSemaphore(value: 0)
         var found = false
         let source = DispatchSource.makeFileSystemObjectSource(
@@ -10592,7 +10592,7 @@ struct CMUXCLI {
         private static let keepaliveInterval: TimeInterval = 5.0
         private let config: VMPtyWebSocketConfig
         private let debugEvent: ((String) -> Void)?
-        private let sendQueue = DispatchQueue(label: "com.cmux.vm-pty.websocket.send")
+        private let sendQueue = DispatchQueue(label: "com.deppy-mux.vm-pty.websocket.send")
         private let stopLock = NSLock()
         private var stopped = false
         private var task: URLSessionWebSocketTask?
@@ -10674,7 +10674,7 @@ struct CMUXCLI {
             signal(SIGWINCH, SIG_IGN)
             let source = DispatchSource.makeSignalSource(
                 signal: SIGWINCH,
-                queue: DispatchQueue(label: "com.cmux.vm-pty.resize")
+                queue: DispatchQueue(label: "com.deppy-mux.vm-pty.resize")
             )
             source.setEventHandler { [weak self] in
                 guard let self else { return }

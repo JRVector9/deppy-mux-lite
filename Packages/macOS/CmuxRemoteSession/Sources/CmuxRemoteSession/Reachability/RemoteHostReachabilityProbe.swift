@@ -27,7 +27,7 @@ public struct RemoteHostReachabilityProbe: RemoteHostReachabilityProbing {
 
     /// Serial queue for NWConnection callbacks and the timeout latch.
     private let probeQueue = DispatchQueue(
-        label: "com.cmux.remote-host-reachability",
+        label: "com.deppy-mux.remote-host-reachability",
         qos: .utility
     )
     /// Sleep seam for the probe timeout (legacy `asyncAfter`, converted per

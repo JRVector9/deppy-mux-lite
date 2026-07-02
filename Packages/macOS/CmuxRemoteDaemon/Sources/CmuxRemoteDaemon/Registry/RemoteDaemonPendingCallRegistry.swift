@@ -59,7 +59,7 @@ public final class RemoteDaemonPendingCallRegistry: @unchecked Sendable {
         case timedOut
     }
 
-    private let queue = DispatchQueue(label: "com.cmux.remote-ssh.daemon-rpc.pending.\(UUID().uuidString)")
+    private let queue = DispatchQueue(label: "com.deppy-mux.remote-ssh.daemon-rpc.pending.\(UUID().uuidString)")
     private var nextRequestID = 1
     private var pendingCalls: [Int: PendingCall] = [:]
 

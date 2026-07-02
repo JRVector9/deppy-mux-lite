@@ -1,7 +1,7 @@
 public import Foundation
 internal import OSLog
 
-private let analyticsUploadLog = Logger(subsystem: "dev.cmux.ios", category: "analytics-upload")
+private let analyticsUploadLog = Logger(subsystem: "com.deppy-mux.dev.ios", category: "analytics-upload")
 
 /// An ``AnalyticsUploading`` that POSTs batches to the cmux web analytics proxy.
 ///

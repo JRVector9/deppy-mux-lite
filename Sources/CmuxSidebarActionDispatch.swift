@@ -11,7 +11,7 @@ import Foundation
 /// why they were moved off the main-actor dispatch path. Running the whole
 /// action on one serial queue keeps every command in its authored order, so a
 /// later command can't finish before an earlier browser navigate/click/wait.
-private let cmuxSidebarWorkerQueue = DispatchQueue(label: "com.cmux.sidebar-action-worker")
+private let cmuxSidebarWorkerQueue = DispatchQueue(label: "com.deppy-mux.sidebar-action-worker")
 
 // The custom-sidebar rendering, interpreter, JSON DSL, resizable split, and
 // the file-watching model now live in the `CmuxSwiftRender` (logic) and

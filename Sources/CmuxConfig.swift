@@ -1997,7 +1997,7 @@ final class CmuxConfigStore: ObservableObject {
     private var localFallbackDirectoryDescriptor: Int32 = -1
     private var globalWatcher: FileWatcher?
     private var globalWatchTask: Task<Void, Never>?
-    private let watchQueue = DispatchQueue(label: "com.cmux.config-file-watch")
+    private let watchQueue = DispatchQueue(label: "com.deppy-mux.config-file-watch")
 
     private static let maxReattachAttempts = 5
     private static let reattachDelay: TimeInterval = 0.5
