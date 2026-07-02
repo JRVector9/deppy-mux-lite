@@ -6691,7 +6691,8 @@
 				OTHER_SWIFT_FLAGS = "-Xllvm -global-isel=0";
 					PRODUCT_BUNDLE_IDENTIFIER = "$(DEPPY_LITE_BUNDLE_IDENTIFIER)";
 					PRODUCT_NAME = "$(DEPPY_LITE_PRODUCT_NAME)";
-				SPARKLE_PUBLIC_KEY = "avjcgKibf1FTvhIjLBxhd+0HSpsXU4D0IGlVk8cgqRc=";
+					SPARKLE_FEED_URL = "https://github.com/JRVector9/deppy-mux-lite/releases/latest/download/appcast-universal.xml";
+					SPARKLE_PUBLIC_KEY = "ojk35wvax9SXb3G+4lpL83PRAS2FQzqs+4FsbE0otOA=";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEPPY_LITE DEBUG";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_ENABLE_BATCH_MODE = NO;
@@ -6814,7 +6815,8 @@
 				OTHER_SWIFT_FLAGS = "-Xllvm -global-isel=0";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.deppy-mux.app.debug";
 				PRODUCT_NAME = "deppy-mux-beta";
-				SPARKLE_PUBLIC_KEY = "avjcgKibf1FTvhIjLBxhd+0HSpsXU4D0IGlVk8cgqRc=";
+					SPARKLE_FEED_URL = "https://github.com/manaflow-ai/cmux/releases/latest/download/appcast.xml";
+					SPARKLE_PUBLIC_KEY = "avjcgKibf1FTvhIjLBxhd+0HSpsXU4D0IGlVk8cgqRc=";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_ENABLE_BATCH_MODE = NO;
 				SWIFT_OBJC_BRIDGING_HEADER = "cmux-Bridging-Header.h";
@@ -6857,7 +6859,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.deppy-mux.app";
 				PRODUCT_NAME = "deppy-mux-beta";
-				SPARKLE_PUBLIC_KEY = "avjcgKibf1FTvhIjLBxhd+0HSpsXU4D0IGlVk8cgqRc=";
+					SPARKLE_FEED_URL = "https://github.com/manaflow-ai/cmux/releases/latest/download/appcast.xml";
+					SPARKLE_PUBLIC_KEY = "avjcgKibf1FTvhIjLBxhd+0HSpsXU4D0IGlVk8cgqRc=";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "cmux-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -6983,7 +6986,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "$(DEPPY_LITE_BUNDLE_IDENTIFIER)";
 				PRODUCT_NAME = "$(DEPPY_LITE_PRODUCT_NAME)";
-				SPARKLE_PUBLIC_KEY = "avjcgKibf1FTvhIjLBxhd+0HSpsXU4D0IGlVk8cgqRc=";
+					SPARKLE_FEED_URL = "https://github.com/JRVector9/deppy-mux-lite/releases/latest/download/appcast-arm64.xml";
+					SPARKLE_PUBLIC_KEY = "ojk35wvax9SXb3G+4lpL83PRAS2FQzqs+4FsbE0otOA=";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEPPY_LITE";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "cmux-Bridging-Header.h";
