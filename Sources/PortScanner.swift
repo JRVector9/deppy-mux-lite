@@ -55,7 +55,13 @@ final class PortScanner: @unchecked Sendable {
     /// Each scan fires at this absolute offset; the recursive scheduler
     /// converts to relative delays between consecutive scans.
     private static let burstOffsets: [Double] = [0.5, 1.5, 3, 5, 7.5, 10]
-    private static let agentRescanInterval: TimeInterval = 2
+    /// Steady-state rescan cadence for tracked agent workspaces. Each scan
+    /// spawns `ps` + `lsof`, so this is the app's dominant recurring idle
+    /// cost; event-driven bursts (`kick`/`registerTTY`, offsets above) still
+    /// surface new ports within seconds — this only bounds how fast a port
+    /// opened with no accompanying event (e.g. a server started long after
+    /// the agent) appears in the sidebar.
+    private static let agentRescanInterval: TimeInterval = 30
 
     // MARK: - Public API
 

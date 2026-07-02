@@ -1093,6 +1093,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
     private var lastSessionAutosaveFingerprint: Int?
     private var lastSessionAutosavePersistedAt: Date = .distantPast
+    /// Last `ProcessDetectedResumeIndexes` load reused by the autosave tick.
+    /// A full load reads every hook-store file and runs one
+    /// `sysctl(KERN_PROCARGS2)` per recorded session (350ms-1.8s), which is far
+    /// too expensive to repeat every 8s tick, so ticks reuse it for up to
+    /// `autosaveResumeIndexReuseWindow`. Quit/termination saves still load
+    /// fresh indexes synchronously.
+    private var cachedAutosaveResumeIndexes: (indexes: ProcessDetectedResumeIndexes, loadedAt: Date)?
+    private static let autosaveResumeIndexReuseWindow: TimeInterval = 60
     private var lastTypingActivityAt: TimeInterval = 0
     var didHandleExplicitOpenIntentAtStartup = false
     private var didScheduleInitialMainWindowBootstrap = false
@@ -4264,7 +4272,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
 #if DEBUG
         let fingerprintStart = ProcessInfo.processInfo.systemUptime
 #endif
-        let resumeIndexes = await ProcessDetectedResumeIndexes.load()
+        let resumeIndexes = await autosaveResumeIndexesReusingRecentLoad(now: now)
         guard !isTerminatingApp,
               isCurrentProcessDetectedSessionSaveGeneration(generation) else {
 #if DEBUG
@@ -4314,6 +4322,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             persistedAt: now,
             fingerprint: autosaveFingerprint
         )
+    }
+
+    /// Returns resume indexes for the autosave tick, reusing the previous full
+    /// load for up to `autosaveResumeIndexReuseWindow`. Worst case a crash
+    /// snapshot carries resume indexes that window stale; layout data in the
+    /// snapshot is always current, and the clean-quit path loads fresh.
+    private func autosaveResumeIndexesReusingRecentLoad(now: Date) async -> ProcessDetectedResumeIndexes {
+        if let cached = cachedAutosaveResumeIndexes,
+           now.timeIntervalSince(cached.loadedAt) < Self.autosaveResumeIndexReuseWindow {
+            return cached.indexes
+        }
+        let fresh = await ProcessDetectedResumeIndexes.load()
+        cachedAutosaveResumeIndexes = (fresh, Date())
+        return fresh
     }
 
     @discardableResult

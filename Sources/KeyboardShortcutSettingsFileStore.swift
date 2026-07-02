@@ -462,6 +462,15 @@ final class CmuxSettingsFileStore {
         if let value = jsonBool(section["keepWorkspaceOpenWhenClosingLastSurface"]) {
             snapshot.managedUserDefaults[SettingCatalog().app.keepWorkspaceOpenWhenClosingLastSurface.userDefaultsKey] = .bool(!value)
         }
+        if let value = jsonInt(section["closedItemHistoryCapacity"]) {
+            if (1...10_000).contains(value) {
+                snapshot.managedUserDefaults[SettingCatalog().app.closedItemHistoryCapacity.userDefaultsKey] = .int(value)
+            } else {
+                logInvalid("app.closedItemHistoryCapacity", sourcePath: sourcePath)
+            }
+        } else if section.keys.contains("closedItemHistoryCapacity") {
+            logInvalid("app.closedItemHistoryCapacity", sourcePath: sourcePath)
+        }
         var parsedConfirmQuitMode: ConfirmQuitMode?
         let confirmQuitKey = AppCatalogSection().confirmQuitMode.userDefaultsKey
         let warnBeforeQuitKey = AppCatalogSection().warnBeforeQuit.userDefaultsKey

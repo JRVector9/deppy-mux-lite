@@ -997,7 +997,8 @@
           "warnBeforeClosingTabXButton": "Show a confirmation before closing a tab with the tab close button.",
           "hideTabCloseButton": "Hide tab close buttons in the pane tab bar.",
           "forkConversationDefaultDestination": "Default destination for the tab context menu's primary Fork Conversation action. The submenu still exposes every destination.",
-          "globalFontMagnification": "Scales deppy-mux-owned terminals, tab titles, sidebars, settings, overlays, and app chrome by this percentage. Rendered browser page content is excluded."
+          "globalFontMagnification": "Scales deppy-mux-owned terminals, tab titles, sidebars, settings, overlays, and app chrome by this percentage. Rendered browser page content is excluded.",
+          "closedItemHistoryCapacity": "Maximum number of closed tabs, workspaces, and windows kept in the reopen history. Oldest entries are dropped first."
         },
         "terminal": {
           "copyOnSelect": "When true, copy selected terminal text to the system clipboard when the selection is committed. When false, deppy-mux does not emit a Ghostty copy-on-select override; Ghostty config and defaults control selection-clipboard behavior.",
