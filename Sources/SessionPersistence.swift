@@ -713,7 +713,10 @@ enum SurfaceResumeApprovalStore {
     private static let secretFileName = ".surface-resume-approval-secret"
     private static let settingsTerminalSectionKey = "terminal"
     private static let settingsRecordsKey = "resumeCommands"
-    private static let keychainService = "com.cmuxterm.app.surface-resume-approvals"
+    private static let keychainService = "com.deppy-mux.app.surface-resume-approvals"
+    // Pre-rebrand service name; read once to migrate an existing HMAC secret so
+    // previously approved resume commands keep verifying, then deleted.
+    private static let legacyKeychainService = "com.cmuxterm.app.surface-resume-approvals"
     private static let keychainAccount = "hmac-secret-v1"
 
     struct StoredFile: Codable {
@@ -1239,9 +1242,25 @@ enum SurfaceResumeApprovalStore {
 
 #if canImport(Security)
     private static func keychainSecret() -> Data? {
+        if let secret = keychainSecret(service: keychainService) {
+            return secret
+        }
+        // Lazy migration from the pre-rebrand service: copy the secret under
+        // the new name, then delete the old entry. If the copy fails, keep
+        // returning the legacy secret so approvals never break mid-migration.
+        guard let legacySecret = keychainSecret(service: legacyKeychainService) else {
+            return nil
+        }
+        if storeKeychainSecret(legacySecret) {
+            deleteKeychainSecret(service: legacyKeychainService)
+        }
+        return legacySecret
+    }
+
+    private static func keychainSecret(service: String) -> Data? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
+            kSecAttrService as String: service,
             kSecAttrAccount as String: keychainAccount,
             kSecUseDataProtectionKeychain as String: true,
             kSecReturnData as String: true,
@@ -1251,6 +1270,16 @@ enum SurfaceResumeApprovalStore {
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         guard status == errSecSuccess else { return nil }
         return result as? Data
+    }
+
+    private static func deleteKeychainSecret(service: String) {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: keychainAccount,
+            kSecUseDataProtectionKeychain as String: true,
+        ]
+        SecItemDelete(query as CFDictionary)
     }
 
     private static func storeKeychainSecret(_ secret: Data) -> Bool {
