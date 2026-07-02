@@ -3,7 +3,7 @@ import Foundation
 /// Persistent toggle for soft line wrapping in the plain-text file editor.
 ///
 /// Backed by the `fileEditor.wordWrap` key, shared by the Settings window
-/// (`CmuxSettings` catalog), the `~/.config/cmux/cmux.json` parser, and the
+/// (`CmuxSettings` catalog), the `~/.config/deppy-mux/deppy-mux.json` parser, and the
 /// `FilePreviewTextEditor`. `false` preserves the established no-wrap behavior
 /// (long lines extend past the viewport with a horizontal scroller).
 enum FilePreviewWordWrapSettings {

@@ -417,7 +417,10 @@ struct CmuxVaultAgentRegistry: Sendable {
         fileManager: FileManager
     ) -> [String] {
         let home = (homeDirectory as NSString).standardizingPath
-        var paths = [(home as NSString).appendingPathComponent(".config/cmux/cmux.json")]
+        var paths = [
+            (home as NSString).appendingPathComponent(".config/deppy-mux/deppy-mux.json"),
+            (home as NSString).appendingPathComponent(".config/cmux/cmux.json"),
+        ]
         let startingDirectory = workingDirectory?.trimmingCharacters(in: .whitespacesAndNewlines)
             ?? environment["PWD"]?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let startingDirectory, !startingDirectory.isEmpty,
@@ -435,10 +438,7 @@ struct CmuxVaultAgentRegistry: Sendable {
             : (path as NSString).deletingLastPathComponent
         var current = (start as NSString).standardizingPath
         while true {
-            let candidates = [
-                ((current as NSString).appendingPathComponent(".cmux") as NSString).appendingPathComponent("cmux.json"),
-                (current as NSString).appendingPathComponent("cmux.json"),
-            ]
+            let candidates = CmuxConfigStore.projectConfigCandidates(in: current)
             for candidate in candidates where fileManager.fileExists(atPath: candidate) {
                 return candidate
             }

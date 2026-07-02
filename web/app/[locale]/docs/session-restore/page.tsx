@@ -178,7 +178,7 @@ cmux surface resume clear --checkpoint work`}</CodeBlock>
 
       <h2>{t("disableTitle")}</h2>
       <p>{t("disableDesc")}</p>
-      <CodeBlock title="~/.config/cmux/cmux.json" lang="json">{`{
+      <CodeBlock title="~/.config/deppy-mux/deppy-mux.json" lang="json">{`{
   "terminal": {
     "autoResumeAgentSessions": false
   }

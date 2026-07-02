@@ -112,7 +112,7 @@ echo "$CMUX_NOTIFICATION_TITLE: $CMUX_NOTIFICATION_BODY" >> ~/notifications.log`
   },
   "context": {
     "cwd": "/path/to/project",
-    "configPath": "/path/to/project/.cmux/cmux.json",
+    "configPath": "/path/to/project/.deppy-mux/deppy-mux.json",
     "hookId": "quiet-docs",
     "appFocused": false,
     "focusedPanel": false

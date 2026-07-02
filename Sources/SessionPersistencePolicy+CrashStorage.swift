@@ -1,13 +1,22 @@
+import CmuxSettings
 import Foundation
 
 extension SessionPersistencePolicy {
+    // GhosttyKit's crash-report subdirectory is baked in at build time as
+    // `cmux/crash`, so reports keep landing under the legacy name even after
+    // the state directory rename; crash pickup therefore reads BOTH the
+    // legacy (`cmux/crash`) and current (`deppy-mux/crash`) directories.
+    private static var crashStateDirectoryNames: [String] {
+        [CmuxStateDirectory.legacyDirectoryName, CmuxStateDirectory.directoryName]
+    }
+
     static func defaultCmuxCrashDirectoryURL(
         homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
     ) -> URL {
         homeDirectory
             .appendingPathComponent(".local", isDirectory: true)
             .appendingPathComponent("state", isDirectory: true)
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent(CmuxStateDirectory.legacyDirectoryName, isDirectory: true)
             .appendingPathComponent("crash", isDirectory: true)
     }
 
@@ -15,14 +24,22 @@ extension SessionPersistencePolicy {
         homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser,
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) -> [URL] {
-        var urls = [defaultCmuxCrashDirectoryURL(homeDirectory: homeDirectory)]
+        var urls = crashStateDirectoryNames.map { name in
+            homeDirectory
+                .appendingPathComponent(".local", isDirectory: true)
+                .appendingPathComponent("state", isDirectory: true)
+                .appendingPathComponent(name, isDirectory: true)
+                .appendingPathComponent("crash", isDirectory: true)
+        }
         if let xdgStateHome = environment["XDG_STATE_HOME"]?.trimmingCharacters(in: .whitespacesAndNewlines),
            !xdgStateHome.isEmpty {
-            urls.append(
-                URL(fileURLWithPath: (xdgStateHome as NSString).expandingTildeInPath, isDirectory: true)
-                    .appendingPathComponent("cmux", isDirectory: true)
-                    .appendingPathComponent("crash", isDirectory: true)
-            )
+            for name in crashStateDirectoryNames {
+                urls.append(
+                    URL(fileURLWithPath: (xdgStateHome as NSString).expandingTildeInPath, isDirectory: true)
+                        .appendingPathComponent(name, isDirectory: true)
+                        .appendingPathComponent("crash", isDirectory: true)
+                )
+            }
         }
 
         var seen: Set<String> = []

@@ -105,9 +105,9 @@ struct DockEmptyView: View {
             Dock is cmux's right-sidebar terminal control area. A Dock config is JSON with a top-level `controls` array. Each control runs a command in its own Ghostty-backed terminal section using the user's login shell. Controls are useful for project dashboards, git/status views, dev server or build status, test watchers, log tails, queues, local services, or a custom TUI such as `cmux feed tui --opentui` when that feed is useful.
 
             Choose where to write the config:
-            - In a repository or project directory, create or edit `.cmux/dock.json` so teammates can share it.
-            - For a personal default outside a repo, create or edit `~/.config/cmux/dock.json`.
-            - If both exist, project `.cmux/dock.json` is more specific for that project. Nested project configs apply to that directory tree; use the nearest relevant project config instead of writing unrelated controls globally.
+            - In a repository or project directory, create or edit `.deppy-mux/dock.json` so teammates can share it.
+            - For a personal default outside a repo, create or edit `~/.config/deppy-mux/dock.json`.
+            - If both exist, project `.deppy-mux/dock.json` is more specific for that project. Nested project configs apply to that directory tree; use the nearest relevant project config instead of writing unrelated controls globally.
             - If there is no repo and no clear project root, use the global config only after confirming the user wants a personal Dock.
 
             Schema:

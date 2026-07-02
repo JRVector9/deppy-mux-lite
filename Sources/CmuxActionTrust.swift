@@ -1,3 +1,4 @@
+import CmuxSettings
 import CryptoKit
 import Foundation
 
@@ -35,7 +36,7 @@ final class CmuxActionTrust {
         let appSupport = FileManager.default.urls(
             for: .applicationSupportDirectory,
             in: .userDomainMask
-        ).first!.appendingPathComponent("cmux")
+        ).first!.appendingPathComponent(CmuxAppSupportDirectory.directoryName)
         storePath = appSupport.appendingPathComponent("trusted-actions.json").path
 
         let fm = FileManager.default

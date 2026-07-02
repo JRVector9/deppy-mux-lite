@@ -86,7 +86,7 @@ cmux agent-hibernation on
 cmux agent-hibernation off
 ```
 
-Tune the idle window and live-terminal limit from Settings, or set them in `~/.config/cmux/cmux.json`:
+Tune the idle window and live-terminal limit from Settings, or set them in `~/.config/deppy-mux/deppy-mux.json`:
 
 ```json
 {
@@ -114,7 +114,7 @@ Approvals are prefix-based and signed by cmux. They also bind the working direct
 To restore panes without automatically restarting saved agent sessions, turn off
 **Settings > Terminal > Resume Agent Sessions on Reopen**.
 
-You can also set the same preference in `~/.config/cmux/cmux.json`:
+You can also set the same preference in `~/.config/deppy-mux/deppy-mux.json`:
 
 ```json
 {

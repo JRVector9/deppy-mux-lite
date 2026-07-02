@@ -473,11 +473,15 @@ final class DockControlsStore: ObservableObject {
         var candidate = URL(fileURLWithPath: rootDirectory, isDirectory: true)
         let homePath = FileManager.default.homeDirectoryForCurrentUser.path
         while true {
-            let configURL = candidate
-                .appendingPathComponent(".cmux", isDirectory: true)
-                .appendingPathComponent("dock.json", isDirectory: false)
-            if FileManager.default.fileExists(atPath: configURL.path) {
-                return configURL
+            // `.deppy-mux` first, then the pre-rebrand `.cmux` marker existing
+            // repos still carry.
+            for markerName in [".deppy-mux", ".cmux"] {
+                let configURL = candidate
+                    .appendingPathComponent(markerName, isDirectory: true)
+                    .appendingPathComponent("dock.json", isDirectory: false)
+                if FileManager.default.fileExists(atPath: configURL.path) {
+                    return configURL
+                }
             }
             let parent = candidate.deletingLastPathComponent()
             if parent.path == candidate.path || candidate.path == homePath {
@@ -499,15 +503,34 @@ final class DockControlsStore: ObservableObject {
            !testPath.isEmpty {
             return URL(fileURLWithPath: testPath)
         }
-        return FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".config/cmux/dock.json", isDirectory: false)
+        // Existence-based fallback so a user dock config written before the
+        // one-time config migration keeps applying.
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let primary = home.appendingPathComponent(".config/deppy-mux/dock.json", isDirectory: false)
+        let legacy = home.appendingPathComponent(".config/cmux/dock.json", isDirectory: false)
+        if !FileManager.default.fileExists(atPath: primary.path),
+           FileManager.default.fileExists(atPath: legacy.path) {
+            return legacy
+        }
+        return primary
     }
 
     private static func preferredEditableConfigURL(rootDirectory: String?) throws -> URL {
         if let rootDirectory = rootDirectory.flatMap(existingDirectory) {
-            return URL(fileURLWithPath: rootDirectory, isDirectory: true)
+            let root = URL(fileURLWithPath: rootDirectory, isDirectory: true)
+            // Keep editing an existing legacy `.cmux/dock.json`; new configs
+            // are created under the `.deppy-mux` marker.
+            let legacy = root
                 .appendingPathComponent(".cmux", isDirectory: true)
                 .appendingPathComponent("dock.json", isDirectory: false)
+            let primary = root
+                .appendingPathComponent(".deppy-mux", isDirectory: true)
+                .appendingPathComponent("dock.json", isDirectory: false)
+            if !FileManager.default.fileExists(atPath: primary.path),
+               FileManager.default.fileExists(atPath: legacy.path) {
+                return legacy
+            }
+            return primary
         }
         return globalConfigURL()
     }

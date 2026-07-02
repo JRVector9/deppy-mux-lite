@@ -2,6 +2,7 @@ import CmuxFoundation
 import AppKit
 import CmuxTerminal
 import Carbon.HIToolbox
+import CmuxSettings
 import CmuxSettingsUI
 import Observation
 import SwiftUI
@@ -553,7 +554,7 @@ private enum TextBoxDraftAttachmentStorage {
             return nil
         }
         let directory = appSupportDirectory
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent(CmuxAppSupportDirectory.directoryName, isDirectory: true)
             .appendingPathComponent(directoryName, isDirectory: true)
         if createIfMissing {
             do {

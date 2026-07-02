@@ -19,18 +19,25 @@ import CmuxSettingsUI
 /// seam, and the Debug menu / CLI write through the store's async `set`.
 enum DevWindowDisplayDefault {
     /// Legacy single-line file the value used to live in, before it moved into
-    /// `cmux.json`. Read for migration and as a first-launch fallback, then
-    /// ignored.
-    static var legacyFileURL: URL {
-        FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".config/cmux/dev-window-display")
+    /// the JSON config. Read for migration and as a first-launch fallback, then
+    /// ignored. The config-directory migration may have relocated it into
+    /// `~/.config/deppy-mux/`, so both locations are checked.
+    static var legacyFileURLs: [URL] {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        return [
+            home.appendingPathComponent(".config/deppy-mux/dev-window-display"),
+            home.appendingPathComponent(".config/cmux/dev-window-display"),
+        ]
     }
 
     /// The trimmed display name in the legacy file, or `nil` when absent/empty.
     static func legacyFileName() -> String? {
-        guard let raw = try? String(contentsOf: legacyFileURL, encoding: .utf8) else { return nil }
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
+        for url in legacyFileURLs {
+            guard let raw = try? String(contentsOf: url, encoding: .utf8) else { continue }
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { return trimmed }
+        }
+        return nil
     }
 
     /// The configured display name from settings, or `nil` when unset/empty.

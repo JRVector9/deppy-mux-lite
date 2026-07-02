@@ -12,7 +12,7 @@ import Testing
         let home = URL(fileURLWithPath: "/Users/test-user", isDirectory: true)
         let url = CmuxStateDirectory.url(homeDirectory: home)
 
-        #expect(url.path == "/Users/test-user/.local/state/cmux")
+        #expect(url.path == "/Users/test-user/.local/state/deppy-mux")
         // The whole point of the fix: never under a TCC-protected app-data root.
         #expect(!url.path.contains("/Library/Application Support"))
         #expect(!url.path.contains("/Library/Containers"))
