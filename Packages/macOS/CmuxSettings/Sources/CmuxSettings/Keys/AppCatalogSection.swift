@@ -70,6 +70,16 @@ public struct AppCatalogSection: SettingCatalogSection {
         userDefaultsKey: "paneFirstClickFocus.enabled"
     )
 
+    /// Maximum number of closed tabs/workspaces/windows kept for "Reopen
+    /// Closed…". Each record stores a full restore snapshot and the list is
+    /// persisted, so the cap bounds both memory and the on-disk history file.
+    /// Oldest records are dropped first when the history overflows.
+    public let closedItemHistoryCapacity = DefaultsKey<Int>(
+        id: "app.closedItemHistoryCapacity",
+        defaultValue: 150,
+        userDefaultsKey: "app.closedItemHistoryCapacity"
+    )
+
     public let preferredEditor = DefaultsKey<String>(
         id: "app.preferredEditor",
         defaultValue: "",

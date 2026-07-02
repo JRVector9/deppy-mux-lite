@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import Bonsplit
+import CmuxSettings
 import OSLog
 
 private let closedItemHistoryLogger = Logger(
@@ -126,14 +127,24 @@ enum ClosedWindowRestoreValidation {
 
 @MainActor
 final class ClosedItemHistoryStore: ObservableObject {
-    static let shared = ClosedItemHistoryStore(
-        capacity: nil,
-        fileURL: defaultHistoryFileURL()
-    )
+    // Capacity bounds the reopen history: without it records (each holding a
+    // full panel/workspace/window restore snapshot) accumulate forever and
+    // persist to disk, so the store grows without limit across sessions. The
+    // limit is user-configurable in Settings (default 150); the store follows
+    // changes live via `followCapacitySetting`.
+    static let shared: ClosedItemHistoryStore = {
+        let store = ClosedItemHistoryStore(
+            capacity: ClosedItemHistoryStore.configuredCapacity(),
+            fileURL: defaultHistoryFileURL()
+        )
+        store.followCapacitySetting()
+        return store
+    }()
 
     @Published private(set) var revision: UInt64 = 0
     @Published private var records: [ClosedItemHistoryRecord] = []
-    private let capacity: Int?
+    private var capacity: Int?
+    private var capacitySettingObserver: NSObjectProtocol?
     private let fileURL: URL?
     private let persistsRecordsSynchronously: Bool
     private var didFinishPersistedRecordsLoad: Bool
@@ -172,6 +183,41 @@ final class ClosedItemHistoryStore: ObservableObject {
                 loadPersistedRecordsAsync(from: fileURL)
             }
         }
+    }
+
+    /// The user-configured history limit from Settings, sanitized to a usable
+    /// range so a garbage defaults value can never unbound the store or wipe
+    /// the history.
+    private static func configuredCapacity(defaults: UserDefaults = .standard) -> Int {
+        let key = SettingCatalog().app.closedItemHistoryCapacity
+        let stored = defaults.object(forKey: key.userDefaultsKey) as? Int ?? key.defaultValue
+        return min(max(stored, 1), 10_000)
+    }
+
+    /// Re-reads the capacity setting whenever UserDefaults changes and applies
+    /// it live, trimming (oldest first) when the limit shrinks below the
+    /// current record count.
+    private func followCapacitySetting() {
+        guard capacitySettingObserver == nil else { return }
+        capacitySettingObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: UserDefaults.standard,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.applyCapacity(Self.configuredCapacity())
+            }
+        }
+    }
+
+    private func applyCapacity(_ newCapacity: Int) {
+        let sanitized = max(1, newCapacity)
+        guard sanitized != capacity else { return }
+        capacity = sanitized
+        guard records.count > sanitized else { return }
+        trimToCapacityIfNeeded()
+        revision &+= 1
+        persistRecords()
     }
 
     var canReopen: Bool {

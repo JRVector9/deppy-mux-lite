@@ -2989,7 +2989,11 @@ final class BrowserPanel: Panel, ObservableObject {
     @Published var searchState: BrowserSearchState?
     private(set) var workspaceId: UUID
 
-    let webView = WKWebView()
+    // Lazy so instantiating the stub never allocates a WKWebView (and its
+    // ~50-100MB web-content process). Lite blocks every browser-panel entry
+    // point today; this keeps any future un-gated path from paying for a
+    // web view until one is actually touched.
+    lazy var webView = WKWebView()
     let portalAnchorView = BrowserPortalAnchorView()
     let profileID: UUID
     let historyStore: BrowserHistoryStore = .shared
