@@ -44,7 +44,7 @@ final class MobileWebAccessClient {
         }
         let publicOrigin: URL?
         if requiresLocalServer {
-            guard let tailscaleOrigin = Self.tailscalePublicOrigin(baseURL: baseURL) else {
+            guard let tailscaleOrigin = await Self.tailscalePublicOrigin(baseURL: baseURL) else {
                 return .tailscaleUnavailable
             }
             publicOrigin = tailscaleOrigin
@@ -176,7 +176,7 @@ final class MobileWebAccessClient {
     /// Starts or stops the local Web Connect server using a user-selected port.
     func setServerEnabled(_ enabled: Bool, port: Int) async -> MobileWebAccessServerControlResult {
         let baseURL = Self.webConnectBaseURL(port: port)
-        if enabled, WebConnectServerController.canAutoStart(baseURL: baseURL), Self.tailscalePublicOrigin(baseURL: baseURL) == nil {
+        if enabled, WebConnectServerController.canAutoStart(baseURL: baseURL), await Self.tailscalePublicOrigin(baseURL: baseURL) == nil {
             Self.setWebConnectServerEnabled(false)
             return .tailscaleUnavailable
         }
@@ -437,8 +437,15 @@ final class MobileWebAccessClient {
         return try? JSONSerialization.data(withJSONObject: body, options: [])
     }
 
-    private static func tailscalePublicOrigin(baseURL: URL = webConnectBaseURL()) -> URL? {
-        guard let tailscaleHost = MobileRouteResolver.tailscaleRouteHosts(resolveDNS: false).first,
+    private static func tailscalePublicOrigin(baseURL: URL = webConnectBaseURL()) async -> URL? {
+        // Resolve the MagicDNS name so the generated link/QR uses the stable
+        // `<machine>.<tailnet>.ts.net` host (first in the resolved list) and
+        // only falls back to the 100.x address when no DNS name exists. The
+        // reverse-DNS lookup can block, so it runs off the main actor.
+        let hosts = await Task.detached(priority: .userInitiated) {
+            MobileRouteResolver.tailscaleRouteHosts(resolveDNS: true)
+        }.value
+        guard let tailscaleHost = hosts.first,
               let url = webConnectPublicOrigin(baseURL: baseURL, tailscaleHost: tailscaleHost)
         else {
             return nil
