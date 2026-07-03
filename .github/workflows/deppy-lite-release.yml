@@ -247,7 +247,7 @@ jobs:
       - build-web-connect-runtime
     if: needs.guard-release-assets.outputs.skip_all != 'true'
     runs-on: ${{ vars.MACOS_RUNNER_26_RELEASE || 'blacksmith-6vcpu-macos-26' }}
-    timeout-minutes: 60
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
