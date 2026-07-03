@@ -206,8 +206,14 @@ Before announcing a release, verify:
   `appcast-arm64.xml` missing from the latest release, breaking arm64 auto-update.
 - **Version bump guard**: `scripts/deppy-lite-pretag-guard.sh` fails when
   `DEPPY_LITE_VERSION`'s `CURRENT_PROJECT_VERSION` is not strictly greater than every previously
-  tagged `deppy-lite-*` release (Sparkle only updates on a higher build). The release workflow
-  runs it in `guard-release-assets`; run it locally before tagging.
+  tagged `deppy-lite-*` release (Sparkle only updates on a higher build), or when the tag name
+  does not match `MARKETING_VERSION` (a `deppy-lite-vX.Y.Z` tag must ship version X.Y.Z; the
+  already-published v0.1.0, which shipped 0.0.1, is grandfathered). The release workflow runs it
+  in `guard-release-assets`; run it locally before tagging:
+  `./scripts/deppy-lite-pretag-guard.sh --tag deppy-lite-vX.Y.Z`.
+- **Release version procedure**: pick the tag version first, then
+  `./scripts/bump-deppy-lite-version.sh X.Y.Z` (sets MARKETING_VERSION and bumps the build
+  number together), commit, tag `deppy-lite-vX.Y.Z`, push.
 - **GhosttyKit independence**: prebuilt `GhosttyKit.xcframework.tar.gz` archives are mirrored to
   `JRVector9/ghostty` releases. `scripts/download-prebuilt-ghosttykit.sh` tries the deppy fork
   first, then falls back to `manaflow-ai/ghostty`. `build-ghosttykit.yml` publishes to

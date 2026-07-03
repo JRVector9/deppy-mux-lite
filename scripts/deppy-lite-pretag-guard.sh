@@ -1,18 +1,25 @@
 #!/usr/bin/env bash
 # Fails when DEPPY_LITE_VERSION's CURRENT_PROJECT_VERSION is not strictly
-# greater than every previously tagged deppy-lite release. Sparkle only offers
-# an update when the build number increases, so tagging a release without
-# bumping silently strands existing users on the old build.
+# greater than every previously tagged deppy-lite release (Sparkle only offers
+# an update when the build number increases), or when the release tag name does
+# not match MARKETING_VERSION (a `deppy-lite-vX.Y.Z` tag must ship an app whose
+# displayed version is X.Y.Z).
 #
 # Run before creating a deppy-lite tag:
-#   ./scripts/deppy-lite-pretag-guard.sh
+#   ./scripts/deppy-lite-pretag-guard.sh --tag deppy-lite-vX.Y.Z
 #
-# Tags pointing at HEAD are excluded so the guard can also run in CI on the
-# tagged commit itself.
+# In CI the tag is taken from GITHUB_REF_NAME; locally a release tag pointing
+# at HEAD is also checked. Tags pointing at HEAD are excluded from the
+# build-monotonicity comparison so the guard can run on the tagged commit.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION_FILE="${DEPPY_LITE_VERSION_FILE:-${ROOT_DIR}/DEPPY_LITE_VERSION}"
+
+intended_tag=""
+if [ "${1:-}" = "--tag" ]; then
+  intended_tag="${2:-}"
+fi
 
 if [ ! -f "$VERSION_FILE" ]; then
   echo "error: missing $VERSION_FILE" >&2
@@ -23,6 +30,32 @@ current_build="$(sed -n 's/^CURRENT_PROJECT_VERSION=//p' "$VERSION_FILE" | tail 
 if ! [[ "$current_build" =~ ^[0-9]+$ ]]; then
   echo "error: CURRENT_PROJECT_VERSION must be an integer, got: $current_build" >&2
   exit 1
+fi
+
+current_marketing="$(sed -n 's/^MARKETING_VERSION=//p' "$VERSION_FILE" | tail -n 1)"
+
+# Tag <-> marketing-version alignment. The tag under validation is, in order:
+# an explicit --tag argument, CI's GITHUB_REF_NAME, or a release tag already
+# pointing at HEAD. The grandfathered deppy-lite-v0.1.0 shipped 0.0.1 before
+# this check existed and is exempted.
+check_tag=""
+if [ -n "$intended_tag" ]; then
+  check_tag="$intended_tag"
+elif [[ "${GITHUB_REF_NAME:-}" == deppy-lite-v* ]]; then
+  check_tag="$GITHUB_REF_NAME"
+else
+  check_tag="$(git -C "$ROOT_DIR" tag --points-at HEAD 2>/dev/null | grep '^deppy-lite-v' | head -n 1 || true)"
+fi
+if [ -n "$check_tag" ] && [ "$check_tag" != "deppy-lite-v0.1.0" ]; then
+  tag_version="${check_tag#deppy-lite-v}"
+  if [ "$tag_version" != "$current_marketing" ]; then
+    cat >&2 <<EOF
+error: tag '$check_tag' does not match MARKETING_VERSION '$current_marketing'.
+       Align them before tagging:
+         ./scripts/bump-deppy-lite-version.sh $tag_version
+EOF
+    exit 1
+  fi
 fi
 
 head_tags="$(git -C "$ROOT_DIR" tag --points-at HEAD 2>/dev/null || true)"
