@@ -516,6 +516,28 @@ export function WebAccessSessionClient({
     }
   }
 
+  async function sendTab() {
+    setSkillPickerOpen(false);
+    if (!target || isSending) {
+      return;
+    }
+    const capturedTarget = target;
+    setComposerError(null);
+    setIsSending(true);
+    try {
+      await client.sendInput(capturedTarget, "\t");
+      setTranscript((current) => [
+        ...current,
+        `${capturedTarget.surfaceId} Tab`,
+      ]);
+      void refreshTerminalScreen(capturedTarget);
+    } catch {
+      setComposerError(copy.sendFailed);
+    } finally {
+      setIsSending(false);
+    }
+  }
+
   function shouldSendRawInteractiveInput(text: string): boolean {
     return /^[0-9]$/.test(text);
   }
@@ -815,50 +837,58 @@ export function WebAccessSessionClient({
           </div>
 
           {skillPickerOpen ? (
-            <div className="absolute inset-x-0 bottom-0 z-20 max-h-[58%] overflow-hidden rounded-t-2xl border-t border-[#2a2a2a] bg-[#101010] shadow-2xl">
-              <div className="flex items-center justify-between border-b border-[#2a2a2a] px-3 py-3">
-                <div className="text-sm font-semibold">{copy.skillPickerTitle}</div>
+            <div className="absolute inset-x-0 bottom-0 z-20 max-h-[45%] overflow-hidden rounded-t-xl border-t border-[#2a2a2a] bg-[#101010] shadow-2xl">
+              <div className="flex items-center justify-between border-b border-[#2a2a2a] px-2.5 py-1">
+                <div className="text-xs font-semibold">{copy.skillPickerTitle}</div>
                 <button
                   aria-label={copy.clear}
-                  className="grid h-9 w-9 place-items-center rounded-xl border border-[#2a2a2a] bg-[#0b0b0b] text-lg font-semibold"
+                  className="grid h-6 w-6 place-items-center rounded-lg border border-[#2a2a2a] bg-[#0b0b0b] text-sm font-semibold"
                   onClick={() => setSkillPickerOpen(false)}
                   type="button"
                 >
                   ×
                 </button>
               </div>
-              <div className="web-access-scroll grid max-h-80 gap-px bg-[#2a2a2a]">
-                <div className="bg-[#101010] px-3 py-2 text-[11px] font-semibold uppercase tracking-normal text-[#8e8e8e]">
+              <div className="web-access-scroll grid max-h-64 gap-px bg-[#2a2a2a]">
+                <button
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 bg-[#101010] px-2.5 py-1.5 text-left"
+                  onClick={() => void sendTab()}
+                  type="button"
+                >
+                  <span className="font-mono text-sm">Tab</span>
+                  <span className="rounded-full border border-[#2a2a2a] px-1.5 py-0.5 text-[11px] text-[#a8a8a8]">⇥</span>
+                </button>
+                <div className="bg-[#101010] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-normal text-[#8e8e8e]">
                   {copy.modelSection}
                 </div>
                 {modelCommands.map((command) => (
                   <button
-                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 bg-[#101010] px-3 py-3 text-left"
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 bg-[#101010] px-2.5 py-1.5 text-left"
                     key={command}
                     onClick={() => selectSkill(command)}
                     type="button"
                   >
                     <span className="min-w-0">
                       <span className="block font-mono text-sm">{command}</span>
-                      <span className="mt-0.5 block truncate text-xs text-[#8e8e8e]">
+                      <span className="block truncate text-[11px] text-[#8e8e8e]">
                         {copy.modelCommand}
                       </span>
                     </span>
-                    <span className="rounded-full border border-[#2a2a2a] px-2 py-1 text-xs text-[#a8a8a8]">↵</span>
+                    <span className="rounded-full border border-[#2a2a2a] px-1.5 py-0.5 text-[11px] text-[#a8a8a8]">↵</span>
                   </button>
                 ))}
-                <div className="bg-[#101010] px-3 py-2 text-[11px] font-semibold uppercase tracking-normal text-[#8e8e8e]">
+                <div className="bg-[#101010] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-normal text-[#8e8e8e]">
                   {copy.commandSection}
                 </div>
                 {skillCommands.map((command) => (
                   <button
-                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 bg-[#101010] px-3 py-3 text-left"
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 bg-[#101010] px-2.5 py-1.5 text-left"
                     key={command}
                     onClick={() => selectSkill(command)}
                     type="button"
                   >
                     <span className="font-mono text-sm">{command}</span>
-                    <span className="rounded-full border border-[#2a2a2a] px-2 py-1 text-xs text-[#a8a8a8]">↵</span>
+                    <span className="rounded-full border border-[#2a2a2a] px-1.5 py-0.5 text-[11px] text-[#a8a8a8]">↵</span>
                   </button>
                 ))}
               </div>
