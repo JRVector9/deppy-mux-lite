@@ -168,6 +168,17 @@ fi
 
 xcodebuild "${XCODEBUILD_ARGS[@]}"
 
+# Stamp the commit into the built Info.plist here, outside Xcode. The in-build
+# script phase does the same, but under a linked git worktree the sandboxed
+# phase cannot read the repo .git (it lives outside SRCROOT) and skips
+# silently, leaving the About panel commit empty.
+CMUX_COMMIT_STAMP="$(git -C "$ROOT_DIR" rev-parse --short=9 HEAD 2>/dev/null || true)"
+if [[ -n "$CMUX_COMMIT_STAMP" && -f "$APP_PATH/Contents/Info.plist" ]]; then
+  /usr/libexec/PlistBuddy -c "Set :CMUXCommit $CMUX_COMMIT_STAMP" "$APP_PATH/Contents/Info.plist" 2>/dev/null \
+    || /usr/libexec/PlistBuddy -c "Add :CMUXCommit string $CMUX_COMMIT_STAMP" "$APP_PATH/Contents/Info.plist"
+  echo "Stamped CMUXCommit=$CMUX_COMMIT_STAMP"
+fi
+
 if [[ ! -x "$APP_BIN" ]]; then
   echo "error: app binary not found at $APP_BIN" >&2
   exit 1
